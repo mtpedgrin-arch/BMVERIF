@@ -153,7 +153,9 @@ const SuccessModal = ({ order, onClose }) => (
 );
 
 export default function App() {
-  const { data: session, status } = useSession();
+  const sessionResult = useSession();
+  const session = sessionResult?.data ?? null;
+  const status = sessionResult?.status ?? "loading";
   const user = session?.user || null;
   const isAdmin = user?.role === "admin";
 
