@@ -18,9 +18,9 @@ const ORDERS_DB = [
 
 // ─── GLOBAL COUPON DB ─────────────────────────────────────────────────────────
 const COUPON_DB = [
-  { code: "DEMO10", discount: 10, used: false, usedBy: null, usedAt: null, createdAt: "2026-02-20" },
-  { code: "VIP20", discount: 20, used: false, usedBy: null, usedAt: null, createdAt: "2026-02-22" },
-  { code: "EXPIRED50", discount: 50, used: true, usedBy: "john@example.com", usedAt: "2026-02-23", createdAt: "2026-02-21" },
+  { code: "DEMO10", discount: 10, maxUses: 3, uses: 0, active: true, createdAt: "2026-02-20" },
+  { code: "VIP20", discount: 20, maxUses: 1, uses: 0, active: true, createdAt: "2026-02-22" },
+  { code: "EXPIRED50", discount: 50, maxUses: 1, uses: 1, active: false, createdAt: "2026-02-21" },
 ];
 
 const PRODUCTS = [
@@ -579,7 +579,8 @@ const CartDrawer = ({ cart, onClose, onQty, onRemove, onCheckout }) => {
     if (!code) return;
     const found = COUPON_DB.find(c => c.code === code);
     if (!found) { setCouponState("invalid"); setCouponError("Cupón no encontrado."); setTimeout(() => setCouponState("idle"), 600); return; }
-    if (found.used) { setCouponState("invalid"); setCouponError(`Cupón ya utilizado el ${found.usedAt}.`); setTimeout(() => setCouponState("idle"), 600); return; }
+    if (!found.active) { setCouponState("invalid"); setCouponError("Cupón inactivo o pausado."); setTimeout(() => setCouponState("idle"), 600); return; }
+    if (found.uses >= found.maxUses) { setCouponState("invalid"); setCouponError("Cupón agotado (límite de usos alcanzado)."); setTimeout(() => setCouponState("idle"), 600); return; }
     setAppliedCoupon(found); setCouponState("valid"); setCouponInput("");
   };
 
@@ -805,21 +806,40 @@ const CouponManager = ({ coupons, setCoupons }) => {
   const PRESET = [5, 10, 15, 20, 25, 30, 40, 50, 60, 75];
   const [sel, setSel] = useState(null);
   const [custom, setCustom] = useState("");
+  const [maxUses, setMaxUses] = useState(1);
   const [generated, setGenerated] = useState(null);
   const [copied, setCopied] = useState(false);
   const pct = sel !== null ? sel : parseInt(custom) || null;
+
   const generate = () => {
     if (!pct || pct < 1 || pct > 99) return;
     const code = genCode(pct);
-    const nc = { code, discount: pct, used: false, usedBy: null, usedAt: null, createdAt: today() };
+    const nc = { code, discount: pct, maxUses, uses: 0, active: true, createdAt: today() };
     COUPON_DB.push(nc); setCoupons([...COUPON_DB]); setGenerated(nc); setCopied(false);
   };
+
+  const toggleActive = (code) => {
+    const idx = COUPON_DB.findIndex(c => c.code === code);
+    if (idx !== -1) { COUPON_DB[idx].active = !COUPON_DB[idx].active; setCoupons([...COUPON_DB]); }
+  };
+
+  const deleteCoupon = (code) => {
+    const idx = COUPON_DB.findIndex(c => c.code === code);
+    if (idx !== -1) { COUPON_DB.splice(idx, 1); setCoupons([...COUPON_DB]); }
+  };
+
+  const getStatus = (c) => {
+    if (!c.active) return <span className="badge-used">⏸ PAUSADO</span>;
+    if (c.uses >= c.maxUses) return <span className="badge-used">⛔ AGOTADO</span>;
+    return <span className="badge-active">✓ ACTIVO</span>;
+  };
+
   return (
     <div>
       <div className="page-title">🏷 Gestión de Cupones</div>
       <div className="coupon-creator">
         <div className="coupon-creator-title">✨ Crear nuevo cupón</div>
-        <div className="coupon-creator-sub">Genera un cupón de uso único para compartir con clientes</div>
+        <div className="coupon-creator-sub">Generá un cupón con descuento y límite de usos</div>
         <div className="form-label" style={{ color: "#6D28D9", marginBottom: 8 }}>Porcentaje de descuento:</div>
         <div className="percent-grid">
           {PRESET.map(p => <button key={p} className={`percent-btn ${sel === p ? "active" : ""}`} onClick={() => { setSel(p); setCustom(""); }}>{p}%</button>)}
@@ -829,10 +849,21 @@ const CouponManager = ({ coupons, setCoupons }) => {
           <input className="custom-percent" type="number" min="1" max="99" placeholder="35" value={custom} onChange={e => { setCustom(e.target.value); setSel(null); }} />
           <span style={{ fontSize: 14, color: "#6D28D9", fontWeight: 700 }}>%</span>
         </div>
-        <button className="btn btn-purple" onClick={generate} style={{ opacity: (!pct || pct < 1 || pct > 99) ? 0.5 : 1 }}>⚡ Generar cupón único</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+          <span style={{ fontSize: 13, color: "#6D28D9", fontWeight: 600 }}>Usos permitidos:</span>
+          <div style={{ display: "flex", gap: 6 }}>
+            {[1,2,3,4,5,6,7,8,9,10].map(n => (
+              <button key={n} onClick={() => setMaxUses(n)} style={{ width: 34, height: 34, borderRadius: 8, border: `1.5px solid ${maxUses === n ? "var(--purple)" : "#C4B5FD"}`, background: maxUses === n ? "var(--purple)" : "#fff", color: maxUses === n ? "#fff" : "var(--purple)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{n}</button>
+            ))}
+          </div>
+        </div>
+        <button className="btn btn-purple" onClick={generate} style={{ opacity: (!pct || pct < 1 || pct > 99) ? 0.5 : 1 }}>⚡ Generar cupón</button>
         {generated && (
           <div className="coupon-result">
-            <div><div className="coupon-result-code">{generated.code}</div><div className="coupon-result-meta">{generated.discount}% off · Uso único · {generated.createdAt}</div></div>
+            <div>
+              <div className="coupon-result-code">{generated.code}</div>
+              <div className="coupon-result-meta">{generated.discount}% off · {generated.maxUses} uso{generated.maxUses > 1 ? "s" : ""} · {generated.createdAt}</div>
+            </div>
             <button className="copy-code-btn" onClick={() => { navigator.clipboard.writeText(generated.code).catch(()=>{}); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
               {copied ? "✓ Copiado!" : "📋 Copiar"}
             </button>
@@ -843,16 +874,38 @@ const CouponManager = ({ coupons, setCoupons }) => {
         <div className="card-title">Todos los cupones ({coupons.length})</div>
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Código</th><th>Descuento</th><th>Estado</th><th>Usado por</th><th>Fecha uso</th><th>Creado</th></tr></thead>
+            <thead><tr><th>Código</th><th>Descuento</th><th>Usos</th><th>Estado</th><th>Creado</th><th>Acciones</th></tr></thead>
             <tbody>
               {coupons.map((c, i) => (
                 <tr key={i}>
-                  <td><code style={{ fontFamily: "monospace", fontWeight: 800, letterSpacing: "1px", color: c.used ? "var(--muted)" : "var(--purple)" }}>{c.code}</code></td>
+                  <td><code style={{ fontFamily: "monospace", fontWeight: 800, letterSpacing: "1px", color: !c.active || c.uses >= c.maxUses ? "var(--muted)" : "var(--purple)" }}>{c.code}</code></td>
                   <td><span className="badge badge-purple">{c.discount}% OFF</span></td>
-                  <td>{c.used ? <span className="badge-used">⛔ USADO</span> : <span className="badge-active">✓ ACTIVO</span>}</td>
-                  <td style={{ color: "var(--muted)", fontSize: 12 }}>{c.usedBy || "—"}</td>
-                  <td style={{ color: "var(--muted)", fontSize: 12 }}>{c.usedAt || "—"}</td>
+                  <td>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ width: 60, height: 6, background: "var(--border)", borderRadius: 99, overflow: "hidden" }}>
+                        <div style={{ width: `${Math.min((c.uses / c.maxUses) * 100, 100)}%`, height: "100%", background: c.uses >= c.maxUses ? "var(--red)" : "var(--green)", borderRadius: 99 }} />
+                      </div>
+                      <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{c.uses}/{c.maxUses}</span>
+                    </div>
+                  </td>
+                  <td>{getStatus(c)}</td>
                   <td style={{ color: "var(--muted)", fontSize: 12 }}>{c.createdAt}</td>
+                  <td>
+                    <div style={{ display: "flex", gap: 5 }}>
+                      <button
+                        onClick={() => toggleActive(c.code)}
+                        style={{ padding: "4px 10px", borderRadius: 7, border: "1.5px solid var(--border)", background: c.active ? "var(--amber-light)" : "var(--green-light)", color: c.active ? "var(--amber)" : "var(--green)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                      >
+                        {c.active ? "⏸ Pausar" : "▶ Activar"}
+                      </button>
+                      <button
+                        onClick={() => deleteCoupon(c.code)}
+                        style={{ padding: "4px 10px", borderRadius: 7, border: "1.5px solid var(--border)", background: "var(--red-light)", color: "var(--red)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                      >
+                        🗑 Borrar
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -920,7 +973,7 @@ const AdminPanel = ({ orders, onConfirmOrder, coupons, setCoupons }) => {
     { id: 1, name: "John Doe", preview: "Hola, cuál es el precio?", time: "10:15", unread: true },
   ];
   const pendingCount = orders.filter(o => o.status === "pending").length;
-  const activeCoupons = coupons.filter(c => !c.used).length;
+  const activeCoupons = coupons.filter(c => c.active && c.uses < c.maxUses).length;
   const sideItems = [
     { id: "overview", icon: "📊", label: "Overview" },
     { id: "orders", icon: "📦", label: "Órdenes", badge: pendingCount, badgeColor: "var(--amber)" },
@@ -1094,7 +1147,7 @@ export default function App() {
   const handlePaySuccess = (network, txHash) => {
     if (pendingCoupon) {
       const idx = COUPON_DB.findIndex(c => c.code === pendingCoupon.code);
-      if (idx !== -1) { COUPON_DB[idx].used = true; COUPON_DB[idx].usedBy = user.email; COUPON_DB[idx].usedAt = today(); setCoupons([...COUPON_DB]); }
+      if (idx !== -1) { COUPON_DB[idx].uses += 1; setCoupons([...COUPON_DB]); }
     }
     const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
     const discount = pendingCoupon ? subtotal * (pendingCoupon.discount / 100) : 0;
