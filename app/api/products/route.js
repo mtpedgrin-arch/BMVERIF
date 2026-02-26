@@ -1,27 +1,50 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../../../lib/authOptions";
 import { prisma } from "../../../lib/prisma";
-import { productCreateSchema } from "../../../lib/validators";
 
-export async function GET() {
+// GET /api/products — activos (público) o todos (admin con ?all=true)
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
+  const all = searchParams.get("all") === "true";
+
+  if (all) {
+    const session = await getServerSession(authOptions);
+    if (session?.user?.role !== "admin") {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const products = await prisma.product.findMany({ orderBy: { createdAt: "desc" } });
+    return NextResponse.json(products);
+  }
+
   const products = await prisma.product.findMany({
     where: { isActive: true },
-    orderBy: { createdAt: "desc" },
-    take: 50,
+    orderBy: { createdAt: "asc" },
   });
-  return NextResponse.json({ ok: true, products });
+  return NextResponse.json(products);
 }
 
+// POST /api/products — crear producto (admin)
 export async function POST(req) {
-  try {
-    const body = await req.json();
-    const parsed = productCreateSchema.parse(body);
-
-    const product = await prisma.product.create({ data: parsed });
-    return NextResponse.json({ ok: true, product }, { status: 201 });
-  } catch (err) {
-    return NextResponse.json(
-      { ok: false, error: "Invalid request", details: err?.message },
-      { status: 400 }
-    );
+  const session = await getServerSession(authOptions);
+  if (session?.user?.role !== "admin") {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
+  const { name, details, price, stock } = await req.json();
+  if (!name || price == null) {
+    return NextResponse.json({ error: "Nombre y precio son obligatorios." }, { status: 400 });
+  }
+  const product = await prisma.product.create({
+    data: {
+      name: name.trim(),
+      details: details?.trim() || null,
+      price: parseFloat(price),
+      stock: parseInt(stock) || 0,
+      sales: 0,
+      rating: 0,
+      reviews: 0,
+      isActive: true,
+    },
+  });
+  return NextResponse.json(product);
 }

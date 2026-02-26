@@ -16,25 +16,23 @@ model User {
   role      String   @default("user")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  products  Product[]
   orders    Order[]
 }
 
 model Product {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  imageUrl    String?
-  priceCents  Int
-  currency    String   @default("USD")
-  downloadUrl String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  name      String
+  details   String?
+  price     Float    @default(0)
+  stock     Int      @default(0)
+  sales     Int      @default(0)
+  rating    Float    @default(0)
+  reviews   Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  ownerId String?
-  owner   User?   @relation(fields: [ownerId], references: [id])
-  items   OrderItem[]
+  items OrderItem[]
 }
 
 model Order {

@@ -18,16 +18,7 @@ const ORDERS_DB = [
 
 // COUPON_DB fue reemplazado por la base de datos (Neon/Prisma)
 
-const PRODUCTS = [
-  { id: 1, name: "Account Business Manager (BM1) Brazil", details: "$50 Limit · Ads-only · Ad Account Created · TZ/currency/country editable", price: 27.00, stock: 1, sales: 22, rating: 0, reviews: 0 },
-  { id: 2, name: "Business Manager Facebook · Verified · Created in 2024", details: "BM Limit $250 · GEO Europe/USA · For WhatsApp API & Apps", price: 33.00, stock: 1, sales: 411, rating: 5, reviews: 1 },
-  { id: 3, name: "Business Manager Facebook · Country Ukraine · Verified BM", details: "Reinstated · Ad Limit 50 · Suitable for WhatsApp API & Apps · Ad Campaigns Created", price: 34.50, stock: 11, sales: 553, rating: 5, reviews: 5 },
-  { id: 4, name: "Business Manager Facebook · Verified · WhatsApp API Already Linked", details: "Geo Europe/USA", price: 35.00, stock: 6, sales: 165, rating: 5, reviews: 1 },
-  { id: 5, name: "Business Manager Facebook · Verified · WhatsApp API Linked", details: "No Ban Risk · Created 2019–2024 · Country MIX", price: 36.00, stock: 4, sales: 223, rating: 4.75, reviews: 4 },
-  { id: 6, name: "Facebook Business Manager · Verified · Spain (ES)", details: "Suitable for WA and applications · Daily limit 50$", price: 36.50, stock: 3, sales: 15, rating: 0, reviews: 0 },
-  { id: 7, name: "Business Manager Facebook · USA · BM Limit $500", details: "Premium Account · Ad Campaigns Ready · Verified 2024", price: 45.00, stock: 2, sales: 89, rating: 5, reviews: 3 },
-  { id: 8, name: "Facebook BM · Global · Unlimited Spend", details: "Multiple Ad Accounts · API Access · Created 2023", price: 62.00, stock: 1, sales: 42, rating: 4.75, reviews: 2 },
-];
+// PRODUCTS fue reemplazado por la base de datos (Neon/Prisma)
 
 // ─── STYLES ───────────────────────────────────────────────────────────────────
 const css = `
@@ -661,7 +652,7 @@ const CartDrawer = ({ cart, onClose, onQty, onRemove, onCheckout }) => {
 };
 
 // ─── SHOP PAGE ────────────────────────────────────────────────────────────────
-const ShopPage = ({ cart, onAddToCart, onCartOpen, liked, onToggleLike }) => {
+const ShopPage = ({ cart, onAddToCart, onCartOpen, liked, onToggleLike, products }) => {
   const getQty = id => cart.find(i => i.id === id)?.qty || 0;
   return (
     <>
@@ -678,10 +669,16 @@ const ShopPage = ({ cart, onAddToCart, onCartOpen, liked, onToggleLike }) => {
       <div className="shop-wrap">
         <div className="shop-header">
           <div className="shop-title">Productos disponibles</div>
-          <div className="shop-count">{PRODUCTS.length} productos</div>
+          <div className="shop-count">{products.length} productos</div>
         </div>
         <div className="product-list">
-          {PRODUCTS.map(p => {
+          {products.length === 0 && (
+            <div style={{ textAlign: "center", padding: "50px 20px", color: "var(--muted)" }}>
+              <div style={{ fontSize: 40, marginBottom: 10 }}>🛍</div>
+              <div style={{ fontWeight: 600 }}>Cargando productos...</div>
+            </div>
+          )}
+          {products.map(p => {
             const qty = getQty(p.id);
             return (
               <div key={p.id} className="product-row">
@@ -719,10 +716,10 @@ const ShopPage = ({ cart, onAddToCart, onCartOpen, liked, onToggleLike }) => {
 };
 
 // ─── USER ACCOUNT ─────────────────────────────────────────────────────────────
-const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop }) => {
+const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products }) => {
   const [tab, setTab] = useState("orders");
   const myOrders = userOrders.filter(o => o.userEmail === user.email);
-  const favProducts = PRODUCTS.filter(p => liked[p.id]);
+  const favProducts = products.filter(p => liked[p.id]);
   const displayName = user.name || user.email || "Usuario";
   return (
     <div className="page">
@@ -808,6 +805,145 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop }) => {
           )}
         </>
       )}
+    </div>
+  );
+};
+
+// ─── ADMIN PRODUCT MANAGER ────────────────────────────────────────────────────
+const ProductManager = ({ products, setProducts }) => {
+  const [showForm, setShowForm] = useState(false);
+  const [editProduct, setEditProduct] = useState(null);
+  const [form, setForm] = useState({ name: "", details: "", price: "", stock: "" });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const setF = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
+
+  const openNew = () => {
+    setEditProduct(null);
+    setForm({ name: "", details: "", price: "", stock: "" });
+    setError("");
+    setShowForm(true);
+  };
+
+  const openEdit = (p) => {
+    setEditProduct(p);
+    setForm({ name: p.name, details: p.details || "", price: p.price, stock: p.stock });
+    setError("");
+    setShowForm(true);
+  };
+
+  const save = async () => {
+    if (!form.name.trim() || !form.price) { setError("Nombre y precio son obligatorios."); return; }
+    setSaving(true); setError("");
+    try {
+      let res, data;
+      const body = { name: form.name, details: form.details, price: parseFloat(form.price), stock: parseInt(form.stock) || 0 };
+      if (editProduct) {
+        res = await fetch(`/api/products/${editProduct.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      } else {
+        res = await fetch("/api/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      }
+      data = await res.json();
+      if (!res.ok) { setError(data.error || "Error al guardar."); return; }
+      if (editProduct) {
+        setProducts(prev => prev.map(p => p.id === editProduct.id ? data : p));
+      } else {
+        setProducts(prev => [data, ...prev]);
+      }
+      setShowForm(false);
+      setEditProduct(null);
+    } catch { setError("Error de conexión."); }
+    finally { setSaving(false); }
+  };
+
+  const deleteProduct = async (id) => {
+    if (!confirm("¿Borrar este producto? Esta acción no se puede deshacer.")) return;
+    try {
+      const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+      if (res.ok) setProducts(prev => prev.filter(p => p.id !== id));
+    } catch {}
+  };
+
+  const toggleActive = async (p) => {
+    try {
+      const res = await fetch(`/api/products/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive: !p.isActive }) });
+      const data = await res.json();
+      if (res.ok) setProducts(prev => prev.map(x => x.id === p.id ? data : x));
+    } catch {}
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div className="page-title" style={{ margin: 0 }}>🛍 Productos</div>
+        <button className="btn btn-primary btn-sm" onClick={openNew}>+ Agregar producto</button>
+      </div>
+
+      {showForm && (
+        <div className="card" style={{ marginBottom: 20, border: "2px solid var(--red-dark)" }}>
+          <div className="card-title">{editProduct ? "✏️ Editar producto" : "✨ Nuevo producto"}</div>
+          {error && <div className="error-msg">{error}</div>}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+              <label className="form-label">Nombre *</label>
+              <input className="form-input" value={form.name} onChange={setF("name")} placeholder="Ej: Business Manager Facebook · Verified · Europe" />
+            </div>
+            <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+              <label className="form-label">Descripción / Detalles</label>
+              <input className="form-input" value={form.details} onChange={setF("details")} placeholder="Ej: BM Limit $250 · GEO Europe/USA · Verified 2024" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Precio USDT *</label>
+              <input className="form-input" type="number" step="0.01" min="0" value={form.price} onChange={setF("price")} placeholder="33.00" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Stock (unidades)</label>
+              <input className="form-input" type="number" min="0" value={form.stock} onChange={setF("stock")} placeholder="1" />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? "Guardando..." : editProduct ? "💾 Guardar cambios" : "✅ Crear producto"}</button>
+            <button className="btn btn-outline" onClick={() => { setShowForm(false); setEditProduct(null); }}>Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      <div className="card">
+        <div className="card-title">Todos los productos ({products.length})</div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Nombre</th><th>Detalles</th><th>Precio</th><th>Stock</th><th>Ventas</th><th>Estado</th><th>Acciones</th></tr>
+            </thead>
+            <tbody>
+              {products.length === 0 && (
+                <tr><td colSpan={7} style={{ textAlign: "center", padding: "30px 0", color: "var(--muted)" }}>No hay productos. Crea el primero.</td></tr>
+              )}
+              {products.map(p => (
+                <tr key={p.id} style={{ opacity: p.isActive ? 1 : 0.5 }}>
+                  <td style={{ maxWidth: 200, fontSize: 12, fontWeight: 600 }}>{p.name}</td>
+                  <td style={{ maxWidth: 180, fontSize: 11, color: "var(--muted)" }}>{p.details || "—"}</td>
+                  <td><strong style={{ color: "var(--usdt)" }}>{fmtUSDT(p.price)}</strong></td>
+                  <td>
+                    <span className="chip" style={{ background: p.stock > 0 ? "#F0FDF4" : "var(--red-light)", color: p.stock > 0 ? "#15803D" : "var(--red)", border: `1px solid ${p.stock > 0 ? "#BBF7D0" : "var(--red)"}` }}>
+                      {p.stock} pcs.
+                    </span>
+                  </td>
+                  <td><span className="chip chip-sales">{p.sales}</span></td>
+                  <td>{p.isActive ? <span className="badge-active">✓ ACTIVO</span> : <span className="badge-used">⏸ OCULTO</span>}</td>
+                  <td>
+                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                      <button onClick={() => openEdit(p)} style={{ padding: "4px 10px", borderRadius: 7, border: "1.5px solid var(--border)", background: "var(--blue-light)", color: "var(--blue)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>✏️ Editar</button>
+                      <button onClick={() => toggleActive(p)} style={{ padding: "4px 10px", borderRadius: 7, border: "1.5px solid var(--border)", background: p.isActive ? "var(--amber-light)" : "var(--green-light)", color: p.isActive ? "var(--amber)" : "var(--green)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{p.isActive ? "⏸ Ocultar" : "▶ Mostrar"}</button>
+                      <button onClick={() => deleteProduct(p.id)} style={{ padding: "4px 10px", borderRadius: 7, border: "1.5px solid var(--border)", background: "var(--red-light)", color: "var(--red)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>🗑 Borrar</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };
@@ -979,7 +1115,7 @@ const AdminOrders = ({ orders, onConfirm }) => {
 };
 
 // ─── ADMIN PANEL ──────────────────────────────────────────────────────────────
-const AdminPanel = ({ orders, onConfirmOrder, coupons, setCoupons }) => {
+const AdminPanel = ({ orders, onConfirmOrder, coupons, setCoupons, products, setProducts }) => {
   const [section, setSection] = useState("overview");
   const [selConvo, setSelConvo] = useState(0);
   const [adminMsgs, setAdminMsgs] = useState([
@@ -1097,34 +1233,7 @@ const AdminPanel = ({ orders, onConfirmOrder, coupons, setCoupons }) => {
             </div>
           </>
         )}
-        {section === "products" && (
-          <>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <div className="page-title" style={{ margin: 0 }}>🛍 Productos</div>
-              <button className="btn btn-primary btn-sm">+ Agregar</button>
-            </div>
-            <div className="card">
-              <div className="table-wrap">
-                <table>
-                  <thead><tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th><th>Ventas</th><th>Acciones</th></tr></thead>
-                  <tbody>{PRODUCTS.map(p => (
-                    <tr key={p.id}>
-                      <td><code>#{p.id}</code></td>
-                      <td style={{ maxWidth: 220, fontSize: 12 }}>{p.name}</td>
-                      <td><strong style={{ color: "var(--usdt)" }}>{fmtUSDT(p.price)}</strong></td>
-                      <td><span className="chip chip-stock">{p.stock} pcs.</span></td>
-                      <td><span className="chip chip-sales">{p.sales}</span></td>
-                      <td style={{ display: "flex", gap: 5 }}>
-                        <button className="btn btn-outline btn-sm">✏️</button>
-                        <button className="btn btn-sm" style={{ background: "var(--red-light)", color: "var(--red)" }}>🗑</button>
-                      </td>
-                    </tr>
-                  ))}</tbody>
-                </table>
-              </div>
-            </div>
-          </>
-        )}
+        {section === "products" && <ProductManager products={products} setProducts={setProducts} />}
       </div>
     </div>
   );
@@ -1157,6 +1266,16 @@ export default function App() {
         .catch(() => {});
     }
   }, [isAdmin]);
+
+  const [products, setProducts] = useState([]);
+  useEffect(() => {
+    const url = isAdmin ? "/api/products?all=true" : "/api/products";
+    fetch(url)
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setProducts(data); })
+      .catch(() => {});
+  }, [isAdmin]);
+
   const [liked, setLiked] = useState({});
   const toggleLike = id => setLiked(l => ({ ...l, [id]: !l[id] }));
 
@@ -1226,7 +1345,7 @@ export default function App() {
           <div style={{ fontSize: 13, color: "var(--muted)" }}>Panel de administración · {user.email}</div>
           <button className="btn btn-outline btn-sm" onClick={() => signOut()}>← Cerrar sesión</button>
         </div>
-        <AdminPanel orders={orders} onConfirmOrder={handleConfirmOrder} coupons={coupons} setCoupons={setCoupons} />
+        <AdminPanel orders={orders} onConfirmOrder={handleConfirmOrder} coupons={coupons} setCoupons={setCoupons} products={products} setProducts={setProducts} />
       </div>
     );
   }
@@ -1255,8 +1374,8 @@ export default function App() {
         </div>
       </div>
 
-      {view === "shop" && <ShopPage cart={cart} onAddToCart={addToCart} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} />}
-      {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} />}
+      {view === "shop" && <ShopPage cart={cart} onAddToCart={addToCart} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} />}
+      {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} />}
 
       {cartOpen && <CartDrawer cart={cart} onClose={() => setCartOpen(false)} onQty={setQty} onRemove={removeFromCart} onCheckout={handleCheckout} />}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} onSuccess={() => setShowPayment(pendingTotal > 0)} initialTab={authTab} />}
