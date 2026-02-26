@@ -373,8 +373,8 @@ const ChatWidget = () => {
 };
 
 // ─── AUTH MODAL ───────────────────────────────────────────────────────────────
-const AuthModal = ({ onClose, onSuccess }) => {
-  const [tab, setTab] = useState("login");
+const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
+  const [tab, setTab] = useState(initialTab);
   const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1062,6 +1062,7 @@ export default function App() {
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
+  const [authTab, setAuthTab] = useState("login");
   const [showPayment, setShowPayment] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [pendingCoupon, setPendingCoupon] = useState(null);
@@ -1153,7 +1154,8 @@ export default function App() {
               <button className="btn btn-outline btn-sm" onClick={() => signOut()}>Salir</button>
             </>
           ) : (
-            <button className="btn btn-outline btn-sm" onClick={() => signIn()}>Iniciar sesión</button>
+            <button className="btn btn-outline btn-sm" onClick={() => { setAuthTab("login"); setShowAuth(true); }}>Iniciar sesión</button>
+            <button className="btn btn-primary btn-sm" onClick={() => { setAuthTab("register"); setShowAuth(true); }}>Registrarse</button>
           )}
           <button className="cart-fab" onClick={() => setCartOpen(true)}>
             🛒 {totalItems > 0 ? <span className="cart-count">{totalItems}</span> : "Carrito"}
@@ -1165,7 +1167,7 @@ export default function App() {
       {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} />}
 
       {cartOpen && <CartDrawer cart={cart} onClose={() => setCartOpen(false)} onQty={setQty} onRemove={removeFromCart} onCheckout={handleCheckout} />}
-      {showAuth && <AuthModal onClose={() => setShowAuth(false)} onSuccess={() => setShowPayment(true)} />}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} onSuccess={() => setShowPayment(pendingTotal > 0)} initialTab={authTab} />}
       {showPayment && user && <PaymentModal cart={cart} user={user} coupon={pendingCoupon} finalTotal={pendingTotal} onClose={() => setShowPayment(false)} onSuccess={handlePaySuccess} />}
       {showSuccess && lastOrder && <SuccessModal order={lastOrder} onClose={() => { setShowSuccess(false); setView("account"); }} />}
 
