@@ -1154,8 +1154,10 @@ export default function App() {
               <button className="btn btn-outline btn-sm" onClick={() => signOut()}>Salir</button>
             </>
           ) : (
-            <button className="btn btn-outline btn-sm" onClick={() => { setAuthTab("login"); setShowAuth(true); }}>Iniciar sesión</button>
-            <button className="btn btn-primary btn-sm" onClick={() => { setAuthTab("register"); setShowAuth(true); }}>Registrarse</button>
+            <>
+              <button className="btn btn-outline btn-sm" onClick={() => { setAuthTab("login"); setShowAuth(true); }}>Iniciar sesión</button>
+              <button className="btn btn-primary btn-sm" onClick={() => { setAuthTab("register"); setShowAuth(true); }}>Registrarse</button>
+            </>
           )}
           <button className="cart-fab" onClick={() => setCartOpen(true)}>
             🛒 {totalItems > 0 ? <span className="cart-count">{totalItems}</span> : "Carrito"}
