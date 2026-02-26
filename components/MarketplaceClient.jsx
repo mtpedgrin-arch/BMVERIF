@@ -16,12 +16,7 @@ const ORDERS_DB = [
   { id: "ORD-003", userEmail: "john@example.com", userName: "John Doe", items: [{ name: "BM Facebook · Brazil · $50 Limit", price: 27.00, qty: 2 }], subtotal: 54.00, discount: 5.40, coupon: "DEMO10", total: 48.60, network: "TRC20", txHash: "abc123", status: "pending", date: "2026-02-25" },
 ];
 
-// ─── GLOBAL COUPON DB ─────────────────────────────────────────────────────────
-const COUPON_DB = [
-  { code: "DEMO10", discount: 10, maxUses: 3, uses: 0, active: true, createdAt: "2026-02-20" },
-  { code: "VIP20", discount: 20, maxUses: 1, uses: 0, active: true, createdAt: "2026-02-22" },
-  { code: "EXPIRED50", discount: 50, maxUses: 1, uses: 1, active: false, createdAt: "2026-02-21" },
-];
+// COUPON_DB fue reemplazado por la base de datos (Neon/Prisma)
 
 const PRODUCTS = [
   { id: 1, name: "Account Business Manager (BM1) Brazil", details: "$50 Limit · Ads-only · Ad Account Created · TZ/currency/country editable", price: 27.00, stock: 1, sales: 22, rating: 0, reviews: 0 },
@@ -573,15 +568,31 @@ const CartDrawer = ({ cart, onClose, onQty, onRemove, onCheckout }) => {
   const discountAmt = appliedCoupon ? subtotal * (appliedCoupon.discount / 100) : 0;
   const total = subtotal - discountAmt;
 
-  const applyCoupon = () => {
+  const applyCoupon = async () => {
     setCouponError("");
     const code = couponInput.trim().toUpperCase();
     if (!code) return;
-    const found = COUPON_DB.find(c => c.code === code);
-    if (!found) { setCouponState("invalid"); setCouponError("Cupón no encontrado."); setTimeout(() => setCouponState("idle"), 600); return; }
-    if (!found.active) { setCouponState("invalid"); setCouponError("Cupón inactivo o pausado."); setTimeout(() => setCouponState("idle"), 600); return; }
-    if (found.uses >= found.maxUses) { setCouponState("invalid"); setCouponError("Cupón agotado (límite de usos alcanzado)."); setTimeout(() => setCouponState("idle"), 600); return; }
-    setAppliedCoupon(found); setCouponState("valid"); setCouponInput("");
+    try {
+      const res = await fetch("/api/coupons/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCouponState("invalid");
+        setCouponError(data.error || "Cupón inválido.");
+        setTimeout(() => setCouponState("idle"), 600);
+        return;
+      }
+      setAppliedCoupon(data);
+      setCouponState("valid");
+      setCouponInput("");
+    } catch {
+      setCouponState("invalid");
+      setCouponError("Error de conexión.");
+      setTimeout(() => setCouponState("idle"), 600);
+    }
   };
 
   const removeCoupon = () => { setAppliedCoupon(null); setCouponState("idle"); setCouponError(""); };
@@ -811,21 +822,36 @@ const CouponManager = ({ coupons, setCoupons }) => {
   const [copied, setCopied] = useState(false);
   const pct = sel !== null ? sel : parseInt(custom) || null;
 
-  const generate = () => {
+  const generate = async () => {
     if (!pct || pct < 1 || pct > 99) return;
     const code = genCode(pct);
-    const nc = { code, discount: pct, maxUses, uses: 0, active: true, createdAt: today() };
-    COUPON_DB.push(nc); setCoupons([...COUPON_DB]); setGenerated(nc); setCopied(false);
+    try {
+      const res = await fetch("/api/coupons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, discount: pct, maxUses }),
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || "Error al crear cupón"); return; }
+      setCoupons(prev => [data, ...prev]);
+      setGenerated(data);
+      setCopied(false);
+    } catch { alert("Error de conexión"); }
   };
 
-  const toggleActive = (code) => {
-    const idx = COUPON_DB.findIndex(c => c.code === code);
-    if (idx !== -1) { COUPON_DB[idx].active = !COUPON_DB[idx].active; setCoupons([...COUPON_DB]); }
+  const toggleActive = async (code) => {
+    try {
+      const res = await fetch(`/api/coupons/${code}`, { method: "PATCH" });
+      const data = await res.json();
+      if (res.ok) setCoupons(prev => prev.map(c => c.code === code ? data : c));
+    } catch {}
   };
 
-  const deleteCoupon = (code) => {
-    const idx = COUPON_DB.findIndex(c => c.code === code);
-    if (idx !== -1) { COUPON_DB.splice(idx, 1); setCoupons([...COUPON_DB]); }
+  const deleteCoupon = async (code) => {
+    try {
+      const res = await fetch(`/api/coupons/${code}`, { method: "DELETE" });
+      if (res.ok) setCoupons(prev => prev.filter(c => c.code !== code));
+    } catch {}
   };
 
   const getStatus = (c) => {
@@ -1122,7 +1148,15 @@ export default function App() {
   const [pendingTotal, setPendingTotal] = useState(0);
   const [orders, setOrders] = useState([...ORDERS_DB]);
   const [lastOrder, setLastOrder] = useState(null);
-  const [coupons, setCoupons] = useState([...COUPON_DB]);
+  const [coupons, setCoupons] = useState([]);
+  useEffect(() => {
+    if (isAdmin) {
+      fetch("/api/coupons")
+        .then(r => r.json())
+        .then(data => { if (Array.isArray(data)) setCoupons(data); })
+        .catch(() => {});
+    }
+  }, [isAdmin]);
   const [liked, setLiked] = useState({});
   const toggleLike = id => setLiked(l => ({ ...l, [id]: !l[id] }));
 
@@ -1146,8 +1180,11 @@ export default function App() {
 
   const handlePaySuccess = (network, txHash) => {
     if (pendingCoupon) {
-      const idx = COUPON_DB.findIndex(c => c.code === pendingCoupon.code);
-      if (idx !== -1) { COUPON_DB[idx].uses += 1; setCoupons([...COUPON_DB]); }
+      fetch("/api/coupons/use", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: pendingCoupon.code }),
+      }).catch(() => {});
     }
     const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
     const discount = pendingCoupon ? subtotal * (pendingCoupon.discount / 100) : 0;

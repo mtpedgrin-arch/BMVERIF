@@ -60,3 +60,13 @@ model OrderItem {
   product Product @relation(fields: [productId], references: [id])
   order   Order   @relation(fields: [orderId], references: [id])
 }
+
+model Coupon {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  discount  Int      // porcentaje 1-99
+  maxUses   Int      @default(1)
+  uses      Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
