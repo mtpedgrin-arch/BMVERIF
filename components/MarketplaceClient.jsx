@@ -373,17 +373,95 @@ const ChatWidget = () => {
 };
 
 // ─── AUTH MODAL ───────────────────────────────────────────────────────────────
-const AuthModal = ({ onClose }) => (
-  <div className="modal-overlay" onClick={onClose}>
-    <div className="modal" onClick={e => e.stopPropagation()}>
-      <div style={{ fontSize: 32, marginBottom: 10 }}>🛒</div>
-      <div className="modal-title">Accede para continuar</div>
-      <div className="modal-sub">Iniciá sesión para completar tu compra</div>
-      <button className="btn btn-primary btn-full" onClick={() => signIn()}>→ Iniciar sesión</button>
-      <button className="btn btn-outline btn-full" style={{ marginTop: 8 }} onClick={onClose}>Cancelar</button>
+const AuthModal = ({ onClose, onSuccess }) => {
+  const [tab, setTab] = useState("login");
+  const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
+
+  const handleLogin = async () => {
+    setError(""); setLoading(true);
+    try {
+      const res = await signIn("credentials", {
+        redirect: false,
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+      });
+      if (res?.error) { setError("Email o contraseña incorrectos."); return; }
+      onSuccess?.();
+      onClose();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async () => {
+    setError("");
+    if (!form.name || !form.email || !form.password) { setError("Completá todos los campos."); return; }
+    if (form.password !== form.confirm) { setError("Las contraseñas no coinciden."); return; }
+    if (form.password.length < 6) { setError("Mínimo 6 caracteres."); return; }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: form.name, email: form.email, password: form.password }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Error al registrarse."); return; }
+      const login = await signIn("credentials", {
+        redirect: false,
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+      });
+      if (login?.error) { setError("Cuenta creada, pero hubo un error al ingresar. Iniciá sesión manualmente."); return; }
+      onSuccess?.();
+      onClose();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 32, marginBottom: 10 }}>🛒</div>
+        <div className="modal-title">{tab === "login" ? "Iniciá sesión" : "Creá tu cuenta"}</div>
+        <div className="modal-sub">{tab === "login" ? "Ingresá para continuar con tu compra" : "Registrate para poder comprar"}</div>
+        <div className="auth-tabs" style={{ display: "flex", border: "1.5px solid var(--border)", borderRadius: 11, overflow: "hidden", marginBottom: 18 }}>
+          <button style={{ flex: 1, padding: 9, fontSize: 13, fontWeight: 600, border: "none", background: tab === "login" ? "var(--red)" : "none", color: tab === "login" ? "#fff" : "var(--muted)", cursor: "pointer" }} onClick={() => { setTab("login"); setError(""); }}>Iniciar sesión</button>
+          <button style={{ flex: 1, padding: 9, fontSize: 13, fontWeight: 600, border: "none", background: tab === "register" ? "var(--red)" : "none", color: tab === "register" ? "#fff" : "var(--muted)", cursor: "pointer" }} onClick={() => { setTab("register"); setError(""); }}>Registrarse</button>
+        </div>
+        {error && <div className="error-msg">{error}</div>}
+        {tab === "register" && (
+          <div className="form-group">
+            <label className="form-label">Nombre</label>
+            <input className="form-input" placeholder="Tu nombre" value={form.name} onChange={set("name")} />
+          </div>
+        )}
+        <div className="form-group">
+          <label className="form-label">Email</label>
+          <input className="form-input" type="email" placeholder="email@ejemplo.com" value={form.email} onChange={set("email")} />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Contraseña</label>
+          <input className="form-input" type="password" placeholder="••••••••" value={form.password} onChange={set("password")} onKeyDown={e => e.key === "Enter" && (tab === "login" ? handleLogin() : null)} />
+        </div>
+        {tab === "register" && (
+          <div className="form-group">
+            <label className="form-label">Confirmar contraseña</label>
+            <input className="form-input" type="password" placeholder="••••••••" value={form.confirm} onChange={set("confirm")} />
+          </div>
+        )}
+        <button className="btn btn-primary btn-full" onClick={tab === "login" ? handleLogin : handleRegister} disabled={loading}>
+          {loading ? "Procesando..." : tab === "login" ? "→ Entrar" : "✓ Crear cuenta"}
+        </button>
+        <button className="btn btn-outline btn-full" style={{ marginTop: 8 }} onClick={onClose}>Cancelar</button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── PAYMENT MODAL ────────────────────────────────────────────────────────────
 const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess }) => {
@@ -1087,7 +1165,7 @@ export default function App() {
       {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} />}
 
       {cartOpen && <CartDrawer cart={cart} onClose={() => setCartOpen(false)} onQty={setQty} onRemove={removeFromCart} onCheckout={handleCheckout} />}
-      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} onSuccess={() => setShowPayment(true)} />}
       {showPayment && user && <PaymentModal cart={cart} user={user} coupon={pendingCoupon} finalTotal={pendingTotal} onClose={() => setShowPayment(false)} onSuccess={handlePaySuccess} />}
       {showSuccess && lastOrder && <SuccessModal order={lastOrder} onClose={() => { setShowSuccess(false); setView("account"); }} />}
 
