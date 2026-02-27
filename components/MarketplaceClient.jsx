@@ -2503,9 +2503,10 @@ const ProductDetailPage = ({ product: p, cart, onBack, onAddToCartQty, onBuyNowQ
 };
 
 // ─── SHOP PAGE ────────────────────────────────────────────────────────────────
-const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike, products, onProductClick }) => {
+const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike, products, onProductClick, thumbs }) => {
   const [activeCat, setActiveCat] = useState("all");
   const getQty = id => cart.find(i => i.id === id)?.qty || 0;
+  const getThumb = (cat) => cat === "ads-account" ? (thumbs?.ads || "/facebook-verificado.png") : (thumbs?.bm || "/facebook-verificado.png");
   const CATS = [
     { key: "ads-account", label: "Cuentas para Publicidad" },
     { key: "bm", label: "BMs Verificadas" },
@@ -2557,7 +2558,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
                 {catProducts.map(p => (
                   <div key={p.id} className="product-row" onClick={() => onProductClick && onProductClick(p)}>
                     <div className="prod-thumb">
-                      <div className="prod-thumb-inner"><img src="/facebook-verificado.png" alt="Facebook" /></div>
+                      <div className="prod-thumb-inner"><img src={getThumb(p.category)} alt="" /></div>
                       <div className="verified-badge">✓</div>
                     </div>
                     <div className="prod-info">
@@ -4056,8 +4057,92 @@ const WalletManager = () => {
   );
 };
 
+// ─── THUMBNAIL MANAGER ────────────────────────────────────────────────────────
+const ThumbnailManager = ({ onThumbsChange }) => {
+  const [thumbs, setThumbs] = useState({ thumb_bm: null, thumb_ads: null });
+  const [saving, setSaving] = useState({ thumb_bm: false, thumb_ads: false });
+  const [saved, setSaved]   = useState({ thumb_bm: false, thumb_ads: false });
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then(r => r.json())
+      .then(data => setThumbs({ thumb_bm: data.thumb_bm || null, thumb_ads: data.thumb_ads || null }))
+      .catch(() => {});
+  }, []);
+
+  const handleUpload = (imgKey) => (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setSaving(p => ({ ...p, [imgKey]: true }));
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const base64 = ev.target.result;
+      try {
+        const res = await fetch("/api/settings", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ [imgKey]: base64 }),
+        });
+        if (res.ok) {
+          setThumbs(p => ({ ...p, [imgKey]: base64 }));
+          setSaved(p => ({ ...p, [imgKey]: true }));
+          if (onThumbsChange) onThumbsChange(imgKey, base64);
+          setTimeout(() => setSaved(p => ({ ...p, [imgKey]: false })), 2500);
+        }
+      } catch {}
+      setSaving(p => ({ ...p, [imgKey]: false }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const cards = [
+    { imgKey: "thumb_bm",   emoji: "🏢", label: "BMs Verificadas",         desc: "Miniatura para productos de Business Manager" },
+    { imgKey: "thumb_ads",  emoji: "📢", label: "Cuentas para Publicidad",  desc: "Miniatura para productos de cuentas de ads" },
+  ];
+
+  return (
+    <div>
+      <div className="page-title">🖼 Miniaturas de Productos</div>
+      <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 24 }}>
+        Estas imágenes aparecen como miniatura en la lista de productos de la tienda. Recomendado: 200×200 px, PNG o JPG.
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        {cards.map(({ imgKey, emoji, label, desc }) => (
+          <div key={imgKey} className="card" style={{ textAlign: "center" }}>
+            <div className="card-title" style={{ marginBottom: 8 }}>{emoji} {label}</div>
+            <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{desc}</div>
+            <div style={{ width: 120, height: 120, margin: "0 auto 16px", borderRadius: 14, overflow: "hidden", border: "2px dashed var(--border)", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
+              {thumbs[imgKey]
+                ? <img src={thumbs[imgKey]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : <span style={{ fontSize: 44, opacity: 0.4 }}>🖼</span>
+              }
+            </div>
+            <label style={{ cursor: "pointer" }}>
+              <span className={`btn btn-sm ${saved[imgKey] ? "btn-outline" : "btn-primary"}`} style={{ pointerEvents: "none" }}>
+                {saving[imgKey] ? "Subiendo..." : saved[imgKey] ? "✅ Guardado" : "📤 Subir imagen"}
+              </span>
+              <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleUpload(imgKey)} disabled={saving[imgKey]} />
+            </label>
+            {thumbs[imgKey] && (
+              <button
+                className="btn btn-outline btn-sm"
+                style={{ marginLeft: 8 }}
+                onClick={async () => {
+                  await fetch("/api/settings", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [imgKey]: "" }) });
+                  setThumbs(p => ({ ...p, [imgKey]: null }));
+                  if (onThumbsChange) onThumbsChange(imgKey, null);
+                }}
+              >🗑</button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ─── ADMIN PANEL ──────────────────────────────────────────────────────────────
-const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, coupons, setCoupons, products, setProducts }) => {
+const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, coupons, setCoupons, products, setProducts, onThumbsChange }) => {
   const [section, setSection] = useState(() => {
     try { return sessionStorage.getItem("admin_section") || "overview"; } catch { return "overview"; }
   });
@@ -4162,6 +4247,7 @@ const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, coupons, setCoupon
     { id: "chat", icon: "💬", label: "Chat en vivo", badge: chatUnread, badgeColor: "var(--red)" },
     { id: "products", icon: "🛍", label: "Productos" },
     { id: "wallets", icon: "💳", label: "Wallets" },
+    { id: "thumbnails", icon: "🖼", label: "Miniaturas" },
   ];
 
   return (
@@ -4246,6 +4332,7 @@ const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, coupons, setCoupon
         )}
         {section === "products" && <ProductManager products={products} setProducts={setProducts} />}
         {section === "wallets" && <WalletManager />}
+        {section === "thumbnails" && <ThumbnailManager onThumbsChange={onThumbsChange} />}
       </div>
     </div>
   );
@@ -4876,8 +4963,9 @@ export default function App() {
       .catch(() => {});
   }, [isAdmin]);
 
-  // ── WALLETS (dynamic from DB) ──
+  // ── WALLETS + THUMBS (dynamic from DB) ──
   const [wallets, setWallets] = useState(WALLETS);
+  const [thumbs, setThumbs] = useState({ bm: null, ads: null });
   useEffect(() => {
     fetch("/api/settings")
       .then(r => r.json())
@@ -4887,6 +4975,7 @@ export default function App() {
           TRC20: { ...prev.TRC20, addr: data.wallet_trc20 || prev.TRC20.addr },
           BEP20: { ...prev.BEP20, addr: data.wallet_bep20 || prev.BEP20.addr },
         }));
+        setThumbs({ bm: data.thumb_bm || null, ads: data.thumb_ads || null });
       })
       .catch(() => {});
   }, []);
@@ -5064,7 +5153,7 @@ export default function App() {
             <button className="btn btn-outline btn-sm" onClick={() => signOut()}>← Cerrar sesión</button>
           </div>
         </div>
-        <AdminPanel orders={orders} onConfirmOrder={handleConfirmOrder} onDeliverOrder={handleDeliverOrder} coupons={coupons} setCoupons={setCoupons} products={products} setProducts={setProducts} />
+        <AdminPanel orders={orders} onConfirmOrder={handleConfirmOrder} onDeliverOrder={handleDeliverOrder} coupons={coupons} setCoupons={setCoupons} products={products} setProducts={setProducts} onThumbsChange={(key, val) => setThumbs(p => ({ ...p, [key === "thumb_bm" ? "bm" : "ads"]: val }))} />
       </div>
     );
   }
@@ -5125,7 +5214,7 @@ export default function App() {
         </a>
       </div>
 
-      {view === "shop" && !selectedProduct && <ShopPage cart={cart} onAddToCart={addToCart} onBuyNow={handleBuyNow} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} onProductClick={p => setSelectedProduct(p)} />}
+      {view === "shop" && !selectedProduct && <ShopPage cart={cart} onAddToCart={addToCart} onBuyNow={handleBuyNow} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} onProductClick={p => setSelectedProduct(p)} thumbs={thumbs} />}
       {view === "shop" && selectedProduct && <ProductDetailPage product={selectedProduct} cart={cart} onBack={() => setSelectedProduct(null)} onAddToCartQty={addToCartQty} onBuyNowQty={handleBuyNowQty} liked={liked} onToggleLike={toggleLike} user={user} />}
       {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); }} onOrderPending={order => setGlobalPending(order)} wallets={wallets} />}
       {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} wallets={wallets} onOrderUpdate={updatedOrder => setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o))} />}
