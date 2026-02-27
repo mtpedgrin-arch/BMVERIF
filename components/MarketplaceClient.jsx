@@ -1619,61 +1619,142 @@ const AdminOrders = ({ orders, onConfirm }) => {
 };
 
 // ─── ADMIN OVERVIEW ───────────────────────────────────────────────────────────
-const RANGES = [
+const QUICK_RANGES = [
   { id: "today",     label: "Hoy" },
   { id: "yesterday", label: "Ayer" },
-  { id: "7d",        label: "7 días" },
   { id: "15d",       label: "15 días" },
+  { id: "30d",       label: "30 días" },
   { id: "month",     label: "Este mes" },
+  { id: "3m",        label: "3 meses" },
+  { id: "6m",        label: "6 meses" },
+  { id: "year",      label: "Este año" },
   { id: "all",       label: "Todo" },
 ];
 
+const fmtDateInput = (d) => d.toISOString().split("T")[0]; // YYYY-MM-DD
+const fmtDateLabel = (s) => new Date(s + "T00:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
+
 const AdminOverview = ({ orders, products, onGoOrders }) => {
-  const [range, setRange] = useState("month");
+  const [range, setRange]         = useState("month");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo,   setCustomTo]   = useState("");
+  const [showPicker, setShowPicker] = useState(false);
+
+  // Initialize custom dates to current month when opening picker
+  const openCustom = () => {
+    const now = new Date();
+    if (!customFrom) setCustomFrom(fmtDateInput(new Date(now.getFullYear(), now.getMonth(), 1)));
+    if (!customTo)   setCustomTo(fmtDateInput(now));
+    setShowPicker(true);
+    setRange("custom");
+  };
+
+  const applyCustom = () => setShowPicker(false);
 
   const filterByRange = (arr) => {
     const now = new Date();
-    const sod = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // start of today
+    const sod = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const daysAgo = (n) => { const s = new Date(sod); s.setDate(s.getDate() - n); return s; };
     switch (range) {
       case "today":     return arr.filter(o => new Date(o.createdAt) >= sod);
       case "yesterday": {
-        const s = new Date(sod); s.setDate(s.getDate() - 1);
+        const s = daysAgo(1);
         return arr.filter(o => { const d = new Date(o.createdAt); return d >= s && d < sod; });
       }
-      case "7d":  { const s = new Date(sod); s.setDate(s.getDate() - 7);  return arr.filter(o => new Date(o.createdAt) >= s); }
-      case "15d": { const s = new Date(sod); s.setDate(s.getDate() - 15); return arr.filter(o => new Date(o.createdAt) >= s); }
-      case "month": { const s = new Date(now.getFullYear(), now.getMonth(), 1); return arr.filter(o => new Date(o.createdAt) >= s); }
+      case "15d":  return arr.filter(o => new Date(o.createdAt) >= daysAgo(15));
+      case "30d":  return arr.filter(o => new Date(o.createdAt) >= daysAgo(30));
+      case "month": return arr.filter(o => new Date(o.createdAt) >= new Date(now.getFullYear(), now.getMonth(), 1));
+      case "3m":   return arr.filter(o => new Date(o.createdAt) >= daysAgo(90));
+      case "6m":   return arr.filter(o => new Date(o.createdAt) >= daysAgo(180));
+      case "year": return arr.filter(o => new Date(o.createdAt) >= new Date(now.getFullYear(), 0, 1));
+      case "custom": {
+        const s = customFrom ? new Date(customFrom + "T00:00:00") : new Date(0);
+        const e = customTo   ? new Date(customTo   + "T23:59:59") : new Date();
+        return arr.filter(o => { const d = new Date(o.createdAt); return d >= s && d <= e; });
+      }
       default: return arr;
     }
   };
 
-  const filtered      = filterByRange(orders);
-  const paid          = filtered.filter(o => o.status === "paid");
-  const pending       = filtered.filter(o => o.status === "pending");
-  const revenue       = paid.reduce((s, o) => s + o.total, 0);
-  const pendingRev    = pending.reduce((s, o) => s + o.total, 0);
+  const filtered   = filterByRange(orders);
+  const paid       = filtered.filter(o => o.status === "paid");
+  const pending    = filtered.filter(o => o.status === "pending");
+  const revenue    = paid.reduce((s, o) => s + o.total, 0);
+  const pendingRev = pending.reduce((s, o) => s + o.total, 0);
 
-  // Build cost map: product name → cost
   const costMap = {};
   products.forEach(p => { if (p.cost > 0) costMap[p.name] = p.cost; });
   const hasCosts = Object.keys(costMap).length > 0;
 
   const calcOrderCost = (o) => (o.items || []).reduce((s, item) => s + (costMap[item.name] || 0) * item.qty, 0);
-  const totalCost   = paid.reduce((s, o) => s + calcOrderCost(o), 0);
-  const profit      = revenue - totalCost;
-  const roas        = totalCost > 0 ? (revenue / totalCost).toFixed(2) : null;
-  const margin      = revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : "0";
-  const rangeLabel  = RANGES.find(r => r.id === range)?.label || "";
+  const totalCost = paid.reduce((s, o) => s + calcOrderCost(o), 0);
+  const profit    = revenue - totalCost;
+  const roas      = totalCost > 0 ? (revenue / totalCost).toFixed(2) : null;
+  const margin    = revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : "0";
+
+  const customDays = (customFrom && customTo)
+    ? Math.round((new Date(customTo) - new Date(customFrom)) / 86400000) + 1
+    : 0;
+
+  const rangeLabel = range === "custom" && customFrom && customTo
+    ? `${fmtDateLabel(customFrom)} → ${fmtDateLabel(customTo)} (${customDays}d)`
+    : QUICK_RANGES.find(r => r.id === range)?.label || "";
 
   return (
     <>
       <div className="page-title">📊 Overview</div>
 
-      {/* ── Date range pills ── */}
-      <div className="date-pills">
-        {RANGES.map(r => (
-          <button key={r.id} className={`date-pill ${range === r.id ? "active" : ""}`} onClick={() => setRange(r.id)}>{r.label}</button>
-        ))}
+      {/* ── Date range selector ── */}
+      <div style={{ marginBottom: 16 }}>
+        <div className="date-pills">
+          {QUICK_RANGES.map(r => (
+            <button
+              key={r.id}
+              className={`date-pill ${range === r.id ? "active" : ""}`}
+              onClick={() => { setRange(r.id); setShowPicker(false); }}
+            >{r.label}</button>
+          ))}
+          <button
+            className={`date-pill ${range === "custom" ? "active" : ""}`}
+            style={{ borderStyle: "dashed" }}
+            onClick={openCustom}
+          >📅 Personalizado</button>
+        </div>
+
+        {/* ── Custom date picker panel ── */}
+        {(showPicker || range === "custom") && (
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, padding: "14px 18px", background: "var(--surface)", border: "1.5px solid var(--border)", borderRadius: 12, marginTop: 8, animation: "scaleIn 0.15s ease" }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)" }}>Desde</span>
+            <input
+              type="date"
+              className="form-input"
+              style={{ width: 155, padding: "7px 10px", fontSize: 13 }}
+              value={customFrom}
+              max={customTo || fmtDateInput(new Date())}
+              onChange={e => setCustomFrom(e.target.value)}
+            />
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)" }}>hasta</span>
+            <input
+              type="date"
+              className="form-input"
+              style={{ width: 155, padding: "7px 10px", fontSize: 13 }}
+              value={customTo}
+              min={customFrom}
+              max={fmtDateInput(new Date())}
+              onChange={e => setCustomTo(e.target.value)}
+            />
+            {customDays > 0 && (
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--usdt)", background: "var(--usdt-light)", border: "1px solid #a7f0d8", padding: "4px 10px", borderRadius: 20 }}>
+                {customDays} día{customDays !== 1 ? "s" : ""}
+              </span>
+            )}
+            <button
+              className="btn btn-usdt btn-sm"
+              disabled={!customFrom || !customTo}
+              onClick={applyCustom}
+            >✓ Aplicar</button>
+          </div>
+        )}
       </div>
 
       {/* ── Profit cards ── */}
