@@ -68,9 +68,10 @@ const css = `
   .product-row:last-child { border-bottom: none; }
   .product-row:hover { background: #FAFAFA; }
   .prod-thumb { width: 80px; height: 80px; flex-shrink: 0; border-radius: 12px; overflow: hidden; position: relative; margin-right: 16px; }
-  .prod-thumb-inner { width: 100%; height: 100%; background: linear-gradient(145deg, #1877F2 0%, #0d5bbf 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
-  .prod-thumb-icon { font-size: 38px; line-height: 1; }
-  .prod-thumb-label { font-size: 11px; font-weight: 700; color: #fff; letter-spacing: 0.3px; }
+  .prod-thumb-inner { width: 100%; height: 100%; background: none; display: flex; }
+  .prod-thumb-inner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .prod-thumb-icon { display: none; }
+  .prod-thumb-label { display: none; }
   .verified-badge { position: absolute; top: 50%; right: 14px; transform: translateY(-50%); width: 24px; height: 24px; background: #1877F2; border-radius: 50%; border: 2.5px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff; font-weight: 700; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
   .prod-info { flex: 1; min-width: 0; margin-right: 20px; }
   .prod-name { font-size: 14px; font-weight: 600; margin-bottom: 3px; line-height: 1.4; }
@@ -2501,7 +2502,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
             return (
               <div key={p.id} className="product-row" onClick={() => onProductClick && onProductClick(p)}>
                 <div className="prod-thumb">
-                  <div className="prod-thumb-inner"><span className="prod-thumb-icon">👜</span><span className="prod-thumb-label">Facebook</span></div>
+                  <div className="prod-thumb-inner"><img src="/facebook-verificado.png" alt="Facebook" /></div>
                   <div className="verified-badge">✓</div>
                 </div>
                 <div className="prod-info">
