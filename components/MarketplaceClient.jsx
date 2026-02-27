@@ -350,7 +350,7 @@ const css = `
   .chat-support-btn { background: none; border: 1.5px solid var(--border); border-radius: 8px; width: 34px; height: 34px; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
   .chat-support-btn:hover { border-color: var(--red); background: var(--red-light); }
   .chat-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; display: flex; align-items: center; justify-content: center; }
-  .chat-window { width: 740px; max-height: 560px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 17px; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; overflow: hidden; animation: fadeIn 0.2s ease; }
+  .chat-window { width: 600px; height: 620px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 17px; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; overflow: hidden; animation: fadeIn 0.2s ease; }
   .chat-head { background: var(--red); color: #fff; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; }
   .chat-agent-info { display: flex; align-items: center; gap: 9px; }
   .agent-av { width: 34px; height: 34px; background: rgba(255,255,255,0.25); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 17px; }
