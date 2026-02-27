@@ -1213,6 +1213,7 @@ const PaymentPendingModal = ({ order, walletAddr, walletColor, onSuccess, onCanc
   const [copied, setCopied] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [minimized, setMinimized] = useState(false);
   const network = order.network;
 
   // Countdown
@@ -1273,10 +1274,52 @@ const PaymentPendingModal = ({ order, walletAddr, walletColor, onSuccess, onCanc
     }
   };
 
+  // Minimized floating widget
+  if (minimized) {
+    const widgetColor = payStatus === "paid" ? "#22c55e" : payStatus === "expired" ? "#ef4444" : walletColor;
+    return (
+      <div
+        onClick={() => payStatus === "paid" ? null : setMinimized(false)}
+        style={{
+          position: "fixed", bottom: 24, right: 24, zIndex: 1200,
+          background: "#0f1e2e", border: `2px solid ${widgetColor}`,
+          borderRadius: 16, padding: "12px 18px", cursor: payStatus === "paid" ? "default" : "pointer",
+          display: "flex", alignItems: "center", gap: 12, boxShadow: `0 4px 24px ${widgetColor}44`,
+          minWidth: 220,
+        }}
+      >
+        {/* Network pill */}
+        <span style={{ background: widgetColor + "22", color: widgetColor, borderRadius: 8, padding: "3px 9px", fontSize: 12, fontWeight: 700 }}>{network}</span>
+
+        {payStatus === "paid" ? (
+          <span style={{ color: "#22c55e", fontWeight: 800, fontSize: 14 }}>✅ Pago confirmado</span>
+        ) : payStatus === "expired" ? (
+          <span style={{ color: "#ef4444", fontWeight: 700, fontSize: 13 }}>✕ Expirada</span>
+        ) : (
+          <>
+            <span style={{ color: "#94a3b8", fontSize: 13 }}>⏳ {String(Math.floor(timeLeft / 60)).padStart(2,"0")}:{String(timeLeft % 60).padStart(2,"0")}</span>
+            <div style={{ width: 16, height: 16, border: "2px solid #1e3a5f", borderTop: `2px solid ${walletColor}`, borderRadius: "50%", animation: "spin 1s linear infinite", flexShrink: 0 }} />
+          </>
+        )}
+
+        {payStatus !== "paid" && (
+          <button
+            onClick={e => { e.stopPropagation(); setMinimized(false); }}
+            style={{ marginLeft: "auto", background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 18, lineHeight: 1 }}
+          >⤢</button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "#070d14", overflowY: "auto", padding: "22px 16px 40px" }}>
       {/* Top bar */}
-      <div style={{ display: "flex", justifyContent: "flex-end", maxWidth: 1100, margin: "0 auto 20px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", maxWidth: 1100, margin: "0 auto 20px" }}>
+        <button onClick={() => setMinimized(true)} style={{
+          background: "#1e3a5f", color: "#94a3b8", padding: "8px 18px",
+          borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 14,
+        }}>− Minimizar</button>
         <button onClick={onCancel} style={{
           background: "#6d28d9", color: "#fff", padding: "8px 22px",
           borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 14,
