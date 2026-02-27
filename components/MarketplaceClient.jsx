@@ -1171,11 +1171,10 @@ const CartDrawer = ({ cart, onClose, onQty, onRemove, onCheckout }) => {
               {!appliedCoupon ? (
                 <>
                   <div className="coupon-row">
-                    <input className={`coupon-input ${couponState === "valid" ? "valid" : couponState === "invalid" ? "invalid" : ""}`} placeholder="Ej: DEMO10" value={couponInput} onChange={e => { setCouponInput(e.target.value.toUpperCase()); setCouponError(""); setCouponState("idle"); }} onKeyDown={e => e.key === "Enter" && applyCoupon()} />
+                    <input className={`coupon-input ${couponState === "valid" ? "valid" : couponState === "invalid" ? "invalid" : ""}`} placeholder="Ingresá tu código" value={couponInput} onChange={e => { setCouponInput(e.target.value.toUpperCase()); setCouponError(""); setCouponState("idle"); }} onKeyDown={e => e.key === "Enter" && applyCoupon()} />
                     <button className="apply-btn" onClick={applyCoupon} disabled={!couponInput.trim()}>Aplicar</button>
                   </div>
                   {couponError && <div className="coupon-error">⚠ {couponError}</div>}
-                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 5 }}>Prueba: <strong>DEMO10</strong> · <strong>VIP20</strong></div>
                 </>
               ) : (
                 <div className="coupon-applied">
