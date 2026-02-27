@@ -53,7 +53,7 @@ const css = `
   .hero::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% -10%, rgba(212,175,55,0.18) 0%, transparent 60%); pointer-events: none; }
   .hero-banner-img { display: none; }
   .hero-logo { width: 180px; height: 180px; object-fit: contain; display: block; margin: 0 auto 18px; filter: drop-shadow(0 4px 18px rgba(212,175,55,0.45)); }
-  .hero h1 { font-size: clamp(24px,4vw,46px); font-weight: 900; letter-spacing: -0.5px; margin-bottom: 8px; line-height: 1.1; }
+  .hero h1 { font-size: clamp(24px,4vw,46px); font-weight: 900; letter-spacing: -0.5px; margin-bottom: 30px; line-height: 1.1; }
   .hero h1 span { color: #D4AF37; }
   .hero p { font-size: 14px; opacity: 0.78; max-width: 480px; margin: 0 auto 22px; line-height: 1.65; }
   .hero-badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
