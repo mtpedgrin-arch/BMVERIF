@@ -79,7 +79,7 @@ const css = `
   .chip-stock { background: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0; }
   .chip-sales { background: #F8FAFC; color: #64748B; border: 1px solid #E2E8F0; }
   .prod-right { display: flex; flex-direction: row; align-items: center; gap: 12px; flex-shrink: 0; }
-  .prod-price { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 400; white-space: nowrap; letter-spacing: 0.3px; }
+  .prod-price { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 700; white-space: nowrap; letter-spacing: 0.3px; }
   .prod-actions { display: flex; align-items: center; gap: 8px; }
   .buy-btn { background: var(--red); color: #fff; border: none; padding: 9px 20px; border-radius: 8px; font-size: 14px; font-weight: 700; transition: all 0.15s; white-space: nowrap; }
   .buy-btn:hover:not(:disabled) { background: var(--red-dark); transform: translateY(-1px); }
@@ -537,7 +537,7 @@ const css = `
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
 const fmt = n => `$${Number(n).toFixed(2)}`;
-const fmtUSDT = n => `${Number(n).toFixed(2)} USDT`;
+const fmtUSDT = n => `${Number(n).toFixed(2)} USD`;
 
 // Returns the effective unit price given quantity-based tiers
 const getTierPrice = (basePrice, tiers, qty) => {
