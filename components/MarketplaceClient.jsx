@@ -374,6 +374,7 @@ const css = `
     --bg: #111318; --surface: #1C1F2E; --border: #2E3148; --text: #E2E6F0; --muted: #8892A4;
     --red-light: #3D1010; --green-light: #0C2818; --amber-light: #281900; --blue-light: #0C1E35;
     --purple-light: #1C1040; --usdt-light: #082015; --teal-light: #062025;
+    --amber: #F59E0B; --amber-border: #92400E;
     --shadow: 0 1px 4px rgba(0,0,0,0.4); --shadow-lg: 0 8px 40px rgba(0,0,0,0.6);
     color-scheme: dark;
   }
@@ -1599,7 +1600,7 @@ const AdminOrders = ({ orders, onConfirm }) => {
             <thead><tr><th>ID</th><th>Cliente</th><th>Productos</th><th>Red</th><th>Total</th><th>TX Hash</th><th>Estado</th><th>Acción</th></tr></thead>
             <tbody>
               {orders.slice().reverse().map(o => (
-                <tr key={o.id} style={{ background: o.status === "pending" ? "#FFFBEB" : "transparent" }}>
+                <tr key={o.id} style={{ background: o.status === "pending" ? "var(--amber-light)" : "transparent" }}>
                   <td><code style={{ fontSize: 11, color: "var(--purple)" }}>{o.id}</code></td>
                   <td><div style={{ fontSize: 13, fontWeight: 600 }}>{o.userName}</div><div style={{ fontSize: 11, color: "var(--muted)" }}>{o.userEmail}</div></td>
                   <td style={{ fontSize: 12, maxWidth: 180 }}>{o.items.map(i => `${i.name.slice(0, 25)}...`).join(", ")}</td>
