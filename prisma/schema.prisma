@@ -9,14 +9,16 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   name      String?
-  email     String   @unique
+  email     String     @unique
   password  String?
-  role      String   @default("user")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  role      String     @default("user")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
   orders    Order[]
+  favorites Favorite[]
 }
 
 model Product {
@@ -31,32 +33,46 @@ model Product {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  items OrderItem[]
 }
 
 model Order {
-  id          String     @id @default(cuid())
-  status      String     @default("pending") // pending|paid|cancelled|refunded
-  totalCents  Int
-  currency    String     @default("USD")
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id        String   @id @default(cuid())
+  status    String   @default("pending") // pending|paid|cancelled
+  userEmail String
+  userName  String
+  subtotal  Float    @default(0)
+  discount  Float    @default(0)
+  coupon    String?
+  total     Float    @default(0)
+  network   String
+  txHash    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   userId String?
-  user   User?      @relation(fields: [userId], references: [id])
+  user   User?   @relation(fields: [userId], references: [id])
   items  OrderItem[]
 }
 
 model OrderItem {
-  id        String  @id @default(cuid())
-  quantity  Int     @default(1)
-  unitCents Int
-  productId String
-  orderId   String
+  id      String @id @default(cuid())
+  name    String
+  price   Float
+  qty     Int    @default(1)
+  orderId String
 
-  product Product @relation(fields: [productId], references: [id])
-  order   Order   @relation(fields: [orderId], references: [id])
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  productId String
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
 }
 
 model Coupon {

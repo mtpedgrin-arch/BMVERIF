@@ -9,12 +9,7 @@ const WALLETS = {
   BEP20: { addr: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F", network: "BNB Smart Chain (BEP20)", fee: "~0.10 USDT", time: "3–5 min", color: "#F0B90B", logo: "🟡" },
 };
 
-// ─── GLOBAL ORDERS DB ─────────────────────────────────────────────────────────
-const ORDERS_DB = [
-  { id: "ORD-001", userEmail: "charlyxentorix@gmail.com", userName: "Charly Xentorix", items: [{ name: "BM Facebook · Verified · Europe/USA", price: 33.00, qty: 1 }], subtotal: 33.00, discount: 0, coupon: null, total: 33.00, network: "TRC20", txHash: "", status: "paid", date: "2026-02-09" },
-  { id: "ORD-002", userEmail: "charlyxentorix@gmail.com", userName: "Charly Xentorix", items: [{ name: "BM Facebook · Ukraine · Reinstated", price: 34.50, qty: 1 }], subtotal: 34.50, discount: 0, coupon: null, total: 34.50, network: "BEP20", txHash: "", status: "pending", date: "2026-02-20" },
-  { id: "ORD-003", userEmail: "john@example.com", userName: "John Doe", items: [{ name: "BM Facebook · Brazil · $50 Limit", price: 27.00, qty: 2 }], subtotal: 54.00, discount: 5.40, coupon: "DEMO10", total: 48.60, network: "TRC20", txHash: "abc123", status: "pending", date: "2026-02-25" },
-];
+// ORDERS_DB fue reemplazado por la base de datos (Neon/Prisma)
 
 // COUPON_DB fue reemplazado por la base de datos (Neon/Prisma)
 
@@ -721,7 +716,7 @@ const ShopPage = ({ cart, onAddToCart, onCartOpen, liked, onToggleLike, products
 // ─── USER ACCOUNT ─────────────────────────────────────────────────────────────
 const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products }) => {
   const [tab, setTab] = useState("orders");
-  const myOrders = userOrders.filter(o => o.userEmail === user.email);
+  const myOrders = userOrders; // la API ya filtra por usuario
   const favProducts = products.filter(p => liked[p.id]);
   const displayName = user.name || user.email || "Usuario";
   return (
@@ -760,7 +755,7 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
                         <td><strong style={{ color: "var(--usdt)" }}>{fmtUSDT(o.total)}</strong></td>
                         <td>{o.coupon ? <span className="badge badge-purple">{o.coupon} -{o.discount}%</span> : <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>}</td>
                         <td><StatusPill status={o.status} /></td>
-                        <td style={{ color: "var(--muted)", fontSize: 12 }}>{o.date}</td>
+                        <td style={{ color: "var(--muted)", fontSize: 12 }}>{o.createdAt ? new Date(o.createdAt).toLocaleDateString("es-AR") : "—"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1195,7 +1190,7 @@ const AdminPanel = ({ orders, onConfirmOrder, coupons, setCoupons, products, set
                       <td><span className="tag-network">{o.network}</span></td>
                       <td><strong style={{ color: "var(--usdt)" }}>{fmtUSDT(o.total)}</strong></td>
                       <td><StatusPill status={o.status} /></td>
-                      <td style={{ color: "var(--muted)", fontSize: 12 }}>{o.date}</td>
+                      <td style={{ color: "var(--muted)", fontSize: 12 }}>{o.createdAt ? new Date(o.createdAt).toLocaleDateString("es-AR") : "—"}</td>
                     </tr>
                   ))}</tbody>
                 </table>
@@ -1268,8 +1263,18 @@ export default function App() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [pendingCoupon, setPendingCoupon] = useState(null);
   const [pendingTotal, setPendingTotal] = useState(0);
-  const [orders, setOrders] = useState([...ORDERS_DB]);
+  // ── ORDERS ──
+  const [orders, setOrders] = useState([]);
   const [lastOrder, setLastOrder] = useState(null);
+  useEffect(() => {
+    if (!user) return;
+    fetch("/api/orders")
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setOrders(data); })
+      .catch(() => {});
+  }, [user?.email]);
+
+  // ── COUPONS (admin) ──
   const [coupons, setCoupons] = useState([]);
   useEffect(() => {
     if (isAdmin) {
@@ -1280,6 +1285,7 @@ export default function App() {
     }
   }, [isAdmin]);
 
+  // ── PRODUCTS ──
   const [products, setProducts] = useState([]);
   useEffect(() => {
     const url = isAdmin ? "/api/products?all=true" : "/api/products";
@@ -1289,8 +1295,35 @@ export default function App() {
       .catch(() => {});
   }, [isAdmin]);
 
+  // ── FAVORITES ──
   const [liked, setLiked] = useState({});
-  const toggleLike = id => setLiked(l => ({ ...l, [id]: !l[id] }));
+  useEffect(() => {
+    if (!user) return;
+    fetch("/api/favorites")
+      .then(r => r.json())
+      .then(ids => {
+        if (Array.isArray(ids)) {
+          const map = {};
+          ids.forEach(id => { map[id] = true; });
+          setLiked(map);
+        }
+      })
+      .catch(() => {});
+  }, [user?.email]);
+
+  const toggleLike = async (productId) => {
+    if (!user) { setAuthTab("login"); setShowAuth(true); return; }
+    setLiked(l => ({ ...l, [productId]: !l[productId] })); // optimistic
+    try {
+      await fetch("/api/favorites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId }),
+      });
+    } catch {
+      setLiked(l => ({ ...l, [productId]: !l[productId] })); // revert on error
+    }
+  };
 
   const totalItems = cart.reduce((s, i) => s + i.qty, 0);
 
@@ -1310,7 +1343,7 @@ export default function App() {
     setShowPayment(true);
   };
 
-  const handlePaySuccess = (network, txHash) => {
+  const handlePaySuccess = async (network, txHash) => {
     if (pendingCoupon) {
       fetch("/api/coupons/use", {
         method: "POST",
@@ -1320,33 +1353,43 @@ export default function App() {
     }
     const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
     const discount = pendingCoupon ? subtotal * (pendingCoupon.discount / 100) : 0;
-    const newOrder = {
-      id: genOrderId(),
-      userEmail: user.email,
-      userName: user.name || user.email,
-      items: cart.map(i => ({ name: i.name, price: i.price, qty: i.qty })),
-      subtotal,
-      discount,
-      coupon: pendingCoupon?.code || null,
-      discountPct: pendingCoupon?.discount || 0,
-      total: pendingTotal,
-      network,
-      txHash,
-      status: "pending",
-      date: today(),
-    };
-    ORDERS_DB.push(newOrder);
-    setOrders([...ORDERS_DB]);
-    setLastOrder(newOrder);
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: cart.map(i => ({ name: i.name, price: i.price, qty: i.qty })),
+          subtotal,
+          discount,
+          coupon: pendingCoupon?.code || null,
+          total: pendingTotal,
+          network,
+          txHash,
+        }),
+      });
+      const newOrder = await res.json();
+      setOrders(prev => [newOrder, ...prev]);
+      setLastOrder(newOrder);
+    } catch {
+      // si falla la API igual mostramos el modal de éxito
+      setLastOrder({ id: "ORD-LOCAL", network, total: pendingTotal, txHash });
+    }
     setShowPayment(false);
     setCart([]);
     setPendingCoupon(null);
     setShowSuccess(true);
   };
 
-  const handleConfirmOrder = (orderId) => {
-    const idx = ORDERS_DB.findIndex(o => o.id === orderId);
-    if (idx !== -1) { ORDERS_DB[idx].status = "paid"; setOrders([...ORDERS_DB]); }
+  const handleConfirmOrder = async (orderId) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "paid" }),
+      });
+      const updated = await res.json();
+      if (res.ok) setOrders(prev => prev.map(o => o.id === orderId ? updated : o));
+    } catch {}
   };
 
   if (isAdmin) {
