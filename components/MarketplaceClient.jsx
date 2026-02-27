@@ -1279,34 +1279,46 @@ const PaymentPendingModal = ({ order, walletAddr, walletColor, onSuccess, onCanc
     const widgetColor = payStatus === "paid" ? "#22c55e" : payStatus === "expired" ? "#ef4444" : walletColor;
     return (
       <div
-        onClick={() => payStatus === "paid" ? null : setMinimized(false)}
+        onClick={() => payStatus !== "paid" && setMinimized(false)}
         style={{
-          position: "fixed", bottom: 24, right: 24, zIndex: 1200,
+          position: "fixed", bottom: 28, right: 28, zIndex: 1200,
           background: "#0f1e2e", border: `2px solid ${widgetColor}`,
-          borderRadius: 16, padding: "12px 18px", cursor: payStatus === "paid" ? "default" : "pointer",
-          display: "flex", alignItems: "center", gap: 12, boxShadow: `0 4px 24px ${widgetColor}44`,
-          minWidth: 220,
+          borderRadius: 18, padding: "16px 22px", cursor: payStatus === "paid" ? "default" : "pointer",
+          display: "flex", flexDirection: "column", gap: 10,
+          boxShadow: `0 6px 32px ${widgetColor}55`, minWidth: 280,
         }}
       >
-        {/* Network pill */}
-        <span style={{ background: widgetColor + "22", color: widgetColor, borderRadius: 8, padding: "3px 9px", fontSize: 12, fontWeight: 700 }}>{network}</span>
-
-        {payStatus === "paid" ? (
-          <span style={{ color: "#22c55e", fontWeight: 800, fontSize: 14 }}>✅ Pago confirmado</span>
-        ) : payStatus === "expired" ? (
-          <span style={{ color: "#ef4444", fontWeight: 700, fontSize: 13 }}>✕ Expirada</span>
-        ) : (
-          <>
-            <span style={{ color: "#94a3b8", fontSize: 13 }}>⏳ {String(Math.floor(timeLeft / 60)).padStart(2,"0")}:{String(timeLeft % 60).padStart(2,"0")}</span>
-            <div style={{ width: 16, height: 16, border: "2px solid #1e3a5f", borderTop: `2px solid ${walletColor}`, borderRadius: "50%", animation: "spin 1s linear infinite", flexShrink: 0 }} />
-          </>
-        )}
-
-        {payStatus !== "paid" && (
+        {/* Header row */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ background: widgetColor + "22", color: widgetColor, borderRadius: 8, padding: "4px 11px", fontSize: 13, fontWeight: 800 }}>{network}</span>
+          {payStatus === "polling" && (
+            <div style={{ width: 18, height: 18, border: "2.5px solid #1e3a5f", borderTop: `2.5px solid ${walletColor}`, borderRadius: "50%", animation: "spin 1s linear infinite", flexShrink: 0 }} />
+          )}
           <button
             onClick={e => { e.stopPropagation(); setMinimized(false); }}
-            style={{ marginLeft: "auto", background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 18, lineHeight: 1 }}
+            style={{ marginLeft: "auto", background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 20, lineHeight: 1 }}
           >⤢</button>
+        </div>
+
+        {payStatus === "paid" ? (
+          <div style={{ color: "#22c55e", fontWeight: 800, fontSize: 16 }}>✅ Pago confirmado</div>
+        ) : payStatus === "expired" ? (
+          <div style={{ color: "#ef4444", fontWeight: 700, fontSize: 15 }}>✕ Orden expirada</div>
+        ) : (
+          <>
+            <div style={{ color: "#e2e8f0", fontSize: 15, fontWeight: 700 }}>
+              💳 Pago pendiente
+            </div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ color: "#94a3b8", fontSize: 13 }}>Tiempo restante</span>
+              <span style={{ color: timeLeft < 300 ? "#ef4444" : "#f59e0b", fontSize: 15, fontWeight: 800, fontFamily: "monospace" }}>
+                {String(Math.floor(timeLeft / 60)).padStart(2,"0")}:{String(timeLeft % 60).padStart(2,"0")}
+              </span>
+            </div>
+            <div style={{ color: "#64748b", fontSize: 12, marginTop: 2 }}>
+              Tocá para ver instrucciones de pago →
+            </div>
+          </>
         )}
       </div>
     );
@@ -1315,7 +1327,11 @@ const PaymentPendingModal = ({ order, walletAddr, walletColor, onSuccess, onCanc
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "#070d14", overflowY: "auto", padding: "22px 16px 40px" }}>
       {/* Top bar */}
-      <div style={{ display: "flex", justifyContent: "flex-start", maxWidth: 1100, margin: "0 auto 20px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", maxWidth: 1100, margin: "0 auto 20px" }}>
+        <button onClick={() => setMinimized(true)} style={{
+          background: "#1e3a5f", color: "#94a3b8", padding: "8px 22px",
+          borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 14,
+        }}>← Volver</button>
         <button onClick={() => setMinimized(true)} style={{
           background: "#1e3a5f", color: "#94a3b8", padding: "8px 18px",
           borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 14,
