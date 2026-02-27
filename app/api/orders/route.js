@@ -93,7 +93,7 @@ export async function POST(req) {
   // Telegram: nueva compra
   const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
   const itemLines = order.items.map(i => `  • ${i.name} ×${i.qty} — $${(i.price * i.qty).toFixed(2)}`).join("\n");
-  sendTelegramOrderNotification(
+  await sendTelegramOrderNotification(
     `🛒 <b>Nueva compra en BMVERIF</b>\n\n` +
     `👤 <b>${order.userName}</b>\n` +
     `📧 ${order.userEmail}\n\n` +
