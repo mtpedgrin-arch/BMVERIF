@@ -911,13 +911,22 @@ const ChatWidget = ({ user, open, onClose }) => {
 };
 
 // ─── AUTH MODAL ───────────────────────────────────────────────────────────────
+const spamNote = (
+  <div style={{ marginTop: 12, padding: "10px 14px", background: "#FEF3C7", border: "1px solid #F59E0B", borderRadius: 9, fontSize: 12, color: "#92400E", lineHeight: 1.5 }}>
+    📁 <strong>Revisá también la carpeta de spam / no deseados</strong> por si el email llegó ahí.
+  </div>
+);
+
 const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
   const [tab, setTab] = useState(initialTab); // "login" | "register" | "forgot"
   const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
-  const [error, setError] = useState("");
+  const [error, setError] = useState(""); // plain string OR "UNVERIFIED"
   const [loading, setLoading] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSent, setForgotSent] = useState(false);
+  const [verifyPending, setVerifyPending] = useState(false); // after register
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSent, setResendSent] = useState(false);
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
 
   const handleLogin = async () => {
@@ -928,12 +937,31 @@ const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
         email: form.email.trim().toLowerCase(),
         password: form.password,
       });
-      if (res?.error) { setError("Email o contraseña incorrectos."); return; }
+      if (res?.error) {
+        // Check if failure is due to unverified email
+        const check = await fetch("/api/auth/check-verification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: form.email.trim().toLowerCase() }),
+        }).then(r => r.json()).catch(() => ({ unverified: false }));
+        setError(check.unverified ? "UNVERIFIED" : "Email o contraseña incorrectos.");
+        return;
+      }
       onSuccess?.();
       onClose();
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleResendFromLogin = async () => {
+    setResendLoading(true); setResendSent(false);
+    await fetch("/api/auth/resend-verification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: form.email.trim().toLowerCase() }),
+    }).catch(() => {});
+    setResendLoading(false); setResendSent(true);
   };
 
   const handleRegister = async () => {
@@ -950,14 +978,8 @@ const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Error al registrarse."); return; }
-      const login = await signIn("credentials", {
-        redirect: false,
-        email: form.email.trim().toLowerCase(),
-        password: form.password,
-      });
-      if (login?.error) { setError("Cuenta creada, pero hubo un error al ingresar. Iniciá sesión manualmente."); return; }
-      onSuccess?.();
-      onClose();
+      // Don't auto-login — show "check your email" screen
+      setVerifyPending(true);
     } finally {
       setLoading(false);
     }
@@ -979,7 +1001,23 @@ const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
     }
   };
 
-  const goBackToLogin = () => { setTab("login"); setError(""); setForgotSent(false); setForgotEmail(""); };
+  const goBackToLogin = () => { setTab("login"); setError(""); setForgotSent(false); setForgotEmail(""); setVerifyPending(false); setResendSent(false); };
+
+  // ── VERIFY PENDING SCREEN (after register) ────────────────────────────────
+  if (verifyPending) return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 40, marginBottom: 10 }}>📧</div>
+        <div className="modal-title">¡Cuenta creada!</div>
+        <div className="modal-sub">Verificá tu email para poder ingresar</div>
+        <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, marginBottom: 12 }}>
+          Te enviamos un email de verificación a <strong>{form.email}</strong>. Hacé clic en el enlace para activar tu cuenta.
+        </div>
+        {spamNote}
+        <button className="btn btn-primary btn-full" style={{ marginTop: 16 }} onClick={goBackToLogin}>→ Ir al inicio de sesión</button>
+      </div>
+    </div>
+  );
 
   const modalTitle = tab === "login" ? "Iniciá sesión" : tab === "register" ? "Creá tu cuenta" : "Recuperar contraseña";
   const modalSub  = tab === "login" ? "Ingresá para continuar con tu compra" : tab === "register" ? "Registrate para poder comprar" : "Te enviaremos un enlace para restablecer tu contraseña";
@@ -999,7 +1037,20 @@ const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
           </div>
         )}
 
-        {error && <div className="error-msg">{error}</div>}
+        {/* Unverified email error (special case) */}
+        {error === "UNVERIFIED" && (
+          <div style={{ background: "#FEF3C7", border: "1px solid #F59E0B", borderRadius: 10, padding: "12px 14px", marginBottom: 14, fontSize: 13, color: "#78350F" }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>⚠️ Email no verificado</div>
+            <div style={{ marginBottom: 8, lineHeight: 1.5 }}>Revisá tu bandeja de entrada (y spam) para confirmar tu cuenta.</div>
+            {resendSent
+              ? <div style={{ color: "#15803D", fontWeight: 600 }}>✅ Email reenviado. Revisá también spam.</div>
+              : <button style={{ background: "none", border: "1px solid #F59E0B", borderRadius: 7, padding: "5px 12px", fontSize: 12, color: "#92400E", cursor: "pointer", fontWeight: 600 }} onClick={handleResendFromLogin} disabled={resendLoading}>
+                  {resendLoading ? "Enviando..." : "📨 Reenviar email de verificación"}
+                </button>
+            }
+          </div>
+        )}
+        {error && error !== "UNVERIFIED" && <div className="error-msg">{error}</div>}
 
         {/* ── FORGOT PASSWORD VIEW ── */}
         {tab === "forgot" && (
@@ -1010,9 +1061,7 @@ const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
               <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>
                 Si el email está registrado, recibirás un enlace para restablecer tu contraseña en los próximos minutos.
               </div>
-              <div style={{ marginTop: 12, padding: "10px 14px", background: "var(--amber-light, #FFF8E1)", border: "1px solid #FCD34D", borderRadius: 9, fontSize: 12, color: "#92400E", lineHeight: 1.5 }}>
-                📁 <strong>Revisá también tu carpeta de spam / no deseados</strong> por si el email llegó ahí.
-              </div>
+              {spamNote}
               <button className="btn btn-outline btn-full" style={{ marginTop: 16 }} onClick={goBackToLogin}>← Volver al inicio de sesión</button>
             </div>
           ) : (
@@ -3306,14 +3355,25 @@ export default function App() {
   const [cartOpen, setCartOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [resetToken, setResetToken] = useState(null);
-  // Detect ?reset=TOKEN in URL (password reset link from email)
+  const [verifyResult, setVerifyResult] = useState(null); // null | "success" | "error" | string(error msg)
+  // Detect ?reset=TOKEN and ?verify=TOKEN in URL
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      const token = params.get("reset");
-      if (token) {
-        setResetToken(token);
-        window.history.replaceState({}, "", "/"); // clean the URL
+      const reset = params.get("reset");
+      const verify = params.get("verify");
+      if (reset || verify) window.history.replaceState({}, "", "/"); // clean URL
+      if (reset) setResetToken(reset);
+      if (verify) {
+        // Auto-verify the email
+        fetch("/api/auth/verify-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: verify }),
+        })
+          .then(r => r.json())
+          .then(d => setVerifyResult(d.ok ? "success" : (d.error || "error")))
+          .catch(() => setVerifyResult("Error de red."));
       }
     }
   }, []);
@@ -3630,6 +3690,29 @@ export default function App() {
       {showPayment && user && <PaymentModal cart={cart} user={user} coupon={pendingCoupon} finalTotal={pendingTotal} onClose={() => setShowPayment(false)} onSuccess={handlePaySuccess} wallets={wallets} />}
       {showSuccess && lastOrder && <SuccessModal order={lastOrder} onClose={() => { setShowSuccess(false); setView("account"); }} />}
       {resetToken && <ResetPasswordModal token={resetToken} onClose={() => { setResetToken(null); setAuthTab("login"); setShowAuth(true); }} />}
+      {verifyResult && (
+        <div className="modal-overlay" onClick={() => { setVerifyResult(null); if (verifyResult === "success") { setAuthTab("login"); setShowAuth(true); } }}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            {verifyResult === "success" ? (
+              <>
+                <div style={{ fontSize: 44, marginBottom: 10 }}>✅</div>
+                <div className="modal-title">¡Email verificado!</div>
+                <div className="modal-sub">Tu cuenta está activada. Ya podés iniciar sesión.</div>
+                <button className="btn btn-primary btn-full" style={{ marginTop: 16 }} onClick={() => { setVerifyResult(null); setAuthTab("login"); setShowAuth(true); }}>
+                  → Iniciar sesión
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 44, marginBottom: 10 }}>⚠️</div>
+                <div className="modal-title">Error de verificación</div>
+                <div className="modal-sub" style={{ color: "var(--red)" }}>{verifyResult}</div>
+                <button className="btn btn-outline btn-full" style={{ marginTop: 16 }} onClick={() => setVerifyResult(null)}>Cerrar</button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <ChatWidget user={user} open={chatOpen} onClose={() => setChatOpen(false)} />
     </div>

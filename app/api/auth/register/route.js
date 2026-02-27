@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { prisma } from "../../../../lib/prisma";
-import { sendWelcomeEmail } from "../../../../lib/mailer";
+import { sendVerificationEmail } from "../../../../lib/mailer";
 
 export async function POST(req) {
   try {
@@ -15,20 +16,34 @@ export async function POST(req) {
 
     const normalizedEmail = email.toLowerCase().trim();
 
+    // Cleanup: delete unverified accounts older than 24h
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM "User" WHERE "emailVerified" = false AND "createdAt" < NOW() - INTERVAL '24 hours'`
+    ).catch(() => {});
+
     const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existing)
       return NextResponse.json({ error: "Ese email ya está registrado." }, { status: 400 });
 
     const hashed = await bcrypt.hash(password, 10);
-    await prisma.user.create({
-      data: { name: name.trim(), email: normalizedEmail, password: hashed },
-    });
+    const verifyToken = crypto.randomBytes(32).toString("hex");
+    const verifyTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    // Send welcome email (non-blocking — don't fail registration if email fails)
-    sendWelcomeEmail({ to: normalizedEmail, name: name.trim() }).catch(() => {});
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "User" (id, name, email, password, role, "emailVerified", "verifyToken", "verifyTokenExpiry", "createdAt", "updatedAt")
+       VALUES (gen_random_uuid()::text, $1, $2, $3, 'user', false, $4, $5, NOW(), NOW())`,
+      name.trim(), normalizedEmail, hashed, verifyToken, verifyTokenExpiry
+    );
 
-    return NextResponse.json({ ok: true });
+    const baseUrl = process.env.NEXTAUTH_URL || "https://bmverif.vercel.app";
+    const verifyUrl = `${baseUrl}/?verify=${verifyToken}`;
+
+    // Send verification email (non-blocking)
+    sendVerificationEmail({ to: normalizedEmail, name: name.trim(), verifyUrl }).catch(() => {});
+
+    return NextResponse.json({ ok: true, pendingVerification: true });
   } catch (err) {
+    console.error("register error:", err);
     return NextResponse.json({ error: "Error interno del servidor." }, { status: 500 });
   }
 }
