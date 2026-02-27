@@ -2171,7 +2171,15 @@ export default function App() {
   };
 
   const [view, setView] = useState("shop");
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(() => {
+    try {
+      const saved = localStorage.getItem("bmveri_cart");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("bmveri_cart", JSON.stringify(cart)); } catch {}
+  }, [cart]);
   const [cartOpen, setCartOpen] = useState(false);
   const [showMiniCart, setShowMiniCart] = useState(false);
   const [lastAdded, setLastAdded] = useState(null);
