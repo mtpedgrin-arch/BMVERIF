@@ -1474,7 +1474,11 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
               <div style={{ fontWeight: 600 }}>Cargando productos...</div>
             </div>
           )}
-          {[...products].sort((a, b) => a.price - b.price).map(p => {
+          {[...products].sort((a, b) => {
+              const effA = a.badgeDiscount > 0 ? a.price * (1 - a.badgeDiscount / 100) : a.price;
+              const effB = b.badgeDiscount > 0 ? b.price * (1 - b.badgeDiscount / 100) : b.price;
+              return effA - effB;
+            }).map(p => {
             const qty = getQty(p.id);
             return (
               <div key={p.id} className="product-row" onClick={() => onProductClick && onProductClick(p)}>
