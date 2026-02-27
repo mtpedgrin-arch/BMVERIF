@@ -67,7 +67,7 @@ const css = `
   .product-row { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); transition: background 0.12s; }
   .product-row:last-child { border-bottom: none; }
   .product-row:hover { background: #FAFAFA; }
-  .prod-thumb { width: 80px; height: 80px; flex-shrink: 0; border-radius: 12px; overflow: hidden; position: relative; margin-right: 16px; }
+  .prod-thumb { width: 68px; height: 68px; flex-shrink: 0; border-radius: 10px; overflow: hidden; position: relative; margin-right: 16px; }
   .prod-thumb-inner { width: 100%; height: 100%; background: none; display: flex; }
   .prod-thumb-inner img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .prod-thumb-icon { display: none; }
