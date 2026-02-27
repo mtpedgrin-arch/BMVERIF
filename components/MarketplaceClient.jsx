@@ -49,7 +49,7 @@ const css = `
   .cart-fab:hover { background: #333; }
   .cart-count { background: var(--red); color: #fff; width: 19px; height: 19px; border-radius: 50%; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
 
-  .hero { position: relative; background: url('/Banner.png') center center / cover no-repeat; color: #fff; padding: 0; text-align: center; border-bottom: 1px solid rgba(212,175,55,0.25); overflow: hidden; min-height: 220px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .hero { position: relative; background: url('/Banner.png') center center / cover no-repeat; color: #fff; padding: 0; text-align: center; border-bottom: 1px solid rgba(212,175,55,0.25); overflow: hidden; height: 260px; max-height: 260px; display: flex; flex-direction: column; justify-content: flex-end; }
   .hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.55) 100%); pointer-events: none; }
   .hero-logo { display: none; }
   .hero h1 { display: none; }
