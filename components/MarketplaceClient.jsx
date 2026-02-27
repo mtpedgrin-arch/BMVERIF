@@ -4421,6 +4421,76 @@ const LegalUserAgreement = () => (
   </div>
 );
 
+const LegalAppendix1 = () => (
+  <div>
+    <p>Este documento define las categorías de productos digitales y servicios que los Vendedores tienen estrictamente prohibido listar o vender en la Plataforma. La Plataforma se reserva el derecho, a su exclusiva discreción, de actualizar esta lista y eliminar cualquier producto o servicio que viole estas reglas o represente un riesgo, incluso si no se menciona explícitamente a continuación.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>1. Productos y Servicios que Violan Leyes o Derechos de Terceros</p>
+    <p>Cualquier producto o servicio de naturaleza ilegal o destinado a facilitar actividades ilícitas, incluyendo:</p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Artículos cuya distribución, venta o uso viole las leyes locales, nacionales o internacionales aplicables.</li>
+      <li><strong>Contenido falsificado y pirata:</strong> software, juegos, música, películas, libros y cursos distribuidos sin autorización del titular de derechos; versiones crackeadas, copias sin licencia, claves de activación obtenidas ilegalmente; bienes que infrinjan derechos de autor, patentes, marcas u otra propiedad intelectual.</li>
+      <li><strong>Activos digitales robados o adquiridos ilegalmente:</strong> objetos de videojuegos, monedas, cuentas, criptoactivos, etc.</li>
+      <li><strong>Datos obtenidos o distribuidos ilegalmente:</strong> bases de datos con datos personales (direcciones, teléfonos, IDs, datos financieros, etc.), secretos gubernamentales, corporativos, bancarios o médicos sin autorización, software espía y herramientas de interceptación de tráfico sin consentimiento del usuario.</li>
+    </ul>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>2. Software Malicioso y Herramientas de Acceso No Autorizado</p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Malware: virus, troyanos, spyware, adware, botnets, rootkits, ransomware, etc.</li>
+      <li>Software y servicios para hackear, hacer phishing, eludir seguridad o ingeniería social.</li>
+      <li>Servicios de ciberataque: ataques DDoS, hackeo por encargo, distribución de malware.</li>
+    </ul>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>3. Productos y Servicios Relacionados con el Fraude</p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Bienes y servicios diseñados para engañar o inducir a error.</li>
+      <li>Documentos falsificados: pasaportes, DNIs, diplomas, certificados, etc.</li>
+      <li>Software y servicios para generar documentos falsos, incluyendo deepfakes.</li>
+      <li>Servicios para alterar o falsificar datos: historiales crediticios, kilometraje, y registros similares.</li>
+    </ul>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>4. Violaciones de los Términos de Servicio de Terceros</p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Venta o distribución de cuentas, licencias, claves y otros activos digitales obtenidos en violación de los términos de servicio de terceros (Steam, Epic Games, Google, Meta, TikTok, Telegram, etc.).</li>
+      <li>Transferencia o venta de derechos de acceso sin titularidad legal (cuentas de prueba, acceso obtenido mediante bugs o exploits).</li>
+      <li>Cualquier actividad que infrinja los acuerdos de usuario, políticas de seguridad, reglas de protección de PI o directrices de uso justo de servicios de terceros.</li>
+    </ul>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>5. Contenido que Viola Estándares Morales, Éticos o de Orden Público</p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Contenido pornográfico, incluido material de explotación infantil, o cualquier contenido que muestre violencia, crueldad o explotación.</li>
+      <li>Promoción de la violencia, el racismo, la xenofobia, la discriminación, el terrorismo o el extremismo.</li>
+      <li>Contenido que incite al odio nacional, racial, religioso o social.</li>
+      <li>Contenido que denigre la dignidad humana, contenga amenazas o insultos, fomente el suicidio o promueva el daño a uno mismo o a otros.</li>
+    </ul>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>6. Fraude Financiero, Esquemas Ilegales y Operaciones en la Sombra</p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Venta o promoción de esquemas de evasión fiscal, lavado de dinero, transferencias de dinero ilegales, transacciones simuladas u otras operaciones financieras fraudulentas.</li>
+      <li>Cursos, guías e instrucciones para fraude, hackeo, elusión de sistemas de identificación, ingeniería social u otras actividades ilícitas.</li>
+      <li>Servicios de "drop" (uso de terceros en fraude financiero), esquemas de cash-out u operaciones en mercados paralelos.</li>
+    </ul>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>7. Amenazas a la Seguridad de la Plataforma</p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Cualquier actividad dirigida a interrumpir las operaciones de la Plataforma: DDoS, ataques de bots, distribución de spam, scraping automatizado, inyección de scripts maliciosos, explotación de vulnerabilidades, etc.</li>
+      <li>Creación de versiones duplicadas o falsas de la Plataforma, uso no autorizado de la marca o marcas registradas de BM Verificada.</li>
+    </ul>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>8. Otros Productos y Servicios Prohibidos</p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Cuentas para servicios gubernamentales o municipales (portales de servicios públicos, cuentas tributarias, sistemas de salud, etc.).</li>
+      <li>Venta de productos digitales personalizados creados en violación de derechos personales (deepfake, perfiles falsos).</li>
+      <li>Servicios que explotan programas de bonificaciones, promociones o sistemas de fidelización mediante medios deshonestos (generación fraudulenta de códigos promocionales o cupones).</li>
+    </ul>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>9. Riesgos y Disposiciones Adicionales</p>
+    <p><strong>9.1.</strong> La Plataforma se reserva el derecho de clasificar cualquier producto o servicio como prohibido a su exclusiva discreción; eliminar o bloquear un producto o Vendedor sin previo aviso si se sospechan infracciones; y reportar infracciones a las autoridades competentes o titulares de derechos.</p>
+    <p><strong>9.2.</strong> Listar productos o servicios prohibidos puede resultar en: eliminación del listado, suspensión o cancelación de la cuenta del Vendedor, retención o congelamiento de fondos hasta completar la investigación, y responsabilidad civil, administrativa o penal según la ley aplicable.</p>
+    <p><strong>9.3.</strong> El Vendedor reconoce y confirma que ha leído esta Lista, comprende las consecuencias de las infracciones y acepta cumplir con todos los requisitos aquí establecidos.</p>
+  </div>
+);
+
 const LegalRules = () => (
   <div>
     <p><strong>Introducción</strong></p>
@@ -4650,7 +4720,7 @@ export default function App() {
       else sessionStorage.removeItem("bmveri_pending_order");
     } catch {}
   }, [globalPending?.id]);
-  const [legalModal, setLegalModal] = useState(null); // null | "privacy" | "user-agreement" | "public-offer" | "replacement" | "rules"
+  const [legalModal, setLegalModal] = useState(null); // null | "privacy" | "user-agreement" | "public-offer" | "replacement" | "rules" | "appendix1"
   const [resetToken, setResetToken] = useState(null);
   const [verifyResult, setVerifyResult] = useState(null); // null | "success" | "error" | string(error msg)
   // Detect ?reset=TOKEN and ?verify=TOKEN in URL
@@ -5020,6 +5090,7 @@ export default function App() {
                 {legalModal === "public-offer" && "Oferta Pública"}
                 {legalModal === "replacement" && "Política de Reemplazo de Bienes Digitales"}
                 {legalModal === "rules" && "Reglas de la Plataforma"}
+                {legalModal === "appendix1" && "Apéndice 1 – Productos y Servicios Prohibidos"}
               </h2>
               <button onClick={() => setLegalModal(null)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "var(--muted)", lineHeight: 1 }}>×</button>
             </div>
@@ -5029,6 +5100,7 @@ export default function App() {
               {legalModal === "public-offer" && <LegalPublicOffer />}
               {legalModal === "replacement" && <LegalReplacement />}
               {legalModal === "rules" && <LegalRules />}
+              {legalModal === "appendix1" && <LegalAppendix1 />}
             </div>
           </div>
         </div>
@@ -5043,6 +5115,7 @@ export default function App() {
             <button className="site-footer-link" onClick={() => setLegalModal("public-offer")}>Oferta Pública</button>
             <button className="site-footer-link" onClick={() => setLegalModal("replacement")}>Política de Reemplazo de Bienes Digitales</button>
             <button className="site-footer-link" onClick={() => setLegalModal("rules")}>Reglas de la Plataforma</button>
+            <button className="site-footer-link" onClick={() => setLegalModal("appendix1")}>Productos Prohibidos</button>
           </div>
           <div className="site-footer-copy">© {new Date().getFullYear()} BM Verificada</div>
         </div>
