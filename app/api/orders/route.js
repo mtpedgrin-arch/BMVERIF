@@ -39,10 +39,16 @@ export async function POST(req) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const { items, subtotal, discount, coupon, total, network, txHash } = await req.json();
+  const { items, subtotal, discount, coupon, total, network } = await req.json();
   if (!items?.length || !network || total == null) {
     return NextResponse.json({ error: "Faltan campos obligatorios." }, { status: 400 });
   }
+
+  // Generate unique amount: add random 0.01–0.99 cents for blockchain identification
+  const parsedTotal = parseFloat(total);
+  const randomCents = (Math.floor(Math.random() * 99) + 1) / 100;
+  const uniqueAmount = parseFloat((parsedTotal + randomCents).toFixed(2));
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
   const order = await prisma.order.create({
     data: {
@@ -52,9 +58,10 @@ export async function POST(req) {
       subtotal: parseFloat(subtotal) || 0,
       discount: parseFloat(discount) || 0,
       coupon: coupon || null,
-      total: parseFloat(total),
+      total: parsedTotal,
+      uniqueAmount,
+      expiresAt,
       network,
-      txHash: txHash || null,
       userId: session.user.id || null,
       items: {
         create: items.map(i => ({

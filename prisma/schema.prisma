@@ -61,6 +61,8 @@ model Order {
   total     Float    @default(0)
   network   String
   txHash          String?
+  uniqueAmount    Float?    // total + random cents para identificar el pago
+  expiresAt       DateTime? // 1 hora desde la creación para pagar
   deliveryContent String?  // texto del pedido que sube el admin
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

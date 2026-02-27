@@ -1187,21 +1187,93 @@ const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
 // ─── PAYMENT MODAL ────────────────────────────────────────────────────────────
 const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, wallets: W = WALLETS }) => {
   const [network, setNetwork] = useState(null);
-  const [txHash, setTxHash] = useState("");
+  const [step, setStep] = useState(1); // 1=select network, 2=waiting payment
+  const [creating, setCreating] = useState(false);
+  const [order, setOrder] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [step, setStep] = useState(1);
+  const [payStatus, setPayStatus] = useState("polling"); // polling | paid | expired
+  const [timeLeft, setTimeLeft] = useState(3600);
+
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const discountAmt = coupon ? subtotal * (coupon.discount / 100) : 0;
 
-  const selectNetwork = (n) => { setNetwork(n); setStep(2); };
+  const selectNetwork = async (n) => {
+    setNetwork(n);
+    setCreating(true);
+    try {
+      if (coupon) {
+        await fetch("/api/coupons/use", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: coupon.code }),
+        }).catch(() => {});
+      }
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: cart.map(i => ({ name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty, productId: i.id || null })),
+          subtotal, discount: discountAmt,
+          coupon: coupon?.code || null,
+          total: finalTotal,
+          network: n,
+        }),
+      });
+      const newOrder = await res.json();
+      setOrder(newOrder);
+      setStep(2);
+    } catch {
+      alert("Error al crear la orden. Intentá de nuevo.");
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const copy = () => {
-    navigator.clipboard.writeText(W[network].addr).catch(() => {});
+    navigator.clipboard.writeText(W[network]?.addr).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Countdown timer
+  useEffect(() => {
+    if (!order?.expiresAt) return;
+    const tick = () => {
+      const left = Math.max(0, Math.floor((new Date(order.expiresAt) - Date.now()) / 1000));
+      setTimeLeft(left);
+      if (left === 0) setPayStatus(s => s === "polling" ? "expired" : s);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [order?.expiresAt]);
+
+  // Auto-close after paid (show success 2.5s then close)
+  useEffect(() => {
+    if (payStatus !== "paid" || !order) return;
+    const t = setTimeout(() => onSuccess({ ...order, status: "paid" }), 2500);
+    return () => clearTimeout(t);
+  }, [payStatus]);
+
+  // Blockchain polling every 30s
+  useEffect(() => {
+    if (!order?.id || payStatus !== "polling") return;
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/orders/${order.id}/check-payment`);
+        const data = await res.json();
+        if (data.paid) setPayStatus("paid");
+        else if (data.expired) setPayStatus("expired");
+      } catch {}
+    };
+    const id = setInterval(poll, 30000);
+    return () => clearInterval(id);
+  }, [order?.id, payStatus]);
+
+  const mins = String(Math.floor(timeLeft / 60)).padStart(2, "0");
+  const secs = String(timeLeft % 60).padStart(2, "0");
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={step === 1 ? onClose : undefined}>
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="usdt-header">
           <div className="usdt-logo">₮</div>
@@ -1215,7 +1287,8 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, wall
           {coupon && <div className="order-row discount"><span>🏷 {coupon.code} (-{coupon.discount}%)</span><span>− {fmtUSDT(discountAmt)}</span></div>}
           <div className="order-row bold"><span>Total a pagar</span><span style={{ color: "var(--usdt)" }}>{fmtUSDT(finalTotal)}</span></div>
         </div>
-        {step === 1 && (
+
+        {step === 1 && !creating && (
           <>
             <div style={{ fontFamily: "Syne", fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Selecciona la red:</div>
             <div className="network-selector">
@@ -1234,36 +1307,89 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, wall
             <button className="btn btn-outline btn-full" style={{ marginTop: 0 }} onClick={onClose}>Cancelar</button>
           </>
         )}
-        {step === 2 && network && (
+
+        {creating && (
+          <div style={{ textAlign: "center", padding: "30px 0", color: "var(--muted)", fontSize: 14 }}>
+            ⏳ Generando orden...
+          </div>
+        )}
+
+        {step === 2 && order && (
           <>
-            <div className="amount-highlight">
-              <span className="amount-label">Enviar exactamente:</span>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                <span className="amount-value">{fmtUSDT(finalTotal).split(" ")[0]}</span>
-                <span className="amount-ticker">USDT</span>
+            {/* Countdown bar */}
+            <div style={{
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              background: payStatus === "expired" ? "rgba(239,68,68,0.08)" : payStatus === "paid" ? "rgba(34,197,94,0.08)" : "var(--amber-light,#fffbeb)",
+              border: `1px solid ${payStatus === "expired" ? "var(--red,#ef4444)" : payStatus === "paid" ? "var(--green,#22c55e)" : "var(--amber-border,#fde68a)"}`,
+              borderRadius: 10, padding: "10px 16px", marginBottom: 12,
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: payStatus === "expired" ? "var(--red,#ef4444)" : payStatus === "paid" ? "var(--green,#22c55e)" : "var(--amber,#d97706)" }}>
+                {payStatus === "expired" ? "⚠️ Orden vencida" : payStatus === "paid" ? "✅ Pago detectado" : "⏱ Tiempo restante"}
+              </span>
+              {payStatus === "polling" && (
+                <span style={{ fontFamily: "monospace", fontSize: 20, fontWeight: 800, color: timeLeft < 300 ? "var(--red,#ef4444)" : "var(--amber,#d97706)" }}>
+                  {mins}:{secs}
+                </span>
+              )}
+            </div>
+
+            {/* Exact amount warning */}
+            {payStatus === "polling" && (
+              <div style={{
+                background: "rgba(239,68,68,0.07)", border: "2px solid var(--red,#ef4444)",
+                borderRadius: 12, padding: "14px 18px", marginBottom: 14, textAlign: "center",
+              }}>
+                <div style={{ fontSize: 11, color: "var(--red,#ef4444)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
+                  ⚠ Manda EXACTAMENTE
+                </div>
+                <div style={{ fontFamily: "Syne", fontSize: 32, fontWeight: 900, color: "var(--red,#ef4444)", letterSpacing: "-0.5px" }}>
+                  {order.uniqueAmount?.toFixed(2)} USDT
+                </div>
+                <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+                  No redondees — los centavos identifican tu pago
+                </div>
               </div>
-            </div>
-            <div className="wallet-box">
-              <div className="wallet-box-label">{W[network].logo} Wallet USDT {network} — {W[network].network}</div>
-              <div style={{ textAlign: "center", margin: "10px 0 8px" }}>
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(W[network].addr)}&margin=10`}
-                  alt={`QR ${network}`}
-                  style={{ width: 180, height: 180, border: `3px solid ${W[network].color}`, borderRadius: 10, padding: 4, background: "#fff" }}
-                />
+            )}
+
+            {/* Paid screen */}
+            {payStatus === "paid" && (
+              <div style={{ textAlign: "center", padding: "20px 0" }}>
+                <div style={{ fontSize: 54, marginBottom: 10 }}>✅</div>
+                <div style={{ fontFamily: "Syne", fontSize: 18, fontWeight: 800, color: "var(--green,#22c55e)" }}>¡Pago confirmado!</div>
+                <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 6 }}>Tu orden fue verificada automáticamente en la blockchain.</div>
               </div>
-              <div className="wallet-address">{W[network].addr}</div>
-              <button className="wallet-copy-btn" onClick={copy}>{copied ? "✓ Copiado!" : "📋 Copiar dirección"}</button>
-            </div>
-            <div className="tx-input-wrap">
-              <div className="form-label">Hash de transacción (opcional pero recomendado)</div>
-              <input className="tx-input" placeholder="Ej: 0xabc123def456... o TXhash..." value={txHash} onChange={e => setTxHash(e.target.value)} />
-              <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>Pegar el hash acelera la confirmación por parte del admin.</div>
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button className="btn btn-usdt" style={{ flex: 1, justifyContent: "center" }} onClick={() => onSuccess(network, txHash)}>✓ Ya realicé el pago</button>
-              <button className="btn btn-outline" onClick={() => { setStep(1); setNetwork(null); }}>← Volver</button>
-            </div>
+            )}
+
+            {/* Expired screen */}
+            {payStatus === "expired" && (
+              <div style={{ textAlign: "center", padding: "20px 0" }}>
+                <div style={{ fontSize: 54, marginBottom: 10 }}>⏰</div>
+                <div style={{ fontFamily: "Syne", fontSize: 16, fontWeight: 800, color: "var(--red,#ef4444)" }}>Orden vencida</div>
+                <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 6, marginBottom: 16 }}>El tiempo para pagar expiró. Podés crear una nueva orden.</div>
+                <button className="btn btn-outline btn-full" onClick={onClose}>Cerrar</button>
+              </div>
+            )}
+
+            {/* Wallet + QR */}
+            {payStatus === "polling" && network && (
+              <>
+                <div className="wallet-box">
+                  <div className="wallet-box-label">{W[network].logo} Wallet USDT {network} — {W[network].network}</div>
+                  <div style={{ textAlign: "center", margin: "10px 0 8px" }}>
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(W[network].addr)}&margin=10`}
+                      alt={`QR ${network}`}
+                      style={{ width: 180, height: 180, border: `3px solid ${W[network].color}`, borderRadius: 10, padding: 4, background: "#fff" }}
+                    />
+                  </div>
+                  <div className="wallet-address">{W[network].addr}</div>
+                  <button className="wallet-copy-btn" onClick={copy}>{copied ? "✓ Copiado!" : "📋 Copiar dirección"}</button>
+                </div>
+                <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", padding: "8px 0 4px" }}>
+                  🔄 Verificando automáticamente cada 30 segundos...
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
@@ -1272,23 +1398,29 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, wall
 };
 
 // ─── SUCCESS MODAL ────────────────────────────────────────────────────────────
-const SuccessModal = ({ order, onClose }) => (
-  <div className="modal-overlay">
-    <div className="modal" style={{ textAlign: "center" }}>
-      <div style={{ fontSize: 54, marginBottom: 12 }}>✅</div>
-      <div className="modal-title">¡Pago enviado!</div>
-      <div style={{ fontSize: 14, color: "var(--muted)", marginBottom: 16, lineHeight: 1.6 }}>
-        Tu orden <strong style={{ color: "var(--text)" }}>#{order.id}</strong> fue registrada.<br />
-        Quedó en estado <span className="status-pending" style={{ display: "inline-flex" }}>⏳ Pendiente</span> mientras se verifica el pago.
+const SuccessModal = ({ order, onClose }) => {
+  const paid = order?.status === "paid";
+  return (
+    <div className="modal-overlay">
+      <div className="modal" style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 54, marginBottom: 12 }}>{paid ? "🎉" : "✅"}</div>
+        <div className="modal-title">{paid ? "¡Pago confirmado!" : "¡Pago enviado!"}</div>
+        <div style={{ fontSize: 14, color: "var(--muted)", marginBottom: 16, lineHeight: 1.6 }}>
+          Tu orden <strong style={{ color: "var(--text)" }}>#{order.id?.slice(-8)}</strong>{" "}
+          {paid
+            ? <span>fue <strong style={{ color: "var(--green,#22c55e)" }}>verificada automáticamente</strong> en la blockchain.</span>
+            : <>fue registrada.<br />Quedó en estado <span className="status-pending" style={{ display: "inline-flex" }}>⏳ Pendiente</span> mientras verificamos el pago.</>
+          }
+        </div>
+        <div style={{ background: paid ? "rgba(34,197,94,0.08)" : "var(--amber-light)", border: `1px solid ${paid ? "var(--green,#22c55e)" : "var(--amber-border)"}`, borderRadius: 10, padding: "12px 16px", marginBottom: 20, fontSize: 13, color: paid ? "var(--green,#22c55e)" : "var(--amber)", textAlign: "left" }}>
+          <strong>Red:</strong> {order.network} · <strong>Total:</strong> {fmtUSDT(order.uniqueAmount || order.total)}<br />
+          {order.txHash && <><strong>TX:</strong> <code style={{ fontSize: 11 }}>{order.txHash.slice(0, 30)}...</code></>}
+        </div>
+        <button className="btn btn-primary btn-full" onClick={onClose}>Ver mis órdenes</button>
       </div>
-      <div style={{ background: "var(--amber-light)", border: "1px solid var(--amber-border)", borderRadius: 10, padding: "12px 16px", marginBottom: 20, fontSize: 13, color: "var(--amber)", textAlign: "left" }}>
-        <strong>Red:</strong> {order.network} · <strong>Total:</strong> {fmtUSDT(order.total)}<br />
-        {order.txHash && <><strong>TX Hash:</strong> <code style={{ fontSize: 11 }}>{order.txHash.slice(0, 30)}...</code></>}
-      </div>
-      <button className="btn btn-primary btn-full" onClick={onClose}>Ver mis órdenes</button>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── CHECKOUT PAGE ────────────────────────────────────────────────────────────
 const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShowAuth, wallets: W = WALLETS }) => {
@@ -1297,12 +1429,12 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
   const [couponState, setCouponState] = useState("idle");
   const [couponError, setCouponError] = useState("");
   const [network, setNetwork] = useState("TRC20");
-  const [txHash, setTxHash] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [done, setDone] = useState(false);
-  const [orderId, setOrderId] = useState(null);
+  const [createdOrder, setCreatedOrder] = useState(null); // order after creation
+  const [payStatus, setPayStatus] = useState("polling"); // polling | paid | expired
+  const [timeLeft, setTimeLeft] = useState(3600);
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const discountAmt = appliedCoupon ? subtotal * (appliedCoupon.discount / 100) : 0;
@@ -1334,30 +1466,127 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
           items: cart.map(i => ({ name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty, productId: i.id || null })),
           subtotal, discount: discountAmt,
           coupon: appliedCoupon?.code || null,
-          total, network, txHash,
+          total, network,
         }),
       });
       const order = await res.json();
-      setOrderId(order.id || "—");
-      setDone(true);
+      setCreatedOrder(order);
       onSuccess(order);
     } catch { alert("Error al procesar. Intentá de nuevo."); }
     finally { setSubmitting(false); }
   };
 
-  if (done) return (
+  // Countdown timer (once order is created)
+  useEffect(() => {
+    if (!createdOrder?.expiresAt) return;
+    const tick = () => {
+      const left = Math.max(0, Math.floor((new Date(createdOrder.expiresAt) - Date.now()) / 1000));
+      setTimeLeft(left);
+      if (left === 0) setPayStatus(s => s === "polling" ? "expired" : s);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [createdOrder?.expiresAt]);
+
+  // Blockchain polling every 30s
+  useEffect(() => {
+    if (!createdOrder?.id || payStatus !== "polling") return;
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/orders/${createdOrder.id}/check-payment`);
+        const data = await res.json();
+        if (data.paid) setPayStatus("paid");
+        else if (data.expired) setPayStatus("expired");
+      } catch {}
+    };
+    const id = setInterval(poll, 30000);
+    return () => clearInterval(id);
+  }, [createdOrder?.id, payStatus]);
+
+  const mins = String(Math.floor(timeLeft / 60)).padStart(2, "0");
+  const secs = String(timeLeft % 60).padStart(2, "0");
+
+  // Waiting for payment screen (after order created)
+  if (createdOrder) return (
     <div className="checkout-page">
-      <div className="checkout-card" style={{ maxWidth: 500, margin: "40px auto" }}>
-        <div className="co-success">
-          <div style={{ fontSize: 60, marginBottom: 14 }}>✅</div>
-          <div style={{ fontFamily: "Syne", fontSize: 22, fontWeight: 800, marginBottom: 8 }}>¡Pago enviado!</div>
-          <div style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.7, marginBottom: 20 }}>
-            Tu orden <strong style={{ color: "var(--text)" }}>#{orderId?.slice(-8)}</strong> quedó en estado
-            <span className="status-pending" style={{ display: "inline-flex", margin: "0 6px" }}>⏳ Pendiente</span>
-            mientras verificamos el pago en la red {network}.
-          </div>
-          <button className="btn btn-primary btn-full" onClick={() => onGoShop()}>← Volver a la tienda</button>
+      <div className="checkout-card" style={{ maxWidth: 540, margin: "40px auto" }}>
+        {/* Countdown */}
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          background: payStatus === "expired" ? "rgba(239,68,68,0.08)" : payStatus === "paid" ? "rgba(34,197,94,0.08)" : "var(--amber-light,#fffbeb)",
+          border: `1px solid ${payStatus === "expired" ? "var(--red,#ef4444)" : payStatus === "paid" ? "var(--green,#22c55e)" : "var(--amber-border,#fde68a)"}`,
+          borderRadius: 10, padding: "12px 18px", marginBottom: 16,
+        }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: payStatus === "expired" ? "var(--red,#ef4444)" : payStatus === "paid" ? "var(--green,#22c55e)" : "var(--amber,#d97706)" }}>
+            {payStatus === "expired" ? "⚠️ Orden vencida" : payStatus === "paid" ? "✅ Pago confirmado" : "⏱ Tiempo para pagar"}
+          </span>
+          {payStatus === "polling" && (
+            <span style={{ fontFamily: "monospace", fontSize: 22, fontWeight: 800, color: timeLeft < 300 ? "var(--red,#ef4444)" : "var(--amber,#d97706)" }}>
+              {mins}:{secs}
+            </span>
+          )}
         </div>
+
+        {payStatus === "paid" && (
+          <div style={{ textAlign: "center", padding: "20px 0 16px" }}>
+            <div style={{ fontSize: 60, marginBottom: 12 }}>🎉</div>
+            <div style={{ fontFamily: "Syne", fontSize: 22, fontWeight: 800, marginBottom: 8 }}>¡Pago confirmado!</div>
+            <div style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.7, marginBottom: 20 }}>
+              Tu orden <strong style={{ color: "var(--text)" }}>#{createdOrder.id?.slice(-8)}</strong> fue verificada automáticamente en la blockchain.
+            </div>
+            <button className="btn btn-primary btn-full" onClick={onGoShop}>← Volver a la tienda</button>
+          </div>
+        )}
+
+        {payStatus === "expired" && (
+          <div style={{ textAlign: "center", padding: "20px 0 16px" }}>
+            <div style={{ fontSize: 60, marginBottom: 12 }}>⏰</div>
+            <div style={{ fontFamily: "Syne", fontSize: 18, fontWeight: 800, marginBottom: 8, color: "var(--red,#ef4444)" }}>Orden vencida</div>
+            <div style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.7, marginBottom: 20 }}>El tiempo expiró. Podés volver a la tienda y crear una nueva orden.</div>
+            <button className="btn btn-primary btn-full" onClick={onGoShop}>← Volver a la tienda</button>
+          </div>
+        )}
+
+        {payStatus === "polling" && (
+          <>
+            {/* Exact amount */}
+            <div style={{
+              background: "rgba(239,68,68,0.07)", border: "2px solid var(--red,#ef4444)",
+              borderRadius: 12, padding: "16px 20px", marginBottom: 16, textAlign: "center",
+            }}>
+              <div style={{ fontSize: 12, color: "var(--red,#ef4444)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>
+                ⚠ Manda EXACTAMENTE
+              </div>
+              <div style={{ fontFamily: "Syne", fontSize: 36, fontWeight: 900, color: "var(--red,#ef4444)", letterSpacing: "-0.5px" }}>
+                {createdOrder.uniqueAmount?.toFixed(2)} USDT
+              </div>
+              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
+                No redondees — los centavos identifican tu pago en la blockchain
+              </div>
+            </div>
+
+            {/* Wallet + QR */}
+            <div className="co-wallet-box">
+              <div className="co-wallet-label">Dirección {network}</div>
+              <div style={{ textAlign: "center", margin: "10px 0 8px" }}>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(wallet.addr)}&margin=10`}
+                  alt={`QR ${network}`}
+                  style={{ width: 180, height: 180, border: `3px solid ${wallet.color}`, borderRadius: 10, padding: 4, background: "#fff" }}
+                />
+              </div>
+              <div className="co-wallet-addr">{wallet.addr}</div>
+              <button className="co-copy-btn" onClick={() => { navigator.clipboard.writeText(wallet.addr).catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
+                {copied ? "✓ Copiado!" : "📋 Copiar dirección"}
+              </button>
+            </div>
+
+            <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", padding: "8px 0" }}>
+              🔄 Verificando automáticamente cada 30 segundos...
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -1490,17 +1719,10 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
               </button>
             </div>
 
-            {/* TX Hash */}
-            <div className="co-tx-wrap">
-              <div className="form-label">Hash de transacción (recomendado)</div>
-              <input className="form-input" style={{ fontFamily: "monospace", fontSize: 12 }} placeholder="0x... o TX..." value={txHash} onChange={e => setTxHash(e.target.value)} />
-              <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>Pegarlo acelera la verificación del admin.</div>
-            </div>
-
             {/* Agree */}
             <div className="co-agree">
               <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
-              <span>Entiendo que el pago en USDT es <strong>irreversible</strong> y que el acceso al producto se entrega una vez que el admin confirme la transacción.</span>
+              <span>Entiendo que el pago en USDT es <strong>irreversible</strong> y que el acceso al producto se entrega una vez que se confirme el pago en la blockchain.</span>
             </div>
 
             {/* Submit */}
@@ -3870,37 +4092,9 @@ export default function App() {
     setShowPayment(true);
   };
 
-  const handlePaySuccess = async (network, txHash) => {
-    if (pendingCoupon) {
-      fetch("/api/coupons/use", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: pendingCoupon.code }),
-      }).catch(() => {});
-    }
-    const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
-    const discount = pendingCoupon ? subtotal * (pendingCoupon.discount / 100) : 0;
-    try {
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: cart.map(i => ({ name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty, productId: i.id || null })),
-          subtotal,
-          discount,
-          coupon: pendingCoupon?.code || null,
-          total: pendingTotal,
-          network,
-          txHash,
-        }),
-      });
-      const newOrder = await res.json();
-      setOrders(prev => [newOrder, ...prev]);
-      setLastOrder(newOrder);
-    } catch {
-      // si falla la API igual mostramos el modal de éxito
-      setLastOrder({ id: "ORD-LOCAL", network, total: pendingTotal, txHash });
-    }
+  const handlePaySuccess = (order) => {
+    setOrders(prev => [order, ...prev]);
+    setLastOrder(order);
     setShowPayment(false);
     setCart([]);
     setPendingCoupon(null);
