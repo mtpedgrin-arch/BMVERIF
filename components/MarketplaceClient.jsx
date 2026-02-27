@@ -49,13 +49,13 @@ const css = `
   .cart-fab:hover { background: #333; }
   .cart-count { background: var(--red); color: #fff; width: 19px; height: 19px; border-radius: 50%; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
 
-  .hero { position: relative; background: url('/Banner.png') center center / cover no-repeat; color: #fff; padding: 0; text-align: center; border-bottom: 1px solid rgba(212,175,55,0.25); overflow: hidden; height: 260px; max-height: 260px; display: flex; flex-direction: column; justify-content: flex-end; }
-  .hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.55) 100%); pointer-events: none; }
+  .hero { position: relative; border-bottom: 1px solid rgba(212,175,55,0.25); overflow: hidden; display: block; }
+  .hero-banner-img { width: 100%; height: auto; display: block; }
   .hero-logo { display: none; }
   .hero h1 { display: none; }
   .hero p { display: none; }
-  .hero-badges { position: relative; z-index: 1; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 16px 16px 20px; }
-  .hero-badge { background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); border: 1px solid rgba(212,175,55,0.45); color: #D4AF37; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .hero-badges { position: absolute; bottom: 14px; left: 0; right: 0; z-index: 1; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 0 16px; }
+  .hero-badge { background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); border: 1px solid rgba(212,175,55,0.45); color: #D4AF37; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; }
 
   .shop-wrap { flex: 1; max-width: 1200px; margin: 0 auto; width: 100%; padding: 24px 20px; }
   .shop-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
@@ -415,7 +415,7 @@ const css = `
     color-scheme: dark;
   }
   .app.dark { background: var(--bg); color: var(--text); }
-  .app.dark .hero { background: url('/Banner.png') center center / cover no-repeat; }
+  .app.dark .hero { background: none; }
   .app.dark .topbar { background: var(--surface); border-color: var(--border); }
   .app.dark .sidebar { background: var(--surface); border-color: var(--border); }
   .app.dark .sidebar-item:hover { background: #222535; }
@@ -2468,9 +2468,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
   return (
     <>
       <div className="hero">
-        <img src="/logo.png" alt="BM Verificada" className="hero-logo" />
-        <h1>BM <span>Verificada</span></h1>
-        <p>Business Manager Premium · Cuentas verificadas · Entrega inmediata · Pago USDT</p>
+        <img src="/Banner.png" alt="BM Verificada" className="hero-banner-img" />
         <div className="hero-badges">
           <span className="hero-badge">✓ Entrega inmediata</span>
           <span className="hero-badge">₮ USDT TRC20 / BEP20</span>
