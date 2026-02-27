@@ -4421,6 +4421,53 @@ const LegalUserAgreement = () => (
   </div>
 );
 
+const LegalReplacement = () => (
+  <div>
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>1. Disposiciones Generales</p>
+    <p>Un <strong>producto digital</strong> (en adelante – producto) son credenciales de acceso a cuentas u otros datos textuales utilizados en sitios web o software.</p>
+    <p>Un <strong>producto válido</strong> es un producto funcional, no bloqueado, que corresponde a la descripción.</p>
+    <p>Un <strong>producto inválido</strong> es un producto bloqueado o no funcional, o un producto que no corresponde a la descripción.</p>
+    <p>La <strong>garantía del producto</strong> es el proceso de reemplazar un producto inválido por uno válido, o corregir los defectos del producto dentro de las 24 horas.</p>
+    <p>La verificación de un producto inválido se realiza dentro de las 24 horas. Si no se toma una decisión de garantía dentro de ese plazo, el producto es reemplazado.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>2. Términos de Garantía</p>
+    <p>El período de garantía para todos los productos después de la entrega es de <strong>60 minutos</strong>. Una vez vencido el período de garantía, el producto se considera válido y no puede ser reemplazado.</p>
+
+    <p style={{ marginTop: 10 }}><strong>Se provee garantía si:</strong></p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Existen problemas de acceso al producto que no pueden resolverse de inmediato.</li>
+      <li>Puede establecerse de manera fehaciente que el bloqueo u otras restricciones que hicieron inválido al producto ocurrieron antes de la compra.</li>
+      <li>Al producto le faltan parámetros importantes declarados en la descripción:
+        <ul style={{ paddingLeft: 16, marginTop: 4 }}>
+          <li><strong>Facebook:</strong> antigüedad del producto, estado de verificación, estado PZRD (Reintegrada).</li>
+          <li><strong>Google:</strong> estado de verificación.</li>
+          <li><strong>TikTok:</strong> estado de verificación, acceso al email.</li>
+          <li><strong>Twitter y Discord:</strong> estado de verificación o seguidores faltantes.</li>
+          <li><strong>Servicios de boosting y redes neuronales:</strong> ausencia de moneda de saldo interno.</li>
+          <li><strong>Otros productos:</strong> antigüedad, ausencia de amigos o seguidores, estado de verificación.</li>
+        </ul>
+      </li>
+    </ul>
+
+    <p style={{ marginTop: 10 }}><strong>No se provee garantía si:</strong></p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>El inicio de sesión (incluso mediante token, cookies o perfil de navegador anti-detect) resultó en el bloqueo del producto.</li>
+      <li>Cualquier acción posterior al inicio de sesión, o la falta de ella, provocó bloqueo, restricciones de funcionalidad, cancelación de verificación, deducción de saldo, mal funcionamiento de objetos asociados a la cuenta, o el producto se volvió inválido tras el inicio de sesión.</li>
+      <li>Se realizaron acciones sobre un producto inválido: presentar una apelación, transferir objetos, cambiar información de la cuenta, etc.</li>
+      <li>El producto tiene defectos menores que no afectan su estado válido, o falta algún dato complementario que no lo invalida (cookies, email, 2FA, ID, token, enlaces a materiales adicionales, etc.).</li>
+    </ul>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>3. Otras Condiciones</p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Cualquier producto se vende en el marketplace una sola vez.</li>
+      <li>En la página del producto pueden figurar términos de garantía adicionales con carácter prioritario.</li>
+      <li>Los productos válidos comprados en el marketplace o entregados mediante soporte técnico no están sujetos a devolución ni reemplazo. Esto también aplica a productos comprados accidentalmente, por error, por descuido y/o por cualquier otra razón.</li>
+      <li>Si un producto fue comprado pero no utilizado, dicho producto no es elegible para reemplazo (ver cláusula 2.1).</li>
+      <li>Si los reclamos relacionados con un producto no encajan en ninguna de las situaciones listadas, esos casos se revisan individualmente.</li>
+    </ul>
+  </div>
+);
+
 const LegalPrivacy = () => (
   <div>
     <p>Esta Política de Privacidad es parte integral del Acuerdo de Usuario y los Términos Generales de la plataforma <strong>BM Verificada</strong> (en adelante "la Plataforma" o el "Marketplace"). En caso de inconsistencia, esta Política prevalecerá.</p>
@@ -4923,7 +4970,7 @@ export default function App() {
               {legalModal === "privacy" && <LegalPrivacy />}
               {legalModal === "user-agreement" && <LegalUserAgreement />}
               {legalModal === "public-offer" && <LegalPublicOffer />}
-              {legalModal === "replacement" && <LegalPlaceholder title="Política de Reemplazo de Bienes Digitales" />}
+              {legalModal === "replacement" && <LegalReplacement />}
               {legalModal === "rules" && <LegalPlaceholder title="Reglas de la Plataforma" />}
             </div>
           </div>
