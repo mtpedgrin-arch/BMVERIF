@@ -38,7 +38,8 @@ const css = `
   .app { min-height: 100vh; display: flex; flex-direction: column; }
 
   .topbar { background: var(--surface); border-bottom: 1.5px solid var(--border); padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-  .logo { font-family: 'Syne', sans-serif; font-size: 21px; font-weight: 800; color: var(--red); letter-spacing: -0.5px; cursor: pointer; }
+  .logo { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--red); letter-spacing: -0.5px; cursor: pointer; display: flex; align-items: center; gap: 9px; }
+  .logo img { width: 34px; height: 34px; object-fit: contain; }
   .logo span { color: var(--text); }
   .topbar-right { display: flex; align-items: center; gap: 8px; }
   .nav-tab { background: none; border: none; padding: 6px 13px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--muted); transition: all 0.15s; }
@@ -48,12 +49,14 @@ const css = `
   .cart-fab:hover { background: #333; }
   .cart-count { background: var(--red); color: #fff; width: 19px; height: 19px; border-radius: 50%; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
 
-  .hero { background: linear-gradient(135deg, #1A1614 0%, #2D1F1F 55%, #3D1515 100%); color: #fff; padding: 44px 28px 36px; text-align: center; }
-  .hero h1 { font-size: clamp(22px,4vw,44px); font-weight: 800; letter-spacing: -1px; margin-bottom: 8px; }
-  .hero h1 span { color: #ff7070; }
-  .hero p { font-size: 14px; opacity: 0.72; max-width: 440px; margin: 0 auto 18px; line-height: 1.6; }
+  .hero { position: relative; background: linear-gradient(135deg, #050D1A 0%, #0A1628 40%, #0F2040 70%, #050D1A 100%); color: #fff; padding: 52px 28px 44px; text-align: center; border-bottom: 1px solid rgba(212,175,55,0.25); overflow: hidden; }
+  .hero::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% -10%, rgba(212,175,55,0.18) 0%, transparent 60%); pointer-events: none; }
+  .hero-logo { width: 88px; height: 88px; object-fit: contain; display: block; margin: 0 auto 18px; filter: drop-shadow(0 4px 18px rgba(212,175,55,0.45)); }
+  .hero h1 { font-size: clamp(24px,4vw,46px); font-weight: 900; letter-spacing: -0.5px; margin-bottom: 8px; line-height: 1.1; }
+  .hero h1 span { color: #D4AF37; }
+  .hero p { font-size: 14px; opacity: 0.78; max-width: 480px; margin: 0 auto 22px; line-height: 1.65; }
   .hero-badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-  .hero-badge { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+  .hero-badge { background: rgba(212,175,55,0.1); border: 1px solid rgba(212,175,55,0.3); color: #D4AF37; padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; }
 
   .shop-wrap { flex: 1; max-width: 1200px; margin: 0 auto; width: 100%; padding: 24px 20px; }
   .shop-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
@@ -2458,8 +2461,9 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
   return (
     <>
       <div className="hero">
-        <h1>Facebook <span>Accounts</span> Shop</h1>
-        <p>Cuentas Business Manager verificadas · Entrega inmediata · Pago solo USDT</p>
+        <img src="/logo.png" alt="BM Verificada" className="hero-logo" />
+        <h1>BM <span>Verificada</span></h1>
+        <p>Business Manager Premium · Cuentas verificadas · Entrega inmediata · Pago USDT</p>
         <div className="hero-badges">
           <span className="hero-badge">✓ Entrega inmediata</span>
           <span className="hero-badge">₮ USDT TRC20 / BEP20</span>
@@ -4442,7 +4446,10 @@ export default function App() {
     <div className={`app${darkMode ? " dark" : ""}`}>
       <style>{css}</style>
       <div className="topbar">
-        <div className="logo" onClick={() => { setView("shop"); setSelectedProduct(null); }}>BMVERIF</div>
+        <div className="logo" onClick={() => { setView("shop"); setSelectedProduct(null); }}>
+          <img src="/logo.png" alt="BM Verificada" />
+          BMVERIF
+        </div>
         <div className="topbar-right">
           {user ? (
             <>

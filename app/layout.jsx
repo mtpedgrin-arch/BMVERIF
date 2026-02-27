@@ -1,8 +1,12 @@
 import Providers from "./providers";
 
 export const metadata = {
-  title: "Marketplace Digital",
-  description: "Venta de productos digitales",
+  title: "BM Verificada · Business Manager Premium",
+  description: "Business Manager verificados · Entrega inmediata · Pago USDT TRC20 / BEP20",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({ children }) {
