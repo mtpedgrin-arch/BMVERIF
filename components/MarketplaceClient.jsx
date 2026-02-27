@@ -394,34 +394,92 @@ const Stars = ({ rating, reviews }) => {
 };
 
 // ─── CHAT WIDGET ─────────────────────────────────────────────────────────────
-const ChatWidget = () => {
+const ChatWidget = ({ user, onShowAuth }) => {
   const [open, setOpen] = useState(false);
-  const [msgs, setMsgs] = useState([{ role: "a", text: "¡Hola! Soy Alex 👋 ¿En qué puedo ayudarte?", time: "08:00" }]);
+  const [msgs, setMsgs] = useState([]);
   const [inp, setInp] = useState("");
+  const [sending, setSending] = useState(false);
   const endRef = useRef(null);
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
-  const send = () => {
-    if (!inp.trim()) return;
-    setMsgs(p => [...p, { role: "u", text: inp.trim(), time: nowTime() }]);
-    setInp("");
-    setTimeout(() => setMsgs(p => [...p, { role: "a", text: "Gracias. Un agente te responderá pronto ✅", time: nowTime() }]), 900);
+  const pollRef = useRef(null);
+
+  const fetchMsgs = async () => {
+    try {
+      const res = await fetch("/api/chat");
+      const data = await res.json();
+      if (Array.isArray(data)) setMsgs(data);
+    } catch {}
   };
+
+  useEffect(() => {
+    if (!open || !user) return;
+    fetchMsgs();
+    pollRef.current = setInterval(fetchMsgs, 4000);
+    return () => { clearInterval(pollRef.current); };
+  }, [open, user?.email]);
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
+
+  const send = async () => {
+    if (!inp.trim() || sending) return;
+    setSending(true);
+    const text = inp.trim();
+    setInp("");
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const msg = await res.json();
+      if (res.ok) setMsgs(p => [...p, msg]);
+    } catch {}
+    finally { setSending(false); }
+  };
+
+  const handleFabClick = () => {
+    if (!user) { onShowAuth?.(); return; }
+    setOpen(o => !o);
+  };
+
   return (
     <>
-      <button className="chat-fab-btn" onClick={() => setOpen(o => !o)}>💬<span className="online-dot" /></button>
-      {open && (
+      <button className="chat-fab-btn" onClick={handleFabClick}>
+        💬<span className="online-dot" />
+      </button>
+      {open && user && (
         <div className="chat-window">
           <div className="chat-head">
-            <div className="chat-agent-info"><div className="agent-av">A</div><div><div className="agent-nm">Alex — Soporte</div><div className="agent-st">● En línea</div></div></div>
+            <div className="chat-agent-info">
+              <div className="agent-av">S</div>
+              <div><div className="agent-nm">Soporte</div><div className="agent-st">● En línea</div></div>
+            </div>
             <button className="chat-x" onClick={() => setOpen(false)}>✕</button>
           </div>
           <div className="chat-msgs">
-            {msgs.map((m, i) => <div key={i} className={`cmsg ${m.role === "a" ? "cmsg-a" : "cmsg-u"}`}><div className="cmsg-b">{m.text}</div><div className="cmsg-t">{m.time}</div></div>)}
+            {msgs.length === 0 && (
+              <div className="cmsg cmsg-a">
+                <div className="cmsg-b">¡Hola! 👋 ¿En qué puedo ayudarte hoy?</div>
+                <div className="cmsg-t">{nowTime()}</div>
+              </div>
+            )}
+            {msgs.map((m) => (
+              <div key={m.id} className={`cmsg ${m.isAdmin ? "cmsg-a" : "cmsg-u"}`}>
+                <div className="cmsg-b">{m.text}</div>
+                <div className="cmsg-t">{new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+              </div>
+            ))}
             <div ref={endRef} />
           </div>
           <div className="chat-input-row">
-            <input className="chat-inp" placeholder="Escribe aquí..." value={inp} onChange={e => setInp(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} />
-            <button className="chat-snd" onClick={send}>➤</button>
+            <input
+              className="chat-inp"
+              placeholder="Escribe aquí..."
+              value={inp}
+              onChange={e => setInp(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && send()}
+              disabled={sending}
+            />
+            <button className="chat-snd" onClick={send} disabled={sending}>➤</button>
           </div>
         </div>
       )}
@@ -1461,32 +1519,105 @@ const AdminOrders = ({ orders, onConfirm }) => {
 // ─── ADMIN PANEL ──────────────────────────────────────────────────────────────
 const AdminPanel = ({ orders, onConfirmOrder, coupons, setCoupons, products, setProducts }) => {
   const [section, setSection] = useState("overview");
-  const [selConvo, setSelConvo] = useState(0);
-  const [adminMsgs, setAdminMsgs] = useState([
-    [{ role: "u", name: "Charly", text: "any item ? or just account?", time: "20:30" }, { role: "a", text: "Facebook BM available. Resellers discount 10%", time: "20:30" }],
-    [{ role: "u", name: "John Doe", text: "Hola, cuál es el precio por cuentas USA?", time: "10:15" }],
-  ]);
+
+  // ── CHAT STATE ──
+  const [convos, setConvos] = useState([]);
+  const [selConvo, setSelConvo] = useState(null);
+  const [threadMsgs, setThreadMsgs] = useState([]);
   const [aInp, setAInp] = useState("");
+  const [aSending, setASending] = useState(false);
   const endRef = useRef(null);
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [adminMsgs, selConvo]);
-  const sendAdmin = () => {
-    if (!aInp.trim()) return;
-    setAdminMsgs(prev => prev.map((m, i) => i === selConvo ? [...m, { role: "a", text: aInp.trim(), time: nowTime() }] : m));
-    setAInp("");
+  const prevUnreadRef = useRef(-1);
+
+  const playNotificationSound = () => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.setValueAtTime(660, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.25, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.5);
+    } catch {}
   };
-  const convos = [
-    { id: 0, name: "Charly Xentorix", preview: "any item ? or just account?", time: "20:30", unread: false },
-    { id: 1, name: "John Doe", preview: "Hola, cuál es el precio?", time: "10:15", unread: true },
-  ];
+
+  const fetchConvos = async () => {
+    try {
+      const res = await fetch("/api/chat");
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setConvos(data);
+        const totalUnread = data.reduce((s, c) => s + (c.unread || 0), 0);
+        if (prevUnreadRef.current >= 0 && totalUnread > prevUnreadRef.current) {
+          playNotificationSound();
+        }
+        prevUnreadRef.current = totalUnread;
+      }
+    } catch {}
+  };
+
+  const fetchThread = async (email) => {
+    try {
+      const res = await fetch(`/api/chat?userEmail=${encodeURIComponent(email)}`);
+      const data = await res.json();
+      if (Array.isArray(data)) setThreadMsgs(data);
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (section !== "chat") return;
+    prevUnreadRef.current = -1;
+    fetchConvos();
+    const interval = setInterval(() => {
+      fetchConvos();
+      if (selConvo) fetchThread(selConvo.userEmail);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [section, selConvo?.userEmail]);
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [threadMsgs]);
+
+  const selectConvo = (c) => {
+    setSelConvo(c);
+    setThreadMsgs([]);
+    fetchThread(c.userEmail);
+  };
+
+  const sendAdmin = async () => {
+    if (!aInp.trim() || !selConvo || aSending) return;
+    setASending(true);
+    const text = aInp.trim();
+    setAInp("");
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, targetEmail: selConvo.userEmail, targetName: selConvo.userName }),
+      });
+      if (res.ok) fetchThread(selConvo.userEmail);
+    } catch {}
+    finally { setASending(false); }
+  };
+
   const pendingCount = orders.filter(o => o.status === "pending").length;
   const activeCoupons = coupons.filter(c => c.active && c.uses < c.maxUses).length;
+  const chatUnread = convos.reduce((s, c) => s + (c.unread || 0), 0);
+
   const sideItems = [
     { id: "overview", icon: "📊", label: "Overview" },
     { id: "orders", icon: "📦", label: "Órdenes", badge: pendingCount, badgeColor: "var(--amber)" },
     { id: "coupons", icon: "🏷", label: "Cupones", badge: activeCoupons, badgeColor: "var(--purple)" },
-    { id: "chat", icon: "💬", label: "Chat en vivo", badge: 1, badgeColor: "var(--red)" },
+    { id: "chat", icon: "💬", label: "Chat en vivo", badge: chatUnread, badgeColor: "var(--red)" },
     { id: "products", icon: "🛍", label: "Productos" },
   ];
+
   return (
     <div className="admin-layout">
       <div className="sidebar">
@@ -1541,38 +1672,62 @@ const AdminPanel = ({ orders, onConfirmOrder, coupons, setCoupons, products, set
             <div className="page-title">💬 Chat en vivo</div>
             <div className="admin-chat-layout">
               <div className="convo-list">
-                {convos.map(c => (
-                  <div key={c.id} className={`convo-item ${selConvo === c.id ? "active" : ""}`} onClick={() => setSelConvo(c.id)}>
+                {convos.length === 0 ? (
+                  <div style={{ padding: "30px 14px", textAlign: "center", color: "var(--muted)", fontSize: 13 }}>
+                    No hay conversaciones aún.
+                  </div>
+                ) : convos.map(c => (
+                  <div key={c.userEmail} className={`convo-item ${selConvo?.userEmail === c.userEmail ? "active" : ""}`} onClick={() => selectConvo(c)}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div className="convo-name">{c.name}</div>
+                      <div className="convo-name">{c.userName || c.userEmail}</div>
                       <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <span style={{ fontSize: 11, color: "var(--muted)" }}>{c.time}</span>
-                        {c.unread && <div className="unread-dot" />}
+                        <span style={{ fontSize: 11, color: "var(--muted)" }}>{c.lastAt ? new Date(c.lastAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}</span>
+                        {c.unread > 0 && <div className="unread-dot" />}
                       </div>
                     </div>
-                    <div className="convo-preview">{c.preview}</div>
+                    <div className="convo-preview">{c.lastMsg}</div>
                   </div>
                 ))}
               </div>
               <div className="chat-panel">
-                <div className="chat-panel-header">
-                  <div><div style={{ fontFamily: "Syne", fontWeight: 700 }}>{convos[selConvo].name}</div><div style={{ fontSize: 12, color: "var(--muted)" }}>Responder como agente</div></div>
-                  <span className="badge badge-green">En línea</span>
-                </div>
-                <div className="chat-msgs" style={{ padding: 16 }}>
-                  {adminMsgs[selConvo].map((m, i) => (
-                    <div key={i} className={`cmsg ${m.role === "a" ? "cmsg-u" : "cmsg-a"}`}>
-                      {m.role === "u" && <div style={{ fontSize: 10, color: "var(--muted)", marginBottom: 2 }}>{m.name}</div>}
-                      <div className="cmsg-b">{m.text}</div>
-                      <div className="cmsg-t">{m.time}</div>
+                {!selConvo ? (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flex: 1, color: "var(--muted)", fontSize: 14 }}>
+                    ← Seleccioná una conversación
+                  </div>
+                ) : (
+                  <>
+                    <div className="chat-panel-header">
+                      <div>
+                        <div style={{ fontFamily: "Syne", fontWeight: 700 }}>{selConvo.userName || selConvo.userEmail}</div>
+                        <div style={{ fontSize: 12, color: "var(--muted)" }}>{selConvo.userEmail}</div>
+                      </div>
+                      <span className="badge badge-green">Activo</span>
                     </div>
-                  ))}
-                  <div ref={endRef} />
-                </div>
-                <div className="chat-input-row">
-                  <input className="chat-inp" placeholder="Responder al cliente..." value={aInp} onChange={e => setAInp(e.target.value)} onKeyDown={e => e.key === "Enter" && sendAdmin()} />
-                  <button className="chat-snd" onClick={sendAdmin}>➤</button>
-                </div>
+                    <div className="chat-msgs" style={{ padding: 16 }}>
+                      {threadMsgs.length === 0 && (
+                        <div style={{ textAlign: "center", color: "var(--muted)", fontSize: 13, padding: "20px 0" }}>Sin mensajes aún</div>
+                      )}
+                      {threadMsgs.map((m) => (
+                        <div key={m.id} className={`cmsg ${m.isAdmin ? "cmsg-u" : "cmsg-a"}`}>
+                          <div className="cmsg-b">{m.text}</div>
+                          <div className="cmsg-t">{new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+                        </div>
+                      ))}
+                      <div ref={endRef} />
+                    </div>
+                    <div className="chat-input-row">
+                      <input
+                        className="chat-inp"
+                        placeholder="Responder al cliente..."
+                        value={aInp}
+                        onChange={e => setAInp(e.target.value)}
+                        onKeyDown={e => e.key === "Enter" && sendAdmin()}
+                        disabled={aSending}
+                      />
+                      <button className="chat-snd" onClick={sendAdmin} disabled={aSending}>➤</button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </>
@@ -1794,7 +1949,7 @@ export default function App() {
       {showPayment && user && <PaymentModal cart={cart} user={user} coupon={pendingCoupon} finalTotal={pendingTotal} onClose={() => setShowPayment(false)} onSuccess={handlePaySuccess} />}
       {showSuccess && lastOrder && <SuccessModal order={lastOrder} onClose={() => { setShowSuccess(false); setView("account"); }} />}
 
-      <ChatWidget />
+      <ChatWidget user={user} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} />
     </div>
   );
 }

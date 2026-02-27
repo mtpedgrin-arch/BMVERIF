@@ -19,6 +19,7 @@ model User {
 
   orders    Order[]
   favorites Favorite[]
+  messages  ChatMessage[]
 }
 
 model Product {
@@ -73,6 +74,19 @@ model Favorite {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  text      String
+  isAdmin   Boolean  @default(false)
+  userEmail String
+  userName  String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
 
 model Coupon {
