@@ -2070,7 +2070,12 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
 
 // ─── USER ACCOUNT ─────────────────────────────────────────────────────────────
 const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products }) => {
-  const [tab, setTab] = useState("orders");
+  const [tab, setTab] = useState(() => {
+    try { return sessionStorage.getItem("account_tab") || "orders"; } catch { return "orders"; }
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem("account_tab", tab); } catch {}
+  }, [tab]);
   const myOrders = userOrders; // la API ya filtra por usuario
   const favProducts = products.filter(p => liked[p.id]);
 
