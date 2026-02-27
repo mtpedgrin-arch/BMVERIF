@@ -2877,7 +2877,12 @@ const WalletManager = () => {
 
 // ─── ADMIN PANEL ──────────────────────────────────────────────────────────────
 const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, coupons, setCoupons, products, setProducts }) => {
-  const [section, setSection] = useState("overview");
+  const [section, setSection] = useState(() => {
+    try { return sessionStorage.getItem("admin_section") || "overview"; } catch { return "overview"; }
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem("admin_section", section); } catch {}
+  }, [section]);
 
   // ── CHAT STATE ──
   const [convos, setConvos] = useState([]);
@@ -3085,7 +3090,12 @@ export default function App() {
     localStorage.setItem(key, next ? "dark" : "light");
   };
 
-  const [view, setView] = useState("shop");
+  const [view, setView] = useState(() => {
+    try { return sessionStorage.getItem("client_view") || "shop"; } catch { return "shop"; }
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem("client_view", view); } catch {}
+  }, [view]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [cart, setCart] = useState(() => {
     try {
