@@ -88,6 +88,58 @@ const css = `
   .icon-btn:hover, .icon-btn.liked { border-color: var(--red); color: var(--red); background: var(--red-light); }
   .in-cart-badge { background: var(--green); color: #fff; border: none; padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
 
+  /* CHECKOUT PAGE */
+  .checkout-page { flex: 1; padding: 28px 20px; max-width: 1080px; margin: 0 auto; width: 100%; }
+  .checkout-crumb { font-size: 13px; color: var(--muted); margin-bottom: 18px; display: flex; align-items: center; gap: 6px; }
+  .checkout-crumb span { color: var(--red); cursor: pointer; font-weight: 600; }
+  .checkout-grid { display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: start; }
+  @media (max-width: 800px) { .checkout-grid { grid-template-columns: 1fr; } }
+  .checkout-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); margin-bottom: 16px; }
+  .checkout-card-head { padding: 16px 20px; border-bottom: 1.5px solid var(--border); font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+  .co-item { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+  .co-item:last-child { border-bottom: none; }
+  .co-item-icon { width: 48px; height: 48px; background: linear-gradient(135deg, #1877F2 0%, #0d5bbf 100%); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; flex-shrink: 0; }
+  .co-item-info { flex: 1; min-width: 0; }
+  .co-item-name { font-size: 13px; font-weight: 600; line-height: 1.35; }
+  .co-item-price { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .co-item-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+  .co-item-total { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; color: var(--usdt); }
+  .co-qty { display: flex; align-items: center; border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .co-qty-btn { background: var(--bg); border: none; width: 28px; height: 28px; font-size: 14px; cursor: pointer; }
+  .co-qty-btn:hover { background: var(--red-light); color: var(--red); }
+  .co-qty-num { width: 30px; text-align: center; font-weight: 700; font-size: 13px; }
+  .co-remove { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px; }
+  .co-remove:hover { color: var(--red); }
+  .co-empty { text-align: center; padding: 50px 20px; color: var(--muted); }
+  .co-coupon-row { display: flex; gap: 8px; padding: 14px 20px; }
+  .co-coupon-inp { flex: 1; border: 1.5px solid var(--border); border-radius: 9px; padding: 9px 13px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; outline: none; background: var(--bg); transition: border-color 0.15s; }
+  .co-coupon-inp:focus { border-color: var(--purple); background: #fff; }
+  .co-coupon-inp.valid { border-color: var(--green); background: var(--green-light); }
+  .co-coupon-inp.invalid { border-color: var(--red); animation: shake 0.35s ease; }
+  .co-totals { padding: 16px 20px; background: var(--bg); border-top: 1.5px solid var(--border); }
+  .co-total-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; color: var(--muted); }
+  .co-total-row.discount { color: var(--green); font-weight: 600; }
+  .co-total-row.grand { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--text); margin-top: 10px; padding-top: 10px; border-top: 1.5px solid var(--border); margin-bottom: 0; }
+  .co-total-row.grand span:last-child { color: var(--usdt); }
+  .co-method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 16px 20px; }
+  .co-method-card { border: 2px solid var(--border); border-radius: 12px; padding: 14px 12px; cursor: pointer; transition: all 0.15s; position: relative; }
+  .co-method-card:hover { border-color: var(--usdt); }
+  .co-method-card.sel { border-color: var(--usdt); background: var(--usdt-light); }
+  .co-method-card.sel::after { content: '✓'; position: absolute; top: 8px; right: 10px; font-size: 12px; font-weight: 800; color: var(--usdt); }
+  .co-wallet-box { margin: 0 20px 16px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 14px; animation: scaleIn 0.18s ease; }
+  .co-wallet-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .co-wallet-addr { font-family: monospace; font-size: 12px; word-break: break-all; line-height: 1.5; color: var(--text); margin-bottom: 10px; }
+  .co-copy-btn { background: var(--usdt); color: #fff; border: none; padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: background 0.15s; }
+  .co-copy-btn:hover { background: #1f8f6a; }
+  .co-amount-box { margin: 0 20px 16px; background: linear-gradient(135deg, var(--usdt-light), #d0f5e8); border: 1.5px solid #a7f0d8; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .co-tx-wrap { padding: 0 20px 16px; }
+  .co-agree { padding: 14px 20px; display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--border); }
+  .co-agree input { margin-top: 2px; accent-color: var(--usdt); width: 15px; height: 15px; flex-shrink: 0; cursor: pointer; }
+  .co-submit { margin: 0 20px 20px; width: calc(100% - 40px); padding: 14px; background: var(--usdt); color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; font-family: 'Syne', sans-serif; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .co-submit:hover:not(:disabled) { background: #1f8f6a; transform: translateY(-1px); }
+  .co-submit:disabled { background: #D1D5DB; color: #9CA3AF; cursor: not-allowed; transform: none; }
+  .co-success { text-align: center; padding: 40px 24px; }
+
   /* MINI CART POPUP */
   .mini-cart-popup { position: fixed; top: 70px; right: 20px; width: 320px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.18); z-index: 250; animation: slideDown 0.22s ease; overflow: hidden; }
   @keyframes slideDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
@@ -567,6 +619,227 @@ const SuccessModal = ({ order, onClose }) => (
   </div>
 );
 
+// ─── CHECKOUT PAGE ────────────────────────────────────────────────────────────
+const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShowAuth }) => {
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponState, setCouponState] = useState("idle");
+  const [couponError, setCouponError] = useState("");
+  const [network, setNetwork] = useState("TRC20");
+  const [txHash, setTxHash] = useState("");
+  const [agreed, setAgreed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [done, setDone] = useState(false);
+  const [orderId, setOrderId] = useState(null);
+
+  const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const discountAmt = appliedCoupon ? subtotal * (appliedCoupon.discount / 100) : 0;
+  const total = subtotal - discountAmt;
+  const wallet = WALLETS[network];
+
+  const applyCoupon = async () => {
+    setCouponError(""); if (!couponInput.trim()) return;
+    try {
+      const res = await fetch("/api/coupons/apply", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: couponInput.trim().toUpperCase() }) });
+      const data = await res.json();
+      if (!res.ok) { setCouponState("invalid"); setCouponError(data.error || "Cupón inválido."); setTimeout(() => setCouponState("idle"), 600); return; }
+      setAppliedCoupon(data); setCouponState("valid"); setCouponInput("");
+    } catch { setCouponState("invalid"); setCouponError("Error de conexión."); setTimeout(() => setCouponState("idle"), 600); }
+  };
+
+  const handleSubmit = async () => {
+    if (!user) { onShowAuth(); return; }
+    if (!agreed) return;
+    setSubmitting(true);
+    try {
+      if (appliedCoupon) {
+        await fetch("/api/coupons/use", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: appliedCoupon.code }) }).catch(() => {});
+      }
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: cart.map(i => ({ name: i.name, price: i.price, qty: i.qty })),
+          subtotal, discount: discountAmt,
+          coupon: appliedCoupon?.code || null,
+          total, network, txHash,
+        }),
+      });
+      const order = await res.json();
+      setOrderId(order.id || "—");
+      setDone(true);
+      onSuccess(order);
+    } catch { alert("Error al procesar. Intentá de nuevo."); }
+    finally { setSubmitting(false); }
+  };
+
+  if (done) return (
+    <div className="checkout-page">
+      <div className="checkout-card" style={{ maxWidth: 500, margin: "40px auto" }}>
+        <div className="co-success">
+          <div style={{ fontSize: 60, marginBottom: 14 }}>✅</div>
+          <div style={{ fontFamily: "Syne", fontSize: 22, fontWeight: 800, marginBottom: 8 }}>¡Pago enviado!</div>
+          <div style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.7, marginBottom: 20 }}>
+            Tu orden <strong style={{ color: "var(--text)" }}>#{orderId?.slice(-8)}</strong> quedó en estado
+            <span className="status-pending" style={{ display: "inline-flex", margin: "0 6px" }}>⏳ Pendiente</span>
+            mientras verificamos el pago en la red {network}.
+          </div>
+          <button className="btn btn-primary btn-full" onClick={() => onGoShop()}>← Volver a la tienda</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (cart.length === 0) return (
+    <div className="checkout-page">
+      <div className="checkout-card" style={{ maxWidth: 400, margin: "60px auto", textAlign: "center", padding: "50px 24px" }}>
+        <div style={{ fontSize: 50, marginBottom: 12 }}>🛒</div>
+        <div style={{ fontFamily: "Syne", fontSize: 18, fontWeight: 800, marginBottom: 8 }}>Tu carrito está vacío</div>
+        <div style={{ fontSize: 14, color: "var(--muted)", marginBottom: 20 }}>Agregá productos antes de finalizar la compra.</div>
+        <button className="btn btn-primary" onClick={onGoShop}>Ver productos</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="checkout-page">
+      <div className="checkout-crumb">
+        <span onClick={onGoShop}>← Tienda</span> / Checkout
+      </div>
+      <div style={{ fontFamily: "Syne", fontSize: 22, fontWeight: 800, marginBottom: 20 }}>Finalizar compra</div>
+      <div className="checkout-grid">
+
+        {/* ─── COLUMNA IZQUIERDA ─── */}
+        <div>
+          {/* Productos */}
+          <div className="checkout-card">
+            <div className="checkout-card-head">🛒 Tu pedido</div>
+            {cart.map(item => (
+              <div key={item.id} className="co-item">
+                <div className="co-item-icon">
+                  <span style={{ fontSize: 22 }}>👜</span>
+                  <span style={{ fontSize: 8, fontWeight: 700, color: "#fff" }}>FB</span>
+                </div>
+                <div className="co-item-info">
+                  <div className="co-item-name">{item.name}</div>
+                  <div className="co-item-price">{fmtUSDT(item.price)} por unidad</div>
+                </div>
+                <div className="co-item-right">
+                  <div className="co-item-total">{fmtUSDT(item.price * item.qty)}</div>
+                  <div className="co-qty">
+                    <button className="co-qty-btn" onClick={() => onQty(item.id, item.qty - 1)}>−</button>
+                    <span className="co-qty-num">{item.qty}</span>
+                    <button className="co-qty-btn" onClick={() => onQty(item.id, item.qty + 1)}>+</button>
+                  </div>
+                  <button className="co-remove" onClick={() => onRemove(item.id)}>🗑</button>
+                </div>
+              </div>
+            ))}
+
+            {/* Cupón */}
+            <div className="co-coupon-row">
+              {!appliedCoupon ? (
+                <>
+                  <input className={`co-coupon-inp ${couponState === "valid" ? "valid" : couponState === "invalid" ? "invalid" : ""}`} placeholder="Código de descuento" value={couponInput} onChange={e => { setCouponInput(e.target.value.toUpperCase()); setCouponError(""); setCouponState("idle"); }} onKeyDown={e => e.key === "Enter" && applyCoupon()} />
+                  <button className="apply-btn" onClick={applyCoupon} disabled={!couponInput.trim()}>Aplicar</button>
+                </>
+              ) : (
+                <div className="coupon-applied" style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span>✅</span>
+                    <div><div className="coupon-applied-code">{appliedCoupon.code}</div><div className="coupon-applied-desc">{appliedCoupon.discount}% off aplicado</div></div>
+                  </div>
+                  <button className="coupon-remove" onClick={() => { setAppliedCoupon(null); setCouponState("idle"); }}>✕</button>
+                </div>
+              )}
+            </div>
+            {couponError && <div style={{ padding: "0 20px 10px", fontSize: 12, color: "var(--red)" }}>⚠ {couponError}</div>}
+
+            {/* Totales */}
+            <div className="co-totals">
+              <div className="co-total-row"><span>Subtotal</span><span>{fmtUSDT(subtotal)}</span></div>
+              {appliedCoupon && <div className="co-total-row discount"><span>Descuento ({appliedCoupon.discount}%)</span><span>− {fmtUSDT(discountAmt)}</span></div>}
+              <div className="co-total-row grand"><span>Total</span><span>{fmtUSDT(total)}</span></div>
+            </div>
+          </div>
+        </div>
+
+        {/* ─── COLUMNA DERECHA ─── */}
+        <div>
+          <div className="checkout-card">
+            <div className="checkout-card-head">₮ Método de pago</div>
+
+            {/* Info usuario */}
+            {user && (
+              <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", fontSize: 13 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Cuenta</div>
+                <div style={{ fontWeight: 600 }}>{user.name || user.email}</div>
+                <div style={{ color: "var(--muted)", fontSize: 12 }}>{user.email}</div>
+              </div>
+            )}
+
+            {/* Selector de red */}
+            <div className="co-method-grid">
+              {Object.entries(WALLETS).map(([key, w]) => (
+                <div key={key} className={`co-method-card ${network === key ? "sel" : ""}`} onClick={() => setNetwork(key)}>
+                  <div style={{ fontSize: 22, marginBottom: 5 }}>{w.logo}</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 2 }}>{key}</div>
+                  <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 6 }}>{w.network.split("(")[0].trim()}</div>
+                  <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                    <span className="network-tag">Fee {w.fee}</span>
+                    <span className="network-tag">{w.time}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Monto a enviar */}
+            <div className="co-amount-box">
+              <div>
+                <div style={{ fontSize: 11, color: "var(--usdt)", fontWeight: 600, marginBottom: 2 }}>Monto exacto a enviar</div>
+                <div style={{ fontFamily: "Syne", fontSize: 26, fontWeight: 800, color: "var(--usdt)" }}>{total.toFixed(2)} <span style={{ fontSize: 14 }}>USDT</span></div>
+              </div>
+              <div style={{ fontSize: 30 }}>₮</div>
+            </div>
+
+            {/* Wallet */}
+            <div className="co-wallet-box">
+              <div className="co-wallet-label">Dirección {network}</div>
+              <div className="co-wallet-addr">{wallet.addr}</div>
+              <button className="co-copy-btn" onClick={() => { navigator.clipboard.writeText(wallet.addr).catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
+                {copied ? "✓ Copiado!" : "📋 Copiar dirección"}
+              </button>
+            </div>
+
+            {/* TX Hash */}
+            <div className="co-tx-wrap">
+              <div className="form-label">Hash de transacción (recomendado)</div>
+              <input className="form-input" style={{ fontFamily: "monospace", fontSize: 12 }} placeholder="0x... o TX..." value={txHash} onChange={e => setTxHash(e.target.value)} />
+              <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>Pegarlo acelera la verificación del admin.</div>
+            </div>
+
+            {/* Agree */}
+            <div className="co-agree">
+              <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
+              <span>Entiendo que el pago en USDT es <strong>irreversible</strong> y que el acceso al producto se entrega una vez que el admin confirme la transacción.</span>
+            </div>
+
+            {/* Submit */}
+            {!user ? (
+              <button className="co-submit" onClick={onShowAuth}>🔐 Iniciá sesión para continuar</button>
+            ) : (
+              <button className="co-submit" disabled={!agreed || submitting} onClick={handleSubmit}>
+                {submitting ? "Procesando..." : "✓ Confirmar pago →"}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── MINI CART POPUP ──────────────────────────────────────────────────────────
 const MiniCart = ({ cart, lastAdded, onClose, onOpenCart }) => {
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
@@ -713,7 +986,7 @@ const CartDrawer = ({ cart, onClose, onQty, onRemove, onCheckout }) => {
 };
 
 // ─── SHOP PAGE ────────────────────────────────────────────────────────────────
-const ShopPage = ({ cart, onAddToCart, onCartOpen, liked, onToggleLike, products }) => {
+const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike, products }) => {
   const getQty = id => cart.find(i => i.id === id)?.qty || 0;
   return (
     <>
@@ -761,11 +1034,9 @@ const ShopPage = ({ cart, onAddToCart, onCartOpen, liked, onToggleLike, products
                   <div className="prod-actions">
                     {p.stock === 0
                       ? <button className="buy-btn" disabled>Sin stock</button>
-                      : qty === 0
-                        ? <button className="buy-btn" onClick={() => onAddToCart(p)}>Buy now</button>
-                        : <button className="in-cart-badge" onClick={onCartOpen}>✓ In cart ({qty})</button>
+                      : <button className="buy-btn" onClick={() => onBuyNow(p)}>Buy now</button>
                     }
-                    <button className="icon-btn" onClick={onCartOpen}>🛒</button>
+                    <button className="icon-btn" title="Agregar al carrito" onClick={() => { if (p.stock > 0) onAddToCart(p); }}>🛒</button>
                     <button className={`icon-btn ${liked[p.id] ? "liked" : ""}`} onClick={() => onToggleLike(p.id)}>{liked[p.id] ? "❤️" : "🤍"}</button>
                   </div>
                 </div>
@@ -1409,6 +1680,15 @@ export default function App() {
   const removeFromCart = id => setCart(prev => prev.filter(i => i.id !== id));
   const setQty = (id, qty) => qty <= 0 ? removeFromCart(id) : setCart(prev => prev.map(i => i.id === id ? { ...i, qty } : i));
 
+  const handleBuyNow = p => {
+    setCart(prev => {
+      const idx = prev.findIndex(i => i.id === p.id);
+      if (idx === -1) return [...prev, { ...p, qty: 1 }];
+      return prev.map(i => i.id === p.id ? { ...i, qty: i.qty + 1 } : i);
+    });
+    setView("checkout");
+  };
+
   const handleCheckout = (coupon, total) => {
     setCartOpen(false);
     setPendingCoupon(coupon);
@@ -1504,7 +1784,8 @@ export default function App() {
         </div>
       </div>
 
-      {view === "shop" && <ShopPage cart={cart} onAddToCart={addToCart} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} />}
+      {view === "shop" && <ShopPage cart={cart} onAddToCart={addToCart} onBuyNow={handleBuyNow} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} />}
+      {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); }} />}
       {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} />}
 
       {showMiniCart && cart.length > 0 && <MiniCart cart={cart} lastAdded={lastAdded} onClose={() => setShowMiniCart(false)} onOpenCart={() => setCartOpen(true)} />}
