@@ -5153,7 +5153,7 @@ export default function App() {
         <div className="topbar">
           <div className="logo" style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <img src="/logo.png" alt="Logo" style={{ height: 36, width: 36, objectFit: "contain" }} />
-            BMVERIF<span style={{ fontSize: 11, background: "var(--red)", color: "#fff", padding: "2px 8px", borderRadius: 6, marginLeft: 7 }}>ADMIN</span>
+            <span style={{ fontSize: 11, background: "var(--red)", color: "#fff", padding: "2px 8px", borderRadius: 6 }}>ADMIN</span>
           </div>
           <div style={{ fontSize: 13, color: "var(--muted)" }}>Panel de administración · {user.email}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
