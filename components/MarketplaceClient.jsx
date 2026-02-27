@@ -504,6 +504,24 @@ const css = `
   .pd-cart-btn:hover:not(:disabled) { background: var(--usdt-light); }
   .pd-cart-btn:disabled { border-color: #D1D5DB; color: #9CA3AF; cursor: not-allowed; }
   .pd-next-tier { background: var(--amber-light); border: 1px solid var(--amber-border); border-radius: 9px; padding: 9px 12px; font-size: 12px; color: var(--amber); margin-top: 10px; line-height: 1.4; }
+  /* ── Reviews ── */
+  .pd-reviews-section { margin-top: 18px; }
+  .pd-review-item { padding: 12px 0; border-top: 1.5px solid var(--border); }
+  .pd-review-header { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; flex-wrap: wrap; }
+  .pd-review-name { font-size: 13px; font-weight: 700; }
+  .pd-review-date { font-size: 11px; color: var(--muted); margin-left: auto; }
+  .pd-review-comment { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .pd-reviews-summary { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; margin-bottom: 14px; }
+  .pd-reviews-avg { font-family: Syne; font-size: 26px; font-weight: 800; color: var(--text); }
+  .pd-review-form { margin-top: 14px; padding: 14px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .pd-star-picker { display: flex; align-items: center; gap: 4px; }
+  .pd-star-pick { font-size: 26px; cursor: pointer; color: #D1D5DB; transition: color 0.1s; line-height: 1; }
+  .pd-star-pick.active { color: #F59E0B; }
+  .app.dark .pd-review-item { border-color: var(--border); }
+  .app.dark .pd-reviews-summary { background: var(--bg); border-color: var(--border); }
+  .app.dark .pd-review-form { background: var(--bg); border-color: var(--border); }
+  .app.dark .pd-star-pick { color: #4B5563; }
+  .app.dark .pd-star-pick.active { color: #F59E0B; }
   .app.dark .product-detail-page { background: var(--bg); }
   .app.dark .pd-thumb-large { background: linear-gradient(145deg, #0e3a86 0%, #092261 100%); border-color: var(--border); }
   .app.dark .pd-attrs { border-color: var(--border); }
@@ -1276,8 +1294,132 @@ const CartDrawer = ({ cart, onClose, onQty, onRemove, onCheckout }) => {
   );
 };
 
+// ─── REVIEWS SECTION ──────────────────────────────────────────────────────────
+const ReviewsSection = ({ productId, user }) => {
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [myRating, setMyRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [myComment, setMyComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/products/${productId}/reviews`)
+      .then(r => r.json())
+      .then(data => { setReviews(Array.isArray(data) ? data : []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [productId]);
+
+  const LABELS = ["", "Muy malo", "Malo", "Regular", "Bueno", "Excelente"];
+
+  const submit = async () => {
+    if (!myRating) { setError("Seleccioná una puntuación"); return; }
+    setSubmitting(true); setError("");
+    try {
+      const res = await fetch(`/api/products/${productId}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating: myRating, comment: myComment.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setReviews(prev => [data.review, ...prev]);
+        setSuccess(true); setMyRating(0); setMyComment("");
+      } else { setError(data.error || "Error al enviar"); }
+    } catch { setError("Error de conexión"); }
+    setSubmitting(false);
+  };
+
+  const avg = reviews.length
+    ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
+    : 0;
+
+  const fmt = (d) => {
+    const date = new Date(d);
+    return `${String(date.getDate()).padStart(2,"0")}/${String(date.getMonth()+1).padStart(2,"0")}/${String(date.getFullYear()).slice(2)}`;
+  };
+
+  return (
+    <div className="pd-reviews-section">
+      <div className="pd-section-label">Opiniones{reviews.length > 0 ? ` (${reviews.length})` : ""}</div>
+
+      {reviews.length > 0 && (
+        <div className="pd-reviews-summary">
+          <span className="pd-reviews-avg">{avg}</span>
+          <Stars rating={parseFloat(avg)} reviews={reviews.length} />
+        </div>
+      )}
+
+      {loading && <div style={{ color: "var(--muted)", fontSize: 13 }}>Cargando...</div>}
+
+      {reviews.map(r => (
+        <div key={r.id} className="pd-review-item">
+          <div className="pd-review-header">
+            <span className="pd-review-name">{r.userName}</span>
+            <Stars rating={r.rating} reviews={null} />
+            <span className="pd-review-date">{fmt(r.createdAt)}</span>
+          </div>
+          {r.comment && <div className="pd-review-comment">{r.comment}</div>}
+        </div>
+      ))}
+
+      {!loading && reviews.length === 0 && (
+        <div style={{ color: "var(--muted)", fontSize: 13, padding: "8px 0 12px" }}>Sin opiniones todavía. ¡Sé el primero!</div>
+      )}
+
+      {user ? (
+        success ? (
+          <div style={{ color: "var(--green)", fontWeight: 700, fontSize: 13, padding: "12px 0" }}>✓ ¡Gracias por tu opinión!</div>
+        ) : (
+          <div className="pd-review-form">
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Dejar una opinión</div>
+            <div className="pd-star-picker">
+              {[1,2,3,4,5].map(s => (
+                <span
+                  key={s}
+                  className={`pd-star-pick${s <= (hoverRating || myRating) ? " active" : ""}`}
+                  onMouseEnter={() => setHoverRating(s)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  onClick={() => setMyRating(s)}
+                >★</span>
+              ))}
+              {(hoverRating || myRating) > 0 && (
+                <span style={{ fontSize: 12, color: "var(--muted)", marginLeft: 6 }}>{LABELS[hoverRating || myRating]}</span>
+              )}
+            </div>
+            <textarea
+              className="form-input"
+              style={{ resize: "vertical", minHeight: 72, fontSize: 13 }}
+              placeholder="Contá tu experiencia (opcional)..."
+              value={myComment}
+              onChange={e => setMyComment(e.target.value)}
+              maxLength={500}
+            />
+            {error && <div style={{ color: "var(--red)", fontSize: 12 }}>{error}</div>}
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={submit}
+              disabled={submitting || !myRating}
+              style={{ alignSelf: "flex-start" }}
+            >
+              {submitting ? "Enviando..." : "✓ Enviar opinión"}
+            </button>
+          </div>
+        )
+      ) : (
+        <div style={{ marginTop: 10, fontSize: 12, color: "var(--muted)", padding: "10px 14px", background: "var(--bg)", borderRadius: 9, border: "1.5px solid var(--border)" }}>
+          <span style={{ fontWeight: 600 }}>Iniciá sesión</span> para dejar una opinión
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── PRODUCT DETAIL PAGE ──────────────────────────────────────────────────────
-const ProductDetailPage = ({ product: p, cart, onBack, onAddToCartQty, onBuyNowQty, liked, onToggleLike }) => {
+const ProductDetailPage = ({ product: p, cart, onBack, onAddToCartQty, onBuyNowQty, liked, onToggleLike, user }) => {
   const [qty, setLocalQty] = useState(1);
   const cartItem = cart.find(i => i.id === p.id);
   const cartQty = cartItem?.qty || 0;
@@ -1385,6 +1527,8 @@ const ProductDetailPage = ({ product: p, cart, onBack, onAddToCartQty, onBuyNowQ
               Soporte post-venta incluido. Si la cuenta presenta inconvenientes dentro de las primeras 24hs, nos comunicamos para resolverlo. Pago 100% seguro vía USDT.
             </div>
           </div>
+
+          <ReviewsSection productId={p.id} user={user} />
         </div>
 
         {/* PRICE PANEL */}
@@ -1620,6 +1764,100 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
   );
 };
 
+// ─── ADMIN REVIEW PANEL ───────────────────────────────────────────────────────
+const AdminReviewPanel = ({ product, onClose, onRatingChange }) => {
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState({ name: "", rating: "5", comment: "" });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/products/${product.id}/reviews`)
+      .then(r => r.json())
+      .then(data => { setReviews(Array.isArray(data) ? data : []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [product.id]);
+
+  const addReview = async () => {
+    if (!form.name.trim() || !form.rating) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/products/${product.id}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating: parseInt(form.rating), comment: form.comment.trim() || null, adminName: form.name.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setReviews(prev => [data.review, ...prev]);
+        setForm({ name: "", rating: "5", comment: "" });
+        if (onRatingChange) onRatingChange();
+      }
+    } catch {}
+    setSaving(false);
+  };
+
+  const deleteReview = async (id) => {
+    const res = await fetch(`/api/reviews/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setReviews(prev => prev.filter(r => r.id !== id));
+      if (onRatingChange) onRatingChange();
+    }
+  };
+
+  const fmt = (d) => {
+    const date = new Date(d);
+    return `${String(date.getDate()).padStart(2,"0")}/${String(date.getMonth()+1).padStart(2,"0")}/${date.getFullYear()}`;
+  };
+
+  return (
+    <div className="card" style={{ marginBottom: 16, border: "2px solid var(--blue)", borderRadius: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <div style={{ fontWeight: 700, fontSize: 14 }}>📝 Reviews — <span style={{ color: "var(--muted)", fontWeight: 400 }}>{product.name.slice(0, 50)}</span></div>
+        <button onClick={onClose} style={{ padding: "3px 10px", borderRadius: 7, border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--muted)", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>✕ Cerrar</button>
+      </div>
+
+      {/* Add review form */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 8, marginBottom: 14, alignItems: "end" }}>
+        <div>
+          <label className="form-label" style={{ fontSize: 11 }}>Nombre mostrado</label>
+          <input className="form-input" value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} placeholder="q***t" style={{ fontSize: 12 }} />
+        </div>
+        <div>
+          <label className="form-label" style={{ fontSize: 11 }}>Puntuación</label>
+          <select className="form-input" value={form.rating} onChange={e => setForm(f => ({...f, rating: e.target.value}))} style={{ fontSize: 12 }}>
+            <option value="5">⭐⭐⭐⭐⭐ 5</option>
+            <option value="4">⭐⭐⭐⭐ 4</option>
+            <option value="3">⭐⭐⭐ 3</option>
+            <option value="2">⭐⭐ 2</option>
+            <option value="1">⭐ 1</option>
+          </select>
+        </div>
+        <div>
+          <label className="form-label" style={{ fontSize: 11 }}>Comentario (opcional)</label>
+          <input className="form-input" value={form.comment} onChange={e => setForm(f => ({...f, comment: e.target.value}))} placeholder="Great product!" style={{ fontSize: 12 }} />
+        </div>
+      </div>
+      <button onClick={addReview} disabled={saving || !form.name.trim()} className="btn btn-primary btn-sm" style={{ marginBottom: 16 }}>
+        {saving ? "Guardando..." : "+ Agregar review"}
+      </button>
+
+      {/* Reviews list */}
+      {loading && <div style={{ color: "var(--muted)", fontSize: 12 }}>Cargando...</div>}
+      {!loading && reviews.length === 0 && <div style={{ color: "var(--muted)", fontSize: 12 }}>Sin reviews aún.</div>}
+      {reviews.map(r => (
+        <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderTop: "1px solid var(--border)" }}>
+          <span style={{ fontWeight: 700, fontSize: 12, minWidth: 80 }}>{r.userName}</span>
+          <Stars rating={r.rating} reviews={null} />
+          <span style={{ fontSize: 11, color: "var(--muted)", flex: 1 }}>{r.comment || "—"}</span>
+          <span style={{ fontSize: 11, color: "var(--muted)" }}>{fmt(r.createdAt)}</span>
+          <button onClick={() => deleteReview(r.id)} style={{ padding: "2px 8px", borderRadius: 6, border: "1.5px solid var(--border)", background: "var(--red-light)", color: "var(--red)", fontSize: 11, cursor: "pointer" }}>🗑</button>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // ─── ADMIN PRODUCT MANAGER ────────────────────────────────────────────────────
 const ProductManager = ({ products, setProducts }) => {
   const [showForm, setShowForm] = useState(false);
@@ -1627,6 +1865,7 @@ const ProductManager = ({ products, setProducts }) => {
   const [form, setForm] = useState({ name: "", details: "", price: "", cost: "", stock: "", tiers: [] });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [reviewProductId, setReviewProductId] = useState(null);
   const setF = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
 
   const openNew = () => {
@@ -1807,7 +2046,8 @@ const ProductManager = ({ products, setProducts }) => {
               {products.map(p => {
                 const margin = p.cost > 0 ? (((p.price - p.cost) / p.price) * 100).toFixed(0) : null;
                 return (
-                <tr key={p.id} style={{ opacity: p.isActive ? 1 : 0.5 }}>
+                <React.Fragment key={p.id}>
+                <tr style={{ opacity: p.isActive ? 1 : 0.5 }}>
                   <td style={{ maxWidth: 200, fontSize: 12, fontWeight: 600 }}>{p.name}</td>
                   <td style={{ maxWidth: 180, fontSize: 11, color: "var(--muted)" }}>{p.details || "—"}</td>
                   <td><strong style={{ color: "var(--usdt)" }}>{fmtUSDT(p.price)}</strong></td>
@@ -1850,10 +2090,23 @@ const ProductManager = ({ products, setProducts }) => {
                       <button onClick={() => openEdit(p)} style={{ padding: "4px 10px", borderRadius: 7, border: "1.5px solid var(--border)", background: "var(--blue-light)", color: "var(--blue)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>✏️ Editar</button>
                       <button onClick={() => toggleStock(p)} style={{ padding: "4px 10px", borderRadius: 7, border: "1.5px solid var(--border)", background: p.stock === 0 ? "var(--green-light)" : "#F1F5F9", color: p.stock === 0 ? "var(--green)" : "#64748B", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{p.stock === 0 ? "📦 Con Stock" : "📦 Sin Stock"}</button>
                       <button onClick={() => toggleActive(p)} style={{ padding: "4px 10px", borderRadius: 7, border: "1.5px solid var(--border)", background: p.isActive ? "var(--amber-light)" : "var(--green-light)", color: p.isActive ? "var(--amber)" : "var(--green)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{p.isActive ? "⏸ Ocultar" : "▶ Mostrar"}</button>
+                      <button onClick={() => setReviewProductId(prev => prev === p.id ? null : p.id)} style={{ padding: "4px 10px", borderRadius: 7, border: "1.5px solid var(--border)", background: reviewProductId === p.id ? "var(--amber-light)" : "var(--bg)", color: reviewProductId === p.id ? "var(--amber)" : "var(--muted)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>📝 Reviews{p.reviews > 0 ? ` (${p.reviews})` : ""}</button>
                       <button onClick={() => deleteProduct(p.id)} style={{ padding: "4px 10px", borderRadius: 7, border: "1.5px solid var(--border)", background: "var(--red-light)", color: "var(--red)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>🗑 Borrar</button>
                     </div>
                   </td>
                 </tr>
+                {reviewProductId === p.id && (
+                  <tr>
+                    <td colSpan={10} style={{ padding: "0 0 4px 0", background: "transparent" }}>
+                      <AdminReviewPanel
+                        product={p}
+                        onClose={() => setReviewProductId(null)}
+                        onRatingChange={() => fetch("/api/products?all=true").then(r => r.json()).then(data => setProducts(Array.isArray(data) ? data : []))}
+                      />
+                    </td>
+                  </tr>
+                )}
+                </React.Fragment>
                 );
               })}
             </tbody>
@@ -2862,7 +3115,7 @@ export default function App() {
       </div>
 
       {view === "shop" && !selectedProduct && <ShopPage cart={cart} onAddToCart={addToCart} onBuyNow={handleBuyNow} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} onProductClick={p => setSelectedProduct(p)} />}
-      {view === "shop" && selectedProduct && <ProductDetailPage product={selectedProduct} cart={cart} onBack={() => setSelectedProduct(null)} onAddToCartQty={addToCartQty} onBuyNowQty={handleBuyNowQty} liked={liked} onToggleLike={toggleLike} />}
+      {view === "shop" && selectedProduct && <ProductDetailPage product={selectedProduct} cart={cart} onBack={() => setSelectedProduct(null)} onAddToCartQty={addToCartQty} onBuyNowQty={handleBuyNowQty} liked={liked} onToggleLike={toggleLike} user={user} />}
       {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); }} wallets={wallets} />}
       {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} />}
 

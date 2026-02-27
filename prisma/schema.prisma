@@ -20,6 +20,7 @@ model User {
   orders    Order[]
   favorites Favorite[]
   messages  ChatMessage[]
+  reviews   Review[]
 }
 
 model Product {
@@ -106,4 +107,16 @@ model Coupon {
 model Settings {
   key   String @id
   value String
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  rating    Int      // 1-5
+  comment   String?
+  userName  String   // displayed name (anonymized or admin-set)
+  createdAt DateTime @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
