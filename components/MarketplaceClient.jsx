@@ -2195,25 +2195,6 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem("bmveri_cart", JSON.stringify(cart)); } catch {}
   }, [cart]);
-  // When products are fetched (or updated), sync cart items with the latest
-  // tiers/cost/basePrice from the server so localStorage-loaded items stay fresh
-  useEffect(() => {
-    if (products.length === 0) return;
-    setCart(prev => {
-      if (prev.length === 0) return prev;
-      const updated = prev.map(item => {
-        const product = products.find(p => p.id === item.id);
-        if (!product) return item;
-        return {
-          ...item,
-          tiers: product.tiers ?? item.tiers ?? [],
-          basePrice: item.basePrice ?? product.price,
-          cost: product.cost ?? item.cost ?? 0,
-        };
-      });
-      return rebalanceTiers(updated);
-    });
-  }, [products]);
   const [cartOpen, setCartOpen] = useState(false);
   const [showMiniCart, setShowMiniCart] = useState(false);
   const [lastAdded, setLastAdded] = useState(null);
@@ -2255,6 +2236,25 @@ export default function App() {
       .then(data => { if (Array.isArray(data)) setProducts(data); })
       .catch(() => {});
   }, [isAdmin]);
+  // When products load (or update), sync cart items with the latest
+  // tiers/cost/basePrice so localStorage-loaded items are always fresh
+  useEffect(() => {
+    if (products.length === 0) return;
+    setCart(prev => {
+      if (prev.length === 0) return prev;
+      const updated = prev.map(item => {
+        const product = products.find(p => p.id === item.id);
+        if (!product) return item;
+        return {
+          ...item,
+          tiers: product.tiers ?? item.tiers ?? [],
+          basePrice: item.basePrice ?? product.price,
+          cost: product.cost ?? item.cost ?? 0,
+        };
+      });
+      return rebalanceTiers(updated);
+    });
+  }, [products]);
 
   // ── FAVORITES ──
   const [liked, setLiked] = useState({});
