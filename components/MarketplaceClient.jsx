@@ -2311,7 +2311,7 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
 
       {/* ── AJUSTES ── */}
       {tab === "settings" && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, alignItems: "start" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
 
           {/* ── Perfil ── */}
           <div className="card">
