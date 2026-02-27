@@ -588,7 +588,7 @@ const StatusPill = ({ status }) => {
   return <span className="status-cancelled">✕ Cancelado</span>;
 };
 const Stars = ({ rating, reviews }) => {
-  if (!rating || !reviews) return null;
+  if (!rating) return null;
   const full = Math.floor(rating), partial = rating % 1 >= 0.5 ? 1 : 0, empty = 5 - full - partial;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -596,7 +596,7 @@ const Stars = ({ rating, reviews }) => {
       {[...Array(full)].map((_,i) => <span key={`f${i}`} className="star">★</span>)}
       {partial === 1 && <span className="star" style={{ opacity: 0.6 }}>★</span>}
       {[...Array(empty)].map((_,i) => <span key={`e${i}`} className="star-empty">★</span>)}
-      <span style={{ fontSize: 12, color: "var(--muted)", marginLeft: 2 }}>({reviews})</span>
+      {reviews != null && <span style={{ fontSize: 12, color: "var(--muted)", marginLeft: 2 }}>({reviews})</span>}
     </div>
   );
 };
