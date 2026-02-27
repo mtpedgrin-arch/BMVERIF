@@ -78,7 +78,7 @@ const css = `
   .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
   .chip-stock { background: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0; }
   .chip-sales { background: #F8FAFC; color: #64748B; border: 1px solid #E2E8F0; }
-  .prod-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+  .prod-right { display: flex; flex-direction: row; align-items: center; gap: 12px; flex-shrink: 0; }
   .prod-price { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; white-space: nowrap; }
   .prod-actions { display: flex; align-items: center; gap: 8px; }
   .buy-btn { background: var(--red); color: #fff; border: none; padding: 9px 20px; border-radius: 8px; font-size: 14px; font-weight: 700; transition: all 0.15s; white-space: nowrap; }
