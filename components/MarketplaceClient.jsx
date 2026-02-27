@@ -71,7 +71,7 @@ const css = `
   .prod-thumb-inner { width: 100%; height: 100%; background: linear-gradient(145deg, #1877F2 0%, #0d5bbf 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
   .prod-thumb-icon { font-size: 26px; line-height: 1; }
   .prod-thumb-label { font-size: 9px; font-weight: 700; color: #fff; letter-spacing: 0.3px; }
-  .verified-badge { position: absolute; top: -3px; left: -3px; width: 18px; height: 18px; background: #1877F2; border-radius: 50%; border: 2px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #fff; font-weight: 700; }
+  .verified-badge { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 26px; height: 26px; background: #1877F2; border-radius: 50%; border: 2.5px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #fff; font-weight: 700; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
   .prod-info { flex: 1; min-width: 0; margin-right: 20px; }
   .prod-name { font-size: 14px; font-weight: 600; margin-bottom: 3px; line-height: 1.4; }
   .prod-details { font-size: 12px; color: var(--muted); margin-bottom: 7px; line-height: 1.4; }
