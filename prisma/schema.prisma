@@ -50,7 +50,8 @@ model Order {
   coupon    String?
   total     Float    @default(0)
   network   String
-  txHash    String?
+  txHash          String?
+  deliveryContent String?  // texto del pedido que sube el admin
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -11,21 +11,29 @@ export async function PATCH(req, { params }) {
   }
 
   const { id } = params;
-  const { status } = await req.json();
-  if (!status) return NextResponse.json({ error: "Falta el status." }, { status: 400 });
+  const body = await req.json();
+  const { status, deliveryContent } = body;
+
+  // Allow delivery-only update (no status required)
+  if (!status && deliveryContent === undefined)
+    return NextResponse.json({ error: "Falta status o deliveryContent." }, { status: 400 });
 
   // Read current order before updating (need previous status + items)
   const current = await prisma.order.findUnique({ where: { id }, include: { items: true } });
   if (!current) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
 
+  const updateData = {};
+  if (status) updateData.status = status;
+  if (deliveryContent !== undefined) updateData.deliveryContent = deliveryContent;
+
   const order = await prisma.order.update({
     where: { id },
-    data: { status },
+    data: updateData,
     include: { items: true },
   });
 
   // Transitioning TO "paid" → increment sales on each product
-  if (status === "paid" && current.status !== "paid") {
+  if (status && status === "paid" && current.status !== "paid") {
     for (const item of order.items) {
       if (item.productId) {
         await prisma.product.update({
@@ -37,7 +45,7 @@ export async function PATCH(req, { params }) {
   }
 
   // Transitioning FROM "paid" (e.g. cancelled) → decrement sales
-  if (current.status === "paid" && status !== "paid") {
+  if (status && current.status === "paid" && status !== "paid") {
     for (const item of current.items) {
       if (item.productId) {
         await prisma.product.update({

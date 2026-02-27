@@ -88,6 +88,16 @@ const css = `
   .icon-btn:hover, .icon-btn.liked { border-color: var(--red); color: var(--red); background: var(--red-light); }
   .in-cart-badge { background: var(--green); color: #fff; border: none; padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
 
+  /* DELIVERY */
+  .deliver-btn { background: #F0FDF4; color: #15803D; border: 1.5px solid #BBF7D0; padding: 5px 11px; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+  .deliver-btn:hover { background: #DCFCE7; }
+  .deliver-btn.delivered { background: #F0FDF4; color: #15803D; border-color: #86EFAC; cursor: default; }
+  .deliver-pending { font-size: 11px; color: var(--amber); background: var(--amber-light); border: 1px solid var(--amber-border); padding: 3px 9px; border-radius: 6px; font-weight: 600; white-space: nowrap; }
+  .deliver-ready { font-size: 11px; color: #15803D; background: #F0FDF4; border: 1px solid #BBF7D0; padding: 3px 9px; border-radius: 6px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: all 0.15s; }
+  .deliver-ready:hover { background: #DCFCE7; }
+  .delivery-modal-content { background: var(--surface); border-radius: 16px; padding: 28px; max-width: 600px; width: 100%; box-shadow: var(--shadow-lg); max-height: 80vh; display: flex; flex-direction: column; gap: 14px; }
+  .delivery-text { background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-all; overflow-y: auto; max-height: 340px; color: var(--text); }
+
   /* CHECKOUT PAGE */
   .checkout-page { flex: 1; padding: 28px 20px; max-width: 1080px; margin: 0 auto; width: 100%; }
   .checkout-crumb { font-size: 13px; color: var(--muted); margin-bottom: 18px; display: flex; align-items: center; gap: 6px; }
@@ -1671,7 +1681,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
 };
 
 // ─── USER ACCOUNT ─────────────────────────────────────────────────────────────
-const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products }) => {
+const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products, deliveryModal, setDeliveryModal }) => {
   const [tab, setTab] = useState("orders");
   const myOrders = userOrders; // la API ya filtra por usuario
   const favProducts = products.filter(p => liked[p.id]);
@@ -1690,6 +1700,22 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
 
       {tab === "orders" && (
         <>
+          {/* Delivery content modal */}
+          {deliveryModal && (
+            <div className="modal-overlay" onClick={() => setDeliveryModal(null)}>
+              <div className="delivery-modal-content" onClick={e => e.stopPropagation()}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ fontFamily: "Syne", fontSize: 18, fontWeight: 800 }}>📦 Contenido de tu pedido</div>
+                  <button onClick={() => setDeliveryModal(null)} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "var(--muted)" }}>✕</button>
+                </div>
+                <div className="delivery-text">{deliveryModal}</div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button className="btn" style={{ flex: 1 }} onClick={() => { navigator.clipboard.writeText(deliveryModal); }}>📋 Copiar</button>
+                  <button className="btn btn-outline" onClick={() => setDeliveryModal(null)}>Cerrar</button>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="stats-row">
             <div className="stat-card"><div className="stat-label">Órdenes totales</div><div className="stat-value" style={{ color: "var(--blue)" }}>{myOrders.length}</div></div>
             <div className="stat-card"><div className="stat-label">Pendientes</div><div className="stat-value" style={{ color: "var(--amber)" }}>{myOrders.filter(o => o.status === "pending").length}</div></div>
@@ -1702,7 +1728,7 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
             ) : (
               <div className="table-wrap">
                 <table>
-                  <thead><tr><th>ID</th><th>Producto(s)</th><th>Red</th><th>Total</th><th>Cupón</th><th>Estado</th><th>Fecha</th></tr></thead>
+                  <thead><tr><th>ID</th><th>Producto(s)</th><th>Red</th><th>Total</th><th>Estado</th><th>Pedido</th><th>Fecha</th></tr></thead>
                   <tbody>
                     {myOrders.slice().reverse().map(o => (
                       <tr key={o.id}>
@@ -1710,8 +1736,13 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
                         <td style={{ maxWidth: 200, fontSize: 12 }}>{o.items.map(i => i.name).join(", ")}</td>
                         <td><span className="tag-network">{o.network}</span></td>
                         <td><strong style={{ color: "var(--usdt)" }}>{fmtUSDT(o.total)}</strong></td>
-                        <td>{o.coupon ? <span className="badge badge-purple">{o.coupon} -{o.discount}%</span> : <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>}</td>
                         <td><StatusPill status={o.status} /></td>
+                        <td>
+                          {o.deliveryContent
+                            ? <button className="deliver-ready" onClick={() => setDeliveryModal(o.deliveryContent)}>📦 Ver pedido</button>
+                            : <span className="deliver-pending">⏳ Pendiente</span>
+                          }
+                        </td>
                         <td style={{ color: "var(--muted)", fontSize: 12 }}>{o.createdAt ? new Date(o.createdAt).toLocaleDateString("es-AR") : "—"}</td>
                       </tr>
                     ))}
@@ -2246,10 +2277,34 @@ const CouponManager = ({ coupons, setCoupons }) => {
 };
 
 // ─── ADMIN ORDERS ─────────────────────────────────────────────────────────────
-const AdminOrders = ({ orders, onConfirm }) => {
+const AdminOrders = ({ orders, onConfirm, onDeliver }) => {
   const pending = orders.filter(o => o.status === "pending");
+  const fileInputRef = useRef(null);
+  const [targetId, setTargetId] = useState(null);
+  const [uploading, setUploading] = useState(null);
+
+  const triggerUpload = (orderId) => {
+    setTargetId(orderId);
+    fileInputRef.current?.click();
+  };
+
+  const handleFile = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !targetId) return;
+    setUploading(targetId);
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      await onDeliver(targetId, ev.target.result);
+      setUploading(null);
+      setTargetId(null);
+      e.target.value = "";
+    };
+    reader.readAsText(file, "utf-8");
+  };
+
   return (
     <div>
+      <input ref={fileInputRef} type="file" accept=".txt,text/plain" style={{ display: "none" }} onChange={handleFile} />
       <div className="page-title">📦 Gestión de Órdenes</div>
       {pending.length > 0 && (
         <div style={{ background: "var(--amber-light)", border: "1px solid var(--amber-border)", borderRadius: 12, padding: "12px 16px", marginBottom: 18, fontSize: 13, color: "var(--amber)", display: "flex", alignItems: "center", gap: 8 }}>
@@ -2259,7 +2314,7 @@ const AdminOrders = ({ orders, onConfirm }) => {
       <div className="card">
         <div className="table-wrap">
           <table>
-            <thead><tr><th>ID</th><th>Cliente</th><th>Productos</th><th>Red</th><th>Total</th><th>TX Hash</th><th>Estado</th><th>Acción</th></tr></thead>
+            <thead><tr><th>ID</th><th>Cliente</th><th>Productos</th><th>Red</th><th>Total</th><th>TX Hash</th><th>Estado</th><th>Acción</th><th>Entrega</th></tr></thead>
             <tbody>
               {orders.slice().reverse().map(o => (
                 <tr key={o.id} style={{ background: o.status === "pending" ? "var(--amber-light)" : "transparent" }}>
@@ -2271,6 +2326,17 @@ const AdminOrders = ({ orders, onConfirm }) => {
                   <td>{o.txHash ? <code style={{ fontSize: 10, color: "var(--blue)" }}>{o.txHash.slice(0, 14)}...</code> : <span style={{ fontSize: 11, color: "var(--muted)" }}>—</span>}</td>
                   <td><StatusPill status={o.status} /></td>
                   <td>{o.status === "pending" ? <button className="confirm-btn" onClick={() => onConfirm(o.id)}>✓ Confirmar pago</button> : <span className="confirmed-label">✓ Confirmado</span>}</td>
+                  <td>
+                    {uploading === o.id
+                      ? <span style={{ fontSize: 12, color: "var(--muted)" }}>Subiendo…</span>
+                      : o.deliveryContent
+                        ? <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <span style={{ fontSize: 11, color: "#15803D", fontWeight: 700 }}>✅ Entregado</span>
+                            <button className="deliver-btn" onClick={() => triggerUpload(o.id)}>↑ Reemplazar</button>
+                          </div>
+                        : <button className="deliver-btn" onClick={() => triggerUpload(o.id)}>📁 Subir .txt</button>
+                    }
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -2611,7 +2677,7 @@ const WalletManager = () => {
 };
 
 // ─── ADMIN PANEL ──────────────────────────────────────────────────────────────
-const AdminPanel = ({ orders, onConfirmOrder, coupons, setCoupons, products, setProducts }) => {
+const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, coupons, setCoupons, products, setProducts }) => {
   const [section, setSection] = useState("overview");
 
   // ── CHAT STATE ──
@@ -2726,7 +2792,7 @@ const AdminPanel = ({ orders, onConfirmOrder, coupons, setCoupons, products, set
       </div>
       <div className="admin-content">
         {section === "overview" && <AdminOverview orders={orders} products={products} onGoOrders={() => setSection("orders")} />}
-        {section === "orders" && <AdminOrders orders={orders} onConfirm={onConfirmOrder} />}
+        {section === "orders" && <AdminOrders orders={orders} onConfirm={onConfirmOrder} onDeliver={onDeliverOrder} />}
         {section === "coupons" && <CouponManager coupons={coupons} setCoupons={setCoupons} />}
         {section === "chat" && (
           <>
@@ -2844,6 +2910,7 @@ export default function App() {
   // ── ORDERS ──
   const [orders, setOrders] = useState([]);
   const [lastOrder, setLastOrder] = useState(null);
+  const [deliveryModal, setDeliveryModal] = useState(null);
   useEffect(() => {
     if (!user) return;
     fetch("/api/orders")
@@ -3065,6 +3132,18 @@ export default function App() {
     } catch {}
   };
 
+  const handleDeliverOrder = async (orderId, content) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deliveryContent: content }),
+      });
+      const updated = await res.json();
+      if (res.ok) setOrders(prev => prev.map(o => o.id === orderId ? updated : o));
+    } catch {}
+  };
+
   if (isAdmin) {
     return (
       <div className={`app${darkMode ? " dark" : ""}`}>
@@ -3077,7 +3156,7 @@ export default function App() {
             <button className="btn btn-outline btn-sm" onClick={() => signOut()}>← Cerrar sesión</button>
           </div>
         </div>
-        <AdminPanel orders={orders} onConfirmOrder={handleConfirmOrder} coupons={coupons} setCoupons={setCoupons} products={products} setProducts={setProducts} />
+        <AdminPanel orders={orders} onConfirmOrder={handleConfirmOrder} onDeliverOrder={handleDeliverOrder} coupons={coupons} setCoupons={setCoupons} products={products} setProducts={setProducts} />
       </div>
     );
   }
@@ -3115,7 +3194,7 @@ export default function App() {
       {view === "shop" && !selectedProduct && <ShopPage cart={cart} onAddToCart={addToCart} onBuyNow={handleBuyNow} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} onProductClick={p => setSelectedProduct(p)} />}
       {view === "shop" && selectedProduct && <ProductDetailPage product={selectedProduct} cart={cart} onBack={() => setSelectedProduct(null)} onAddToCartQty={addToCartQty} onBuyNowQty={handleBuyNowQty} liked={liked} onToggleLike={toggleLike} user={user} />}
       {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); }} wallets={wallets} />}
-      {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} />}
+      {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} deliveryModal={deliveryModal} setDeliveryModal={setDeliveryModal} />}
 
       {showMiniCart && cart.length > 0 && (
         <MiniCart
