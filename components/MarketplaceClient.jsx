@@ -433,6 +433,23 @@ const css = `
   .app.dark input::placeholder, .app.dark textarea::placeholder { color: var(--muted); }
   .app.dark .cart-fab { background: var(--red); color: #fff; }
   .app.dark .cart-fab:hover { background: var(--red-dark); }
+
+  /* DATE RANGE PILLS */
+  .date-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+  .date-pill { padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; transition: all 0.13s; }
+  .date-pill:hover { border-color: var(--red); color: var(--red); background: var(--red-light); }
+  .date-pill.active { background: var(--red); color: #fff; border-color: var(--red); }
+
+  /* PROFIT CARDS */
+  .profit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .profit-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px; padding: 16px 18px; box-shadow: var(--shadow); }
+  .profit-card-icon { font-size: 22px; margin-bottom: 6px; }
+  .profit-card-label { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .profit-card-value { font-family: 'Syne', sans-serif; font-size: 19px; font-weight: 800; line-height: 1.2; }
+  .profit-card-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .app.dark .profit-card { background: var(--surface); border-color: var(--border); }
+  .app.dark .date-pill { background: var(--surface); border-color: var(--border); }
+  .app.dark .date-pill:hover { background: var(--red-light); border-color: var(--red); }
 `;
 
 
@@ -1275,21 +1292,21 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
 const ProductManager = ({ products, setProducts }) => {
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
-  const [form, setForm] = useState({ name: "", details: "", price: "", stock: "" });
+  const [form, setForm] = useState({ name: "", details: "", price: "", cost: "", stock: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const setF = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
 
   const openNew = () => {
     setEditProduct(null);
-    setForm({ name: "", details: "", price: "", stock: "" });
+    setForm({ name: "", details: "", price: "", cost: "", stock: "" });
     setError("");
     setShowForm(true);
   };
 
   const openEdit = (p) => {
     setEditProduct(p);
-    setForm({ name: p.name, details: p.details || "", price: p.price, stock: p.stock });
+    setForm({ name: p.name, details: p.details || "", price: p.price, cost: p.cost || "", stock: p.stock });
     setError("");
     setShowForm(true);
   };
@@ -1299,7 +1316,7 @@ const ProductManager = ({ products, setProducts }) => {
     setSaving(true); setError("");
     try {
       let res, data;
-      const body = { name: form.name, details: form.details, price: parseFloat(form.price), stock: parseInt(form.stock) || 0 };
+      const body = { name: form.name, details: form.details, price: parseFloat(form.price), cost: parseFloat(form.cost) || 0, stock: parseInt(form.stock) || 0 };
       if (editProduct) {
         res = await fetch(`/api/products/${editProduct.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       } else {
@@ -1364,8 +1381,13 @@ const ProductManager = ({ products, setProducts }) => {
               <input className="form-input" value={form.details} onChange={setF("details")} placeholder="Ej: BM Limit $250 · GEO Europe/USA · Verified 2024" />
             </div>
             <div className="form-group">
-              <label className="form-label">Precio USDT *</label>
+              <label className="form-label">Precio de venta USDT *</label>
               <input className="form-input" type="number" step="0.01" min="0" value={form.price} onChange={setF("price")} placeholder="33.00" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Costo real USDT</label>
+              <input className="form-input" type="number" step="0.01" min="0" value={form.cost} onChange={setF("cost")} placeholder="15.00" />
+              <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 3 }}>Se usa para calcular beneficio y ROAS en el Overview</div>
             </div>
             <div className="form-group">
               <label className="form-label">Stock (unidades)</label>
@@ -1384,17 +1406,26 @@ const ProductManager = ({ products, setProducts }) => {
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>Nombre</th><th>Detalles</th><th>Precio</th><th>Stock</th><th>Ventas</th><th>Estado</th><th>Acciones</th></tr>
+              <tr><th>Nombre</th><th>Detalles</th><th>Venta</th><th>Costo</th><th>Margen</th><th>Stock</th><th>Ventas</th><th>Estado</th><th>Acciones</th></tr>
             </thead>
             <tbody>
               {products.length === 0 && (
                 <tr><td colSpan={7} style={{ textAlign: "center", padding: "30px 0", color: "var(--muted)" }}>No hay productos. Crea el primero.</td></tr>
               )}
-              {products.map(p => (
+              {products.map(p => {
+                const margin = p.cost > 0 ? (((p.price - p.cost) / p.price) * 100).toFixed(0) : null;
+                return (
                 <tr key={p.id} style={{ opacity: p.isActive ? 1 : 0.5 }}>
                   <td style={{ maxWidth: 200, fontSize: 12, fontWeight: 600 }}>{p.name}</td>
                   <td style={{ maxWidth: 180, fontSize: 11, color: "var(--muted)" }}>{p.details || "—"}</td>
                   <td><strong style={{ color: "var(--usdt)" }}>{fmtUSDT(p.price)}</strong></td>
+                  <td style={{ fontSize: 12, color: p.cost > 0 ? "var(--red)" : "var(--muted)" }}>{p.cost > 0 ? fmtUSDT(p.cost) : "—"}</td>
+                  <td>
+                    {margin !== null
+                      ? <span className="chip" style={{ background: parseInt(margin) >= 30 ? "var(--green-light)" : "var(--amber-light)", color: parseInt(margin) >= 30 ? "var(--green)" : "var(--amber)", border: `1px solid ${parseInt(margin) >= 30 ? "var(--green-border)" : "var(--amber-border)"}` }}>{margin}%</span>
+                      : <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>
+                    }
+                  </td>
                   <td>
                     <span className="chip" style={{ background: p.stock > 0 ? "#F0FDF4" : "var(--red-light)", color: p.stock > 0 ? "#15803D" : "var(--red)", border: `1px solid ${p.stock > 0 ? "#BBF7D0" : "var(--red)"}` }}>
                       {p.stock} pcs.
@@ -1411,7 +1442,8 @@ const ProductManager = ({ products, setProducts }) => {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -1586,6 +1618,161 @@ const AdminOrders = ({ orders, onConfirm }) => {
   );
 };
 
+// ─── ADMIN OVERVIEW ───────────────────────────────────────────────────────────
+const RANGES = [
+  { id: "today",     label: "Hoy" },
+  { id: "yesterday", label: "Ayer" },
+  { id: "7d",        label: "7 días" },
+  { id: "15d",       label: "15 días" },
+  { id: "month",     label: "Este mes" },
+  { id: "all",       label: "Todo" },
+];
+
+const AdminOverview = ({ orders, products, onGoOrders }) => {
+  const [range, setRange] = useState("month");
+
+  const filterByRange = (arr) => {
+    const now = new Date();
+    const sod = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // start of today
+    switch (range) {
+      case "today":     return arr.filter(o => new Date(o.createdAt) >= sod);
+      case "yesterday": {
+        const s = new Date(sod); s.setDate(s.getDate() - 1);
+        return arr.filter(o => { const d = new Date(o.createdAt); return d >= s && d < sod; });
+      }
+      case "7d":  { const s = new Date(sod); s.setDate(s.getDate() - 7);  return arr.filter(o => new Date(o.createdAt) >= s); }
+      case "15d": { const s = new Date(sod); s.setDate(s.getDate() - 15); return arr.filter(o => new Date(o.createdAt) >= s); }
+      case "month": { const s = new Date(now.getFullYear(), now.getMonth(), 1); return arr.filter(o => new Date(o.createdAt) >= s); }
+      default: return arr;
+    }
+  };
+
+  const filtered      = filterByRange(orders);
+  const paid          = filtered.filter(o => o.status === "paid");
+  const pending       = filtered.filter(o => o.status === "pending");
+  const revenue       = paid.reduce((s, o) => s + o.total, 0);
+  const pendingRev    = pending.reduce((s, o) => s + o.total, 0);
+
+  // Build cost map: product name → cost
+  const costMap = {};
+  products.forEach(p => { if (p.cost > 0) costMap[p.name] = p.cost; });
+  const hasCosts = Object.keys(costMap).length > 0;
+
+  const calcOrderCost = (o) => (o.items || []).reduce((s, item) => s + (costMap[item.name] || 0) * item.qty, 0);
+  const totalCost   = paid.reduce((s, o) => s + calcOrderCost(o), 0);
+  const profit      = revenue - totalCost;
+  const roas        = totalCost > 0 ? (revenue / totalCost).toFixed(2) : null;
+  const margin      = revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : "0";
+  const rangeLabel  = RANGES.find(r => r.id === range)?.label || "";
+
+  return (
+    <>
+      <div className="page-title">📊 Overview</div>
+
+      {/* ── Date range pills ── */}
+      <div className="date-pills">
+        {RANGES.map(r => (
+          <button key={r.id} className={`date-pill ${range === r.id ? "active" : ""}`} onClick={() => setRange(r.id)}>{r.label}</button>
+        ))}
+      </div>
+
+      {/* ── Profit cards ── */}
+      <div className="profit-grid">
+        <div className="profit-card">
+          <div className="profit-card-icon">📦</div>
+          <div className="profit-card-label">Órdenes pagas</div>
+          <div className="profit-card-value" style={{ color: "var(--blue)" }}>{paid.length}</div>
+          <div className="profit-card-sub">{pending.length} pendiente{pending.length !== 1 ? "s" : ""}</div>
+        </div>
+
+        <div className="profit-card">
+          <div className="profit-card-icon">₮</div>
+          <div className="profit-card-label">Ingresos</div>
+          <div className="profit-card-value" style={{ color: "var(--usdt)" }}>{fmtUSDT(revenue)}</div>
+          <div className="profit-card-sub">{fmtUSDT(pendingRev)} pendiente</div>
+        </div>
+
+        <div className="profit-card">
+          <div className="profit-card-icon">💸</div>
+          <div className="profit-card-label">Costo total</div>
+          <div className="profit-card-value" style={{ color: hasCosts ? "var(--red)" : "var(--muted)" }}>
+            {hasCosts ? fmtUSDT(totalCost) : "—"}
+          </div>
+          <div className="profit-card-sub">{hasCosts ? "Cargado en Productos" : "Configurá el costo en Productos →"}</div>
+        </div>
+
+        <div className="profit-card" style={{ background: profit >= 0 ? "var(--green-light)" : "var(--red-light)", borderColor: profit >= 0 ? "var(--green-border)" : "var(--red)" }}>
+          <div className="profit-card-icon">{profit >= 0 ? "✅" : "⚠️"}</div>
+          <div className="profit-card-label">Beneficio neto</div>
+          <div className="profit-card-value" style={{ color: profit >= 0 ? "var(--green)" : "var(--red)" }}>
+            {hasCosts ? fmtUSDT(profit) : "—"}
+          </div>
+          <div className="profit-card-sub">Margen: {hasCosts ? `${margin}%` : "—"}</div>
+        </div>
+
+        <div className="profit-card">
+          <div className="profit-card-icon">📈</div>
+          <div className="profit-card-label">ROAS</div>
+          <div className="profit-card-value" style={{ color: "var(--purple)" }}>
+            {roas ? `${roas}x` : "—"}
+          </div>
+          <div className="profit-card-sub">Ingresos por cada $1 de costo</div>
+        </div>
+      </div>
+
+      {/* ── Pending alert ── */}
+      {pending.length > 0 && (
+        <div style={{ background: "var(--amber-light)", border: "1px solid var(--amber-border)", borderRadius: 12, padding: "12px 16px", marginBottom: 18, fontSize: 13, color: "var(--amber)", display: "flex", alignItems: "center", gap: 8 }}>
+          ⏳ <strong>{pending.length} orden{pending.length > 1 ? "es" : ""} esperando confirmación ({fmtUSDT(pendingRev)})</strong>
+          <button className="btn btn-sm" style={{ background: "var(--amber)", color: "#fff", border: "none", marginLeft: "auto" }} onClick={onGoOrders}>Ver órdenes →</button>
+        </div>
+      )}
+
+      {/* ── Orders table ── */}
+      <div className="card">
+        <div className="card-title">Órdenes pagas — {rangeLabel} ({paid.length})</div>
+        {paid.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "28px 0", color: "var(--muted)", fontSize: 14 }}>Sin órdenes pagas en este período.</div>
+        ) : (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th><th>Cliente</th><th>Red</th>
+                  <th>Ingresos</th>
+                  {hasCosts && <><th>Costo</th><th>Beneficio</th></>}
+                  <th>Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paid.slice().reverse().map(o => {
+                  const oCost   = calcOrderCost(o);
+                  const oProfit = o.total - oCost;
+                  return (
+                    <tr key={o.id}>
+                      <td><code style={{ fontSize: 11, color: "var(--purple)" }}>{o.id.slice(-8)}</code></td>
+                      <td style={{ fontSize: 12 }}>{o.userName}</td>
+                      <td><span className="tag-network">{o.network}</span></td>
+                      <td><strong style={{ color: "var(--usdt)" }}>{fmtUSDT(o.total)}</strong></td>
+                      {hasCosts && (
+                        <>
+                          <td style={{ fontSize: 12, color: oCost > 0 ? "var(--red)" : "var(--muted)" }}>{oCost > 0 ? fmtUSDT(oCost) : "—"}</td>
+                          <td style={{ fontWeight: 700, fontSize: 13, color: oProfit >= 0 ? "var(--green)" : "var(--red)" }}>{oCost > 0 ? fmtUSDT(oProfit) : "—"}</td>
+                        </>
+                      )}
+                      <td style={{ color: "var(--muted)", fontSize: 12 }}>{o.createdAt ? new Date(o.createdAt).toLocaleDateString("es-AR") : "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </>
+  );
+};
+
 // ─── ADMIN PANEL ──────────────────────────────────────────────────────────────
 const AdminPanel = ({ orders, onConfirmOrder, coupons, setCoupons, products, setProducts }) => {
   const [section, setSection] = useState("overview");
@@ -1700,41 +1887,7 @@ const AdminPanel = ({ orders, onConfirmOrder, coupons, setCoupons, products, set
         ))}
       </div>
       <div className="admin-content">
-        {section === "overview" && (
-          <>
-            <div className="page-title">📊 Overview</div>
-            <div className="stats-row">
-              <div className="stat-card"><div className="stat-label">Órdenes</div><div className="stat-value" style={{ color: "var(--red)" }}>{orders.length}</div></div>
-              <div className="stat-card"><div className="stat-label">Pendientes</div><div className="stat-value" style={{ color: "var(--amber)" }}>{pendingCount}</div></div>
-              <div className="stat-card"><div className="stat-label">Cupones activos</div><div className="stat-value" style={{ color: "var(--purple)" }}>{activeCoupons}</div></div>
-              <div className="stat-card"><div className="stat-label">Ingresos USDT</div><div className="stat-value" style={{ color: "var(--usdt)" }}>{orders.filter(o=>o.status==="paid").reduce((s,o)=>s+o.total,0).toFixed(2)}</div></div>
-            </div>
-            {pendingCount > 0 && (
-              <div style={{ background: "var(--amber-light)", border: "1px solid var(--amber-border)", borderRadius: 12, padding: "12px 16px", marginBottom: 18, fontSize: 13, color: "var(--amber)", display: "flex", alignItems: "center", gap: 8 }}>
-                ⏳ <strong>{pendingCount} orden{pendingCount > 1 ? "es" : ""} esperando confirmación</strong>
-                <button className="btn btn-sm" style={{ background: "var(--amber)", color: "#fff", border: "none", marginLeft: "auto" }} onClick={() => setSection("orders")}>Ver órdenes →</button>
-              </div>
-            )}
-            <div className="card">
-              <div className="card-title">Últimas órdenes</div>
-              <div className="table-wrap">
-                <table>
-                  <thead><tr><th>ID</th><th>Cliente</th><th>Red</th><th>Total</th><th>Estado</th><th>Fecha</th></tr></thead>
-                  <tbody>{orders.slice().reverse().slice(0, 5).map(o => (
-                    <tr key={o.id}>
-                      <td><code style={{ fontSize: 11, color: "var(--purple)" }}>{o.id}</code></td>
-                      <td style={{ fontSize: 12 }}>{o.userName}</td>
-                      <td><span className="tag-network">{o.network}</span></td>
-                      <td><strong style={{ color: "var(--usdt)" }}>{fmtUSDT(o.total)}</strong></td>
-                      <td><StatusPill status={o.status} /></td>
-                      <td style={{ color: "var(--muted)", fontSize: 12 }}>{o.createdAt ? new Date(o.createdAt).toLocaleDateString("es-AR") : "—"}</td>
-                    </tr>
-                  ))}</tbody>
-                </table>
-              </div>
-            </div>
-          </>
-        )}
+        {section === "overview" && <AdminOverview orders={orders} products={products} onGoOrders={() => setSection("orders")} />}
         {section === "orders" && <AdminOrders orders={orders} onConfirm={onConfirmOrder} />}
         {section === "coupons" && <CouponManager coupons={coupons} setCoupons={setCoupons} />}
         {section === "chat" && (

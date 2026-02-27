@@ -27,6 +27,7 @@ model Product {
   name      String
   details   String?
   price     Float    @default(0)
+  cost      Float    @default(0)
   stock     Int      @default(0)
   sales     Int      @default(0)
   rating    Float    @default(0)
