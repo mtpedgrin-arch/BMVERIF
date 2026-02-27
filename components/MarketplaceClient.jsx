@@ -572,6 +572,14 @@ const css = `
   .app.dark .pd-tier-row { border-color: var(--border); }
   .app.dark .pd-price-panel { background: var(--surface); border-color: var(--border); }
   .app.dark .pd-warranty { background: var(--green-light); border-color: var(--green-border); }
+  .site-footer { border-top: 1px solid var(--border); padding: 28px 24px; margin-top: auto; }
+  .site-footer-inner { max-width: 1200px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+  .site-footer-logo { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; color: var(--text); }
+  .site-footer-logo span { color: #D4AF37; }
+  .site-footer-links { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; }
+  .site-footer-link { font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; padding: 0; text-decoration: none; transition: color 0.15s; }
+  .site-footer-link:hover { color: var(--text); }
+  .site-footer-copy { font-size: 11px; color: var(--muted); white-space: nowrap; }
 `;
 
 
@@ -4552,6 +4560,20 @@ export default function App() {
           onCancelled={() => { setGlobalPending(null); setGlobalPendingFull(false); refreshOrders(); }}
         />
       )}
+
+      <footer className="site-footer">
+        <div className="site-footer-inner">
+          <div className="site-footer-logo">BM <span>Verificada</span></div>
+          <div className="site-footer-links">
+            <button className="site-footer-link">Política de Privacidad</button>
+            <button className="site-footer-link">Acuerdo de Usuario</button>
+            <button className="site-footer-link">Oferta Pública</button>
+            <button className="site-footer-link">Política de Reemplazo de Bienes Digitales</button>
+            <button className="site-footer-link">Reglas de la Plataforma</button>
+          </div>
+          <div className="site-footer-copy">© {new Date().getFullYear()} BM Verificada</div>
+        </div>
+      </footer>
     </div>
   );
 }
