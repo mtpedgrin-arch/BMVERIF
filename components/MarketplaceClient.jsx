@@ -67,7 +67,7 @@ const css = `
   .product-row { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); transition: background 0.12s; }
   .product-row:last-child { border-bottom: none; }
   .product-row:hover { background: #FAFAFA; }
-  .prod-thumb { width: 40px; height: 40px; flex-shrink: 0; border-radius: 8px; overflow: hidden; position: relative; margin-right: 16px; }
+  .prod-thumb { width: 80px; height: 80px; flex-shrink: 0; border-radius: 12px; overflow: hidden; position: relative; margin-right: 16px; }
   .prod-thumb-inner { width: 100%; height: 100%; background: none; display: flex; }
   .prod-thumb-inner img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .prod-thumb-icon { display: none; }
@@ -424,7 +424,7 @@ const css = `
   .app.dark .sidebar-item:hover { background: #222535; }
   .app.dark .product-list { background: var(--surface); border-color: var(--border); }
   .app.dark .product-row:hover { background: #222535; }
-  .app.dark .prod-thumb-inner { background: linear-gradient(145deg, #0e3a86 0%, #092261 100%); }
+  .app.dark .prod-thumb-inner { background: none; }
   .app.dark .card { background: var(--surface); border-color: var(--border); }
   .app.dark .stat-card { background: var(--surface); border-color: var(--border); }
   .app.dark table thead th { background: var(--bg); border-bottom-color: var(--border); }
