@@ -350,7 +350,7 @@ const css = `
   .cmsg-a { align-self: flex-start; }
   .cmsg-u { align-self: flex-end; }
   .cmsg-b { padding: 8px 11px; border-radius: 12px; font-size: 13px; line-height: 1.4; }
-  .cmsg-a .cmsg-b { background: var(--bg); border-bottom-left-radius: 3px; }
+  .cmsg-a .cmsg-b { background: #D8DEF0; color: #1A1614; border-bottom-left-radius: 3px; }
   .cmsg-u .cmsg-b { background: var(--red); color: #fff; border-bottom-right-radius: 3px; }
   .cmsg-t { font-size: 10px; color: var(--muted); margin-top: 2px; text-align: right; }
   .chat-input-row { padding: 9px; border-top: 1px solid var(--border); display: flex; gap: 7px; align-items: center; }
@@ -364,7 +364,75 @@ const css = `
   .avatar-lg { width: 50px; height: 50px; background: linear-gradient(135deg, var(--red) 0%, #ff6b6b 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 19px; font-weight: 800; color: #fff; font-family: 'Syne', sans-serif; flex-shrink: 0; }
   .tag-network { background: var(--usdt-light); color: var(--usdt); font-size: 10px; padding: 2px 7px; border-radius: 20px; font-weight: 700; border: 1px solid #a7f0d8; }
   @media (max-width: 640px) { .settings-grid { grid-template-columns: 1fr; } .cart-drawer { width: 100vw; } .network-selector { grid-template-columns: 1fr; } }
+
+  /* DARK MODE TOGGLE BUTTON */
+  .dark-toggle { background: none; border: 1.5px solid var(--border); border-radius: 8px; width: 34px; height: 34px; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
+  .dark-toggle:hover { border-color: var(--red); background: var(--red-light); }
+
+  /* ── DARK MODE ── */
+  .app.dark {
+    --bg: #111318; --surface: #1C1F2E; --border: #2E3148; --text: #E2E6F0; --muted: #8892A4;
+    --red-light: #3D1010; --green-light: #0C2818; --amber-light: #281900; --blue-light: #0C1E35;
+    --purple-light: #1C1040; --usdt-light: #082015; --teal-light: #062025;
+    --shadow: 0 1px 4px rgba(0,0,0,0.4); --shadow-lg: 0 8px 40px rgba(0,0,0,0.6);
+    color-scheme: dark;
+  }
+  .app.dark { background: var(--bg); color: var(--text); }
+  .app.dark .hero { background: linear-gradient(135deg, #080604 0%, #140b0b 55%, #1a0707 100%); }
+  .app.dark .topbar { background: var(--surface); border-color: var(--border); }
+  .app.dark .sidebar { background: var(--surface); border-color: var(--border); }
+  .app.dark .sidebar-item:hover { background: #222535; }
+  .app.dark .product-list { background: var(--surface); border-color: var(--border); }
+  .app.dark .product-row:hover { background: #222535; }
+  .app.dark .prod-thumb-inner { background: linear-gradient(145deg, #0e3a86 0%, #092261 100%); }
+  .app.dark .card { background: var(--surface); border-color: var(--border); }
+  .app.dark .stat-card { background: var(--surface); border-color: var(--border); }
+  .app.dark table thead th { background: var(--bg); }
+  .app.dark tr:hover td { background: #222535; }
+  .app.dark .modal { background: var(--surface); }
+  .app.dark .modal-overlay { background: rgba(0,0,0,0.75); }
+  .app.dark .cart-drawer { background: var(--surface); }
+  .app.dark .cart-overlay { background: rgba(0,0,0,0.65); }
+  .app.dark .mini-cart-popup { background: var(--surface); border-color: var(--border); }
+  .app.dark .mini-cart-head { background: #111318; }
+  .app.dark .mini-cart-footer { background: var(--bg); }
+  .app.dark .mini-cart-item-icon { background: linear-gradient(135deg, #0e3a86, #092261); }
+  .app.dark .checkout-card { background: var(--surface); border-color: var(--border); }
+  .app.dark .co-totals { background: var(--bg); border-color: var(--border); }
+  .app.dark .co-item-icon { background: linear-gradient(135deg, #0e3a86 0%, #092261 100%); }
+  .app.dark .co-method-card { border-color: var(--border); }
+  .app.dark .co-method-card.sel { background: #082015; border-color: var(--usdt); }
+  .app.dark .co-wallet-box { background: var(--bg); border-color: var(--border); }
+  .app.dark .co-amount-box { background: linear-gradient(135deg, #082015, #0a2a1a); border-color: #1f6b42; }
+  .app.dark .usdt-header { background: linear-gradient(135deg, #082015 0%, #0a2a1a 100%); border-color: #1f6b42; }
+  .app.dark .network-card { border-color: var(--border); }
+  .app.dark .network-card.selected { background: #082015; border-color: var(--usdt); }
+  .app.dark .wallet-box { background: var(--bg); border-color: var(--border); }
+  .app.dark .amount-highlight { background: linear-gradient(135deg, #082015, #0a2a1a); border-color: #1f6b42; }
+  .app.dark .order-summary-mini { background: var(--bg); }
+  .app.dark .warning-box { background: #281900; border-color: #6b4c00; }
+  .app.dark .chat-window { background: var(--surface); border-color: var(--border); }
+  .app.dark .chat-head { background: #A81E1E; }
+  .app.dark .cmsg-a .cmsg-b { background: #2D3350; color: var(--text); }
+  .app.dark .admin-chat-layout { background: var(--surface); border-color: var(--border); }
+  .app.dark .convo-list { border-color: var(--border); }
+  .app.dark .convo-item:hover, .app.dark .convo-item.active { background: #3D1010; }
+  .app.dark .chat-panel-header { border-color: var(--border); }
+  .app.dark .coupon-creator { background: linear-gradient(135deg, #1C1040 0%, #201548 100%); border-color: #6D28D9; }
+  .app.dark .coupon-creator-sub { color: #C084FC; }
+  .app.dark .percent-btn { background: var(--bg); color: #C084FC; border-color: #7C3AED; }
+  .app.dark .percent-btn:hover, .app.dark .percent-btn.active { background: var(--purple); color: #fff; border-color: var(--purple); }
+  .app.dark .custom-percent { background: var(--bg); color: #C084FC; border-color: #7C3AED; }
+  .app.dark .coupon-result { background: var(--surface); border-color: var(--purple); }
+  .app.dark .form-input { background: var(--bg); color: var(--text); border-color: var(--border); }
+  .app.dark .form-input:focus { background: var(--surface); border-color: var(--red); }
+  .app.dark .chat-inp { background: var(--bg); color: var(--text); border-color: var(--border); }
+  .app.dark .coupon-input { background: var(--bg); color: var(--text); border-color: var(--border); }
+  .app.dark .co-coupon-inp { background: var(--bg); color: var(--text); border-color: var(--border); }
+  .app.dark .tx-input { background: var(--bg); color: var(--text); border-color: var(--border); }
+  .app.dark input::placeholder, .app.dark textarea::placeholder { color: var(--muted); }
 `;
+
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
 const fmt = n => `$${Number(n).toFixed(2)}`;
@@ -1745,6 +1813,19 @@ export default function App() {
   const user = session?.user ?? null;
   const isAdmin = user?.role === "admin";
 
+  // ── DARK MODE ──
+  const [darkMode, setDarkMode] = useState(false);
+  useEffect(() => {
+    const key = `bmverif_theme_${user?.email || "guest"}`;
+    setDarkMode(localStorage.getItem(key) === "dark");
+  }, [user?.email]);
+  const toggleDark = () => {
+    const next = !darkMode;
+    setDarkMode(next);
+    const key = `bmverif_theme_${user?.email || "guest"}`;
+    localStorage.setItem(key, next ? "dark" : "light");
+  };
+
   const [view, setView] = useState("shop");
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
@@ -1903,12 +1984,15 @@ export default function App() {
 
   if (isAdmin) {
     return (
-      <div className="app">
+      <div className={`app${darkMode ? " dark" : ""}`}>
         <style>{css}</style>
         <div className="topbar">
           <div className="logo">BMVERIF<span style={{ fontSize: 11, background: "var(--red)", color: "#fff", padding: "2px 8px", borderRadius: 6, marginLeft: 7 }}>ADMIN</span></div>
           <div style={{ fontSize: 13, color: "var(--muted)" }}>Panel de administración · {user.email}</div>
-          <button className="btn btn-outline btn-sm" onClick={() => signOut()}>← Cerrar sesión</button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button className="dark-toggle" onClick={toggleDark} title={darkMode ? "Modo claro" : "Modo oscuro"}>{darkMode ? "☀️" : "🌙"}</button>
+            <button className="btn btn-outline btn-sm" onClick={() => signOut()}>← Cerrar sesión</button>
+          </div>
         </div>
         <AdminPanel orders={orders} onConfirmOrder={handleConfirmOrder} coupons={coupons} setCoupons={setCoupons} products={products} setProducts={setProducts} />
       </div>
@@ -1916,7 +2000,7 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className={`app${darkMode ? " dark" : ""}`}>
       <style>{css}</style>
       <div className="topbar">
         <div className="logo" onClick={() => setView("shop")}>BMVERIF</div>
@@ -1933,6 +2017,7 @@ export default function App() {
               <button className="btn btn-primary btn-sm" onClick={() => { setAuthTab("register"); setShowAuth(true); }}>Registrarse</button>
             </>
           )}
+          <button className="dark-toggle" onClick={toggleDark} title={darkMode ? "Modo claro" : "Modo oscuro"}>{darkMode ? "☀️" : "🌙"}</button>
           <button className="cart-fab" onClick={() => setCartOpen(true)}>
             🛒 {totalItems > 0 ? <span className="cart-count">{totalItems}</span> : "Carrito"}
           </button>
