@@ -3051,7 +3051,7 @@ const fmtDateInput = (d) => d.toISOString().split("T")[0]; // YYYY-MM-DD
 const fmtDateLabel = (s) => new Date(s + "T00:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
 
 const AdminOverview = ({ orders, products, onGoOrders }) => {
-  const [range, setRange]         = useState("month");
+  const [range, setRange]         = useState("today");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo,   setCustomTo]   = useState("");
   const [showPicker, setShowPicker] = useState(false);
