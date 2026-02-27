@@ -23,12 +23,16 @@ export async function POST(req) {
   if (!code || !discount || !maxUses) {
     return NextResponse.json({ error: "Faltan campos" }, { status: 400 });
   }
+  const d = parseInt(discount);
+  if (isNaN(d) || d < 1 || d > 99) {
+    return NextResponse.json({ error: "El descuento debe ser entre 1 y 99." }, { status: 400 });
+  }
   const existing = await prisma.coupon.findUnique({ where: { code } });
   if (existing) {
     return NextResponse.json({ error: "Ese código ya existe" }, { status: 400 });
   }
   const coupon = await prisma.coupon.create({
-    data: { code, discount: parseInt(discount), maxUses: parseInt(maxUses), uses: 0, active: true },
+    data: { code, discount: d, maxUses: parseInt(maxUses), uses: 0, active: true },
   });
   return NextResponse.json(coupon);
 }
