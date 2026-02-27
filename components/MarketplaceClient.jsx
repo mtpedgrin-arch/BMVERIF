@@ -3964,6 +3964,7 @@ export default function App() {
             </>
           ) : (
             <>
+              <button className="chat-support-btn" onClick={() => { setAuthTab("login"); setShowAuth(true); }} title="Soporte — iniciá sesión">🎧</button>
               <button className="btn btn-outline btn-sm" onClick={() => { setAuthTab("login"); setShowAuth(true); }}>Iniciar sesión</button>
               <button className="btn btn-primary btn-sm" onClick={() => { setAuthTab("register"); setShowAuth(true); }}>Registrarse</button>
             </>
