@@ -4,8 +4,8 @@ export const metadata = {
   title: "BM Verificada · Business Manager Premium",
   description: "Business Manager verificados · Entrega inmediata · Pago USDT TRC20 / BEP20",
   icons: {
-    icon: "/logo.png",
-    apple: "/logo.png",
+    icon: "/favicon.png",
+    apple: "/favicon.png",
   },
 };
 
