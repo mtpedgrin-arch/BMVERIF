@@ -587,12 +587,12 @@ const css = `
   .info-faq-q { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
   .info-faq-a { font-size: 12px; color: var(--muted); line-height: 1.6; }
   .site-footer { border-top: 1px solid var(--border); padding: 28px 24px; margin-top: auto; }
-  .side-btns-bar { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 20px; pointer-events: none; }
-  .support-fab { display: flex; align-items: center; gap: 8px; background: #E02020; color: #fff; border: none; border-radius: 50px; padding: 10px 18px 10px 13px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 18px rgba(224,32,32,0.45); transition: transform 0.15s, box-shadow 0.15s; text-decoration: none; letter-spacing: 0.01em; pointer-events: all; }
+  .side-btns-bar { display: flex; justify-content: space-between; align-items: center; padding: 6px 20px; pointer-events: none; }
+  .support-fab { display: flex; align-items: center; gap: 8px; background: #E02020; color: #fff; border: none; border-radius: 50px; padding: 8px 16px 8px 12px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 18px rgba(224,32,32,0.45); transition: transform 0.15s, box-shadow 0.15s; text-decoration: none; letter-spacing: 0.01em; pointer-events: all; }
   .support-fab:hover { transform: translateY(-2px); box-shadow: 0 6px 26px rgba(224,32,32,0.55); }
-  .support-fab svg { width: 18px; height: 18px; flex-shrink: 0; }
-  .left-panel { display: flex; flex-direction: column; gap: 10px; pointer-events: all; }
-  .left-panel-btn { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 50px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; border: none; transition: transform 0.15s, box-shadow 0.15s; white-space: nowrap; box-shadow: 0 3px 14px rgba(0,0,0,0.25); }
+  .support-fab svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .left-panel { display: flex; flex-direction: row; gap: 8px; pointer-events: all; align-items: center; }
+  .left-panel-btn { display: flex; align-items: center; gap: 7px; padding: 8px 14px 8px 11px; border-radius: 50px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; border: none; transition: transform 0.15s, box-shadow 0.15s; white-space: nowrap; box-shadow: 0 3px 14px rgba(0,0,0,0.25); }
   .left-panel-btn:hover { transform: translateY(-2px); }
   .left-panel-btn.tg-support { background: #229ED9; color: #fff; }
   .left-panel-btn.tg-channel { background: #229ED9; color: #fff; }
