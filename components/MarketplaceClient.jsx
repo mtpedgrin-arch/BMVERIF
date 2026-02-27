@@ -645,7 +645,7 @@ function timeAgo(dateStr) {
   return `${Math.floor(diff / 86400)} d`;
 }
 
-const NotificationBell = ({ user }) => {
+const NotificationBell = ({ user, onGoAccount }) => {
   const [notifs, setNotifs] = useState([]);
   const [open, setOpen] = useState(false);
   const prevUnread = useRef(0);
@@ -689,25 +689,37 @@ const NotificationBell = ({ user }) => {
     return () => clearInterval(blinkInterval.current);
   }, [unread]);
 
-  // ── Polling ──
-  const fetchNotifs = async () => {
-    try {
-      const res = await fetch("/api/notifications");
-      if (!res.ok) return;
-      const data = await res.json();
-      if (!Array.isArray(data)) return;
-      setNotifs(data);
-      const newUnread = data.filter(n => !n.read).length;
-      if (newUnread > prevUnread.current) playChime();
-      prevUnread.current = newUnread;
-    } catch {}
-  };
-
+  // ── SSE real-time stream (auto-reconnects on drop) ──
   useEffect(() => {
     if (!user) return;
-    fetchNotifs();
-    const id = setInterval(fetchNotifs, 20000);
-    return () => clearInterval(id);
+    let es;
+    const connect = () => {
+      es = new EventSource("/api/notifications/stream");
+      es.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.type === "init") {
+            setNotifs(msg.notifs);
+            prevUnread.current = msg.notifs.filter(n => !n.read).length;
+          } else if (msg.type === "new") {
+            setNotifs(prev => {
+              const ids = new Set(prev.map(x => x.id));
+              const fresh = msg.notifs.filter(x => !ids.has(x.id));
+              return fresh.length ? [...fresh, ...prev] : prev;
+            });
+            playChime();
+            prevUnread.current += msg.notifs.length;
+          }
+        } catch {}
+      };
+      es.onerror = () => {
+        es.close();
+        // Reconnect after 5s if connection drops
+        setTimeout(connect, 5000);
+      };
+    };
+    connect();
+    return () => es?.close();
   }, [user?.email]);
 
   // ── Close on outside click ──
@@ -721,6 +733,20 @@ const NotificationBell = ({ user }) => {
     await fetch("/api/notifications/read", { method: "PATCH" }).catch(() => {});
     setNotifs(prev => prev.map(n => ({ ...n, read: true })));
     prevUnread.current = 0;
+  };
+
+  const handleClick = async (n) => {
+    // Mark as read
+    if (!n.read) {
+      await fetch(`/api/notifications/${n.id}`, { method: "PATCH" }).catch(() => {});
+      setNotifs(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x));
+      prevUnread.current = Math.max(0, prevUnread.current - 1);
+    }
+    // "Pedido listo" → navigate to Mi Cuenta
+    if (n.type === "order_delivered") {
+      setOpen(false);
+      onGoAccount?.();
+    }
   };
 
   if (!user) return null;
@@ -744,19 +770,17 @@ const NotificationBell = ({ user }) => {
                 <div
                   key={n.id}
                   className={`notif-item${!n.read ? " unread" : ""}`}
-                  style={{ cursor: n.read ? "default" : "pointer" }}
-                  onClick={async () => {
-                    if (n.read) return;
-                    await fetch(`/api/notifications/${n.id}`, { method: "PATCH" }).catch(() => {});
-                    setNotifs(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x));
-                    prevUnread.current = Math.max(0, prevUnread.current - 1);
-                  }}
+                  style={{ cursor: (n.read && n.type !== "order_delivered") ? "default" : "pointer" }}
+                  onClick={() => handleClick(n)}
                 >
                   <div className={`notif-dot${n.read ? " read" : ""}`} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="notif-title">{n.title}</div>
                     <div className="notif-body">{n.body}</div>
-                    <div className="notif-time">{timeAgo(n.createdAt)}</div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 3 }}>
+                      <div className="notif-time">{timeAgo(n.createdAt)}</div>
+                      {n.type === "order_delivered" && <span style={{ fontSize: 10, color: "#15803D", fontWeight: 700 }}>→ Ver pedido</span>}
+                    </div>
                   </div>
                 </div>
               ))
@@ -3335,7 +3359,7 @@ export default function App() {
             <>
               <button className={`nav-tab ${view === "shop" ? "active" : ""}`} onClick={() => { setView("shop"); setSelectedProduct(null); }}>🛍 Tienda</button>
               <button className={`nav-tab ${view === "account" ? "active" : ""}`} onClick={() => setView("account")}>👤 Mi cuenta</button>
-              <NotificationBell user={user} />
+              <NotificationBell user={user} onGoAccount={() => setView("account")} />
               <button className="btn btn-outline btn-sm" onClick={() => signOut()}>Salir</button>
             </>
           ) : (
