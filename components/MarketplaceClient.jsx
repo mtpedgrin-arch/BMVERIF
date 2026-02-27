@@ -465,11 +465,21 @@ const getTierPrice = (basePrice, tiers, qty) => {
   const match = sorted.find(t => qty >= t.qty);
   return match ? match.price : basePrice;
 };
-// Returns the next tier not yet reached (cheapest above current qty), or null
-const getNextTier = (tiers, qty) => {
+// Returns the next tier not yet reached above totalQty, or null
+const getNextTier = (tiers, totalQty) => {
   if (!tiers || tiers.length === 0) return null;
   const sorted = [...tiers].filter(t => t.qty > 0 && t.price > 0).sort((a, b) => a.qty - b.qty);
-  return sorted.find(t => t.qty > qty) || null;
+  return sorted.find(t => t.qty > totalQty) || null;
+};
+// Recalculates prices for the whole cart:
+// items sharing the same basePrice count together toward tier thresholds
+const rebalanceTiers = (cart) => {
+  const qtyByPrice = {};
+  cart.forEach(i => { const b = i.basePrice ?? i.price; qtyByPrice[b] = (qtyByPrice[b] || 0) + i.qty; });
+  return cart.map(i => {
+    const base = i.basePrice ?? i.price;
+    return { ...i, price: getTierPrice(base, i.tiers, qtyByPrice[base] || i.qty) };
+  });
 };
 const nowTime = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 const today = () => new Date().toISOString().split("T")[0];
@@ -1110,11 +1120,15 @@ const CartDrawer = ({ cart, onClose, onQty, onRemove, onCheckout }) => {
                     🏷 Precio x{item.qty}: ahorrás {fmtUSDT((item.basePrice - item.price) * item.qty)}
                   </div>
                 )}
-                {(() => { const nt = getNextTier(item.tiers, item.qty); return nt ? (
-                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
-                    ↗ Llevá {nt.qty - item.qty} más → {fmtUSDT(nt.price)} c/u
-                  </div>
-                ) : null; })()}
+                {(() => {
+                  const totalSamePrice = cart.reduce((s, i) => (i.basePrice ?? i.price) === (item.basePrice ?? item.price) ? s + i.qty : s, 0);
+                  const nt = getNextTier(item.tiers, totalSamePrice);
+                  return nt ? (
+                    <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
+                      ↗ {nt.qty - totalSamePrice} unidad{nt.qty - totalSamePrice !== 1 ? "es" : ""} más al mismo precio → {fmtUSDT(nt.price)} c/u
+                    </div>
+                  ) : null;
+                })()}
                 <div className="qty-ctrl" style={{ display: "inline-flex", marginTop: 6 }}>
                   <button className="qty-btn" onClick={() => onQty(item.id, item.qty - 1)}>−</button>
                   <span className="qty-num">{item.qty}</span>
@@ -2235,42 +2249,37 @@ export default function App() {
   const addToCart = p => {
     setCart(prev => {
       const idx = prev.findIndex(i => i.id === p.id);
+      let next;
       if (idx === -1) {
         const base = p.basePrice ?? p.price;
-        return [...prev, { ...p, basePrice: base, qty: 1, price: getTierPrice(base, p.tiers, 1) }];
+        next = [...prev, { ...p, basePrice: base, qty: 1 }];
+      } else {
+        next = prev.map(i => i.id === p.id ? { ...i, qty: i.qty + 1 } : i);
       }
-      return prev.map(i => {
-        if (i.id !== p.id) return i;
-        const qty = i.qty + 1;
-        return { ...i, qty, price: getTierPrice(i.basePrice, i.tiers, qty) };
-      });
+      return rebalanceTiers(next);
     });
     setLastAdded(p);
     setShowMiniCart(true);
     if (miniCartTimer.current) clearTimeout(miniCartTimer.current);
     miniCartTimer.current = setTimeout(() => setShowMiniCart(false), 4000);
   };
-  const removeFromCart = id => setCart(prev => prev.filter(i => i.id !== id));
+  const removeFromCart = id => setCart(prev => rebalanceTiers(prev.filter(i => i.id !== id)));
   const setQty = (id, qty) => {
     if (qty <= 0) return removeFromCart(id);
-    setCart(prev => prev.map(i => {
-      if (i.id !== id) return i;
-      return { ...i, qty, price: getTierPrice(i.basePrice, i.tiers, qty) };
-    }));
+    setCart(prev => rebalanceTiers(prev.map(i => i.id === id ? { ...i, qty } : i)));
   };
 
   const handleBuyNow = p => {
     setCart(prev => {
       const idx = prev.findIndex(i => i.id === p.id);
+      let next;
       if (idx === -1) {
         const base = p.basePrice ?? p.price;
-        return [...prev, { ...p, basePrice: base, qty: 1, price: getTierPrice(base, p.tiers, 1) }];
+        next = [...prev, { ...p, basePrice: base, qty: 1 }];
+      } else {
+        next = prev.map(i => i.id === p.id ? { ...i, qty: i.qty + 1 } : i);
       }
-      return prev.map(i => {
-        if (i.id !== p.id) return i;
-        const qty = i.qty + 1;
-        return { ...i, qty, price: getTierPrice(i.basePrice, i.tiers, qty) };
-      });
+      return rebalanceTiers(next);
     });
     setView("checkout");
   };
