@@ -1102,11 +1102,11 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
 };
 
 // ─── MINI CART POPUP ──────────────────────────────────────────────────────────
-const MiniCart = ({ cart, lastAdded, onClose, onOpenCart }) => {
+const MiniCart = ({ cart, lastAdded, onClose, onOpenCart, onMouseEnter, onMouseLeave }) => {
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const totalItems = cart.reduce((s, i) => s + i.qty, 0);
   return (
-    <div className="mini-cart-popup">
+    <div className="mini-cart-popup" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
       <div className="mini-cart-head">
         <div className="mini-cart-head-title">
           🛒 Carrito <span className="mini-cart-head-count">{totalItems}</span>
@@ -1136,7 +1136,7 @@ const MiniCart = ({ cart, lastAdded, onClose, onOpenCart }) => {
           <span className="mini-cart-total-value">{fmtUSDT(total)}</span>
         </div>
         <button className="mini-cart-btn" onClick={() => { onOpenCart(); onClose(); }}>
-          Ver carrito →
+          Ir al carrito →
         </button>
       </div>
     </div>
@@ -2846,7 +2846,12 @@ export default function App() {
             </>
           )}
           <button className="dark-toggle" onClick={toggleDark} title={darkMode ? "Modo claro" : "Modo oscuro"}>{darkMode ? "☀️" : "🌙"}</button>
-          <button className="cart-fab" onClick={() => setCartOpen(true)}>
+          <button
+            className="cart-fab"
+            onClick={() => { setView("checkout"); setSelectedProduct(null); setShowMiniCart(false); }}
+            onMouseEnter={() => { if (miniCartTimer.current) clearTimeout(miniCartTimer.current); if (totalItems > 0) setShowMiniCart(true); }}
+            onMouseLeave={() => { miniCartTimer.current = setTimeout(() => setShowMiniCart(false), 400); }}
+          >
             🛒 {totalItems > 0 ? <span className="cart-count">{totalItems}</span> : "Carrito"}
           </button>
         </div>
@@ -2857,8 +2862,16 @@ export default function App() {
       {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); }} wallets={wallets} />}
       {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} />}
 
-      {showMiniCart && cart.length > 0 && <MiniCart cart={cart} lastAdded={lastAdded} onClose={() => setShowMiniCart(false)} onOpenCart={() => setCartOpen(true)} />}
-      {cartOpen && <CartDrawer cart={cart} onClose={() => setCartOpen(false)} onQty={setQty} onRemove={removeFromCart} onCheckout={handleCheckout} />}
+      {showMiniCart && cart.length > 0 && (
+        <MiniCart
+          cart={cart}
+          lastAdded={lastAdded}
+          onClose={() => setShowMiniCart(false)}
+          onOpenCart={() => { setView("checkout"); setSelectedProduct(null); setShowMiniCart(false); }}
+          onMouseEnter={() => { if (miniCartTimer.current) clearTimeout(miniCartTimer.current); }}
+          onMouseLeave={() => { miniCartTimer.current = setTimeout(() => setShowMiniCart(false), 400); }}
+        />
+      )}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} onSuccess={() => setShowPayment(pendingTotal > 0)} initialTab={authTab} />}
       {showPayment && user && <PaymentModal cart={cart} user={user} coupon={pendingCoupon} finalTotal={pendingTotal} onClose={() => setShowPayment(false)} onSuccess={handlePaySuccess} wallets={wallets} />}
       {showSuccess && lastOrder && <SuccessModal order={lastOrder} onClose={() => { setShowSuccess(false); setView("account"); }} />}
