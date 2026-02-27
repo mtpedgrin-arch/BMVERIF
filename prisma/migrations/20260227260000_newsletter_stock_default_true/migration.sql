@@ -1,0 +1,2 @@
+ALTER TABLE "User" ALTER COLUMN "newsletter" SET DEFAULT true;
+ALTER TABLE "User" ALTER COLUMN "stockUpdates" SET DEFAULT true;
