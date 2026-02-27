@@ -99,3 +99,29 @@ export async function PATCH(req, { params }) {
 
   return NextResponse.json(order);
 }
+
+// DELETE /api/orders/[id] — cancel own pending order (user)
+export async function DELETE(req, { params }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+  const { id } = params;
+  const order = await prisma.order.findUnique({ where: { id } });
+  if (!order) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+
+  // Only owner can cancel their own pending order
+  if (order.userEmail !== session.user.email && session.user.role !== "admin") {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+  if (order.status !== "pending") {
+    return NextResponse.json({ error: "Solo se pueden cancelar órdenes pendientes." }, { status: 400 });
+  }
+
+  const updated = await prisma.order.update({
+    where: { id },
+    data: { status: "cancelled" },
+    include: { items: true },
+  });
+
+  return NextResponse.json(updated);
+}

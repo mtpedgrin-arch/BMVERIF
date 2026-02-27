@@ -24,8 +24,8 @@ export async function POST(req) {
     return NextResponse.json({ error: "Faltan campos" }, { status: 400 });
   }
   const d = parseInt(discount);
-  if (isNaN(d) || d < 1 || d > 99) {
-    return NextResponse.json({ error: "El descuento debe ser entre 1 y 99." }, { status: 400 });
+  if (isNaN(d) || d < 1 || d > 100) {
+    return NextResponse.json({ error: "El descuento debe ser entre 1 y 100." }, { status: 400 });
   }
   const existing = await prisma.coupon.findUnique({ where: { code } });
   if (existing) {

@@ -181,6 +181,8 @@ const css = `
   @keyframes scaleIn { from { opacity:0; transform:scale(0.96); } to { opacity:1; transform:scale(1); } }
   @keyframes slideUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
   @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-5px)} 40%,80%{transform:translateX(5px)} }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.15)} }
   .cart-header { padding: 18px 20px; border-bottom: 1.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
   .cart-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800; }
   .cart-close { background: var(--bg); border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 15px; display: flex; align-items: center; justify-content: center; }
@@ -618,7 +620,7 @@ const genCode = pct => { const c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let r = "
 const StatusPill = ({ status }) => {
   if (status === "paid") return <span className="status-paid">✓ Pagado</span>;
   if (status === "pending") return <span className="status-pending">⏳ Pendiente</span>;
-  return <span className="status-cancelled">✕ Cancelado</span>;
+  return <span className="status-cancelled">✕ Rechazada</span>;
 };
 
 // ─── NOTIFICATION BELL ────────────────────────────────────────────────────────
@@ -1205,10 +1207,12 @@ const PendingPanelCard = ({ title, children, accent }) => (
   </div>
 );
 
-const PaymentPendingModal = ({ order, walletAddr, walletColor, onSuccess, onCancel }) => {
+const PaymentPendingModal = ({ order, walletAddr, walletColor, onSuccess, onCancel, onCancelled }) => {
   const [payStatus, setPayStatus] = useState("polling"); // polling | paid | expired
   const [timeLeft, setTimeLeft] = useState(3600);
   const [copied, setCopied] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const network = order.network;
 
   // Countdown
@@ -1231,7 +1235,7 @@ const PaymentPendingModal = ({ order, walletAddr, walletColor, onSuccess, onCanc
     return () => clearTimeout(t);
   }, [payStatus]);
 
-  // Blockchain polling every 30s
+  // Blockchain polling: immediate check + every 30s
   useEffect(() => {
     if (!order?.id || payStatus !== "polling") return;
     const poll = async () => {
@@ -1242,6 +1246,7 @@ const PaymentPendingModal = ({ order, walletAddr, walletColor, onSuccess, onCanc
         else if (data.expired) setPayStatus("expired");
       } catch {}
     };
+    poll(); // check immediately on open
     const id = setInterval(poll, 30000);
     return () => clearInterval(id);
   }, [order?.id, payStatus]);
@@ -1252,6 +1257,20 @@ const PaymentPendingModal = ({ order, walletAddr, walletColor, onSuccess, onCanc
     navigator.clipboard.writeText(walletAddr).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCancelOrder = async () => {
+    setCancelling(true);
+    try {
+      const res = await fetch(`/api/orders/${order.id}`, { method: "DELETE" });
+      const cancelled = res.ok ? await res.json() : { ...order, status: "cancelled" };
+      setCancelling(false);
+      if (onCancelled) onCancelled(cancelled);
+      else onCancel();
+    } catch {
+      setCancelling(false);
+      onCancel();
+    }
   };
 
   return (
@@ -1377,8 +1396,16 @@ const PaymentPendingModal = ({ order, walletAddr, walletColor, onSuccess, onCanc
                 </div>
               </div>
 
-              <div style={{ fontSize: 12, color: "#4b5563", marginTop: 14, textAlign: "center" }}>
-                🔄 Verificando automáticamente cada 30 segundos...
+              {/* Spinner + status */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginTop: 18 }}>
+                <div style={{
+                  width: 34, height: 34,
+                  border: "3px solid #1e3a5f",
+                  borderTop: `3px solid #22c55e`,
+                  borderRadius: "50%",
+                  animation: "spin 1s linear infinite",
+                }} />
+                <div style={{ fontSize: 12, color: "#4b5563" }}>Verificando blockchain cada 30 segundos...</div>
               </div>
             </>
           )}
@@ -1403,13 +1430,59 @@ const PaymentPendingModal = ({ order, walletAddr, walletColor, onSuccess, onCanc
       {/* Cancel button */}
       {payStatus === "polling" && (
         <div style={{ textAlign: "center", marginTop: 28 }}>
-          <button onClick={onCancel} style={{
+          <button onClick={() => setShowCancelConfirm(true)} style={{
             background: "transparent", color: "#6b7280",
             border: "1px solid #374151", padding: "10px 28px",
             borderRadius: 8, cursor: "pointer", fontSize: 14,
           }}>
-            Cancelar
+            Cancelar orden
           </button>
+        </div>
+      )}
+
+      {/* Cancel confirmation dialog */}
+      {showCancelConfirm && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1200,
+          background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <div style={{
+            background: "#0d1b2a", border: "1px solid #374151",
+            borderRadius: 16, padding: "32px 28px", maxWidth: 360, width: "90%",
+            textAlign: "center", boxShadow: "0 25px 60px rgba(0,0,0,0.7)",
+          }}>
+            <div style={{ fontSize: 44, marginBottom: 14 }}>⚠️</div>
+            <div style={{ fontFamily: "Syne", fontSize: 18, fontWeight: 800, color: "#f1f5f9", marginBottom: 10 }}>
+              ¿Cancelar la orden?
+            </div>
+            <div style={{ fontSize: 13, color: "#9ca3af", lineHeight: 1.6, marginBottom: 24 }}>
+              Si cancelás, la orden <strong style={{ color: "#fbbf24" }}>#{order.id?.slice(-8)}</strong> quedará rechazada y no podrás recuperarla.
+            </div>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                style={{
+                  flex: 1, padding: "11px 0", borderRadius: 9,
+                  border: "1px solid #374151", background: "#1f2937",
+                  color: "#e5e7eb", fontSize: 14, fontWeight: 600, cursor: "pointer",
+                }}
+              >
+                No, volver
+              </button>
+              <button
+                onClick={handleCancelOrder}
+                disabled={cancelling}
+                style={{
+                  flex: 1, padding: "11px 0", borderRadius: 9,
+                  border: "none", background: "#ef4444",
+                  color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
+                }}
+              >
+                {cancelling ? "Cancelando..." : "Sí, cancelar"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -1417,7 +1490,7 @@ const PaymentPendingModal = ({ order, walletAddr, walletColor, onSuccess, onCanc
 };
 
 // ─── PAYMENT MODAL (step 1: select network + proceed) ────────────────────────
-const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, wallets: W = WALLETS }) => {
+const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOrderUpdate, wallets: W = WALLETS }) => {
   const [network, setNetwork] = useState(null);
   const [creating, setCreating] = useState(false);
   const [order, setOrder] = useState(null);
@@ -1463,6 +1536,10 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, wall
       walletColor={W[network].color}
       onSuccess={onSuccess}
       onCancel={onClose}
+      onCancelled={(cancelledOrder) => {
+        if (onOrderUpdate) onOrderUpdate(cancelledOrder);
+        onClose();
+      }}
     />
   );
 
@@ -1547,7 +1624,6 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
   const [network, setNetwork] = useState("TRC20");
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [createdOrder, setCreatedOrder] = useState(null); // order after creation
   const [showPendingModal, setShowPendingModal] = useState(false); // show full-screen pending
   const [payStatus, setPayStatus] = useState("polling"); // polling | paid | expired
@@ -1619,6 +1695,12 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
         setShowPendingModal(false);
       }}
       onCancel={() => setShowPendingModal(false)}
+      onCancelled={(cancelledOrder) => {
+        setCreatedOrder(cancelledOrder);
+        setPayStatus("cancelled");
+        setShowPendingModal(false);
+        onSuccess(cancelledOrder); // update parent orders list
+      }}
     />
   );
 
@@ -1640,6 +1722,13 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
             <div style={{ fontSize: 60, marginBottom: 14 }}>⏰</div>
             <div style={{ fontFamily: "Syne", fontSize: 18, fontWeight: 800, marginBottom: 10, color: "var(--red,#ef4444)" }}>Orden vencida</div>
             <div style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.7, marginBottom: 24 }}>El tiempo expiró. Podés volver a la tienda y crear una nueva orden.</div>
+            <button className="btn btn-primary btn-full" onClick={onGoShop}>← Volver a la tienda</button>
+          </>
+        ) : payStatus === "cancelled" ? (
+          <>
+            <div style={{ fontSize: 60, marginBottom: 14 }}>✕</div>
+            <div style={{ fontFamily: "Syne", fontSize: 18, fontWeight: 800, marginBottom: 10, color: "var(--red,#ef4444)" }}>Orden cancelada</div>
+            <div style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.7, marginBottom: 24 }}>La orden <strong style={{ color: "var(--text)" }}>#{createdOrder.id?.slice(-8)}</strong> fue cancelada. Podés crear una nueva.</div>
             <button className="btn btn-primary btn-full" onClick={onGoShop}>← Volver a la tienda</button>
           </>
         ) : (
@@ -1780,34 +1869,22 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
               <div style={{ fontSize: 30 }}>₮</div>
             </div>
 
-            {/* Wallet + QR */}
-            <div className="co-wallet-box">
-              <div className="co-wallet-label">Dirección {network}</div>
-              <div style={{ textAlign: "center", margin: "10px 0 8px" }}>
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(wallet.addr)}&margin=10`}
-                  alt={`QR ${network}`}
-                  style={{ width: 180, height: 180, border: `3px solid ${wallet.color}`, borderRadius: 10, padding: 4, background: "#fff" }}
-                />
-              </div>
-              <div className="co-wallet-addr">{wallet.addr}</div>
-              <button className="co-copy-btn" onClick={() => { navigator.clipboard.writeText(wallet.addr).catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
-                {copied ? "✓ Copiado!" : "📋 Copiar dirección"}
-              </button>
-            </div>
-
-            {/* Agree */}
+            {/* Agree + Proceder */}
             <div className="co-agree">
               <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
               <span>Entiendo que el pago en USDT es <strong>irreversible</strong> y que el acceso al producto se entrega una vez que se confirme el pago en la blockchain.</span>
             </div>
 
-            {/* Submit */}
             {!user ? (
               <button className="co-submit" onClick={onShowAuth}>🔐 Iniciá sesión para continuar</button>
             ) : (
-              <button className="co-submit" disabled={!agreed || submitting} onClick={handleSubmit}>
-                {submitting ? "Procesando..." : "✓ Confirmar pago →"}
+              <button
+                className="btn btn-usdt btn-full"
+                style={{ justifyContent: "center", fontSize: 15, fontWeight: 700, padding: "13px 0", margin: "0 20px 20px", width: "calc(100% - 40px)" }}
+                disabled={!agreed || submitting}
+                onClick={handleSubmit}
+              >
+                {submitting ? "Creando orden..." : "Proceder al pago →"}
               </button>
             )}
           </div>
@@ -2368,13 +2445,14 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
 };
 
 // ─── USER ACCOUNT ─────────────────────────────────────────────────────────────
-const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products }) => {
+const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products, wallets: W = WALLETS, onOrderUpdate }) => {
   const [tab, setTab] = useState(() => {
     try { return sessionStorage.getItem("account_tab") || "orders"; } catch { return "orders"; }
   });
   useEffect(() => {
     try { sessionStorage.setItem("account_tab", tab); } catch {}
   }, [tab]);
+  const [reopenOrder, setReopenOrder] = useState(null); // pending order to reopen modal
   const myOrders = userOrders; // la API ya filtra por usuario
   const favProducts = products.filter(p => liked[p.id]);
 
@@ -2524,6 +2602,23 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
   };
   const displayName = user.name || user.email || "Usuario";
   return (
+    <>
+    {reopenOrder && (
+      <PaymentPendingModal
+        order={reopenOrder}
+        walletAddr={W[reopenOrder.network]?.addr || ""}
+        walletColor={W[reopenOrder.network]?.color || "#26a17b"}
+        onSuccess={(paidOrder) => {
+          setReopenOrder(null);
+          if (onOrderUpdate) onOrderUpdate(paidOrder);
+        }}
+        onCancel={() => setReopenOrder(null)}
+        onCancelled={(cancelledOrder) => {
+          setReopenOrder(null);
+          if (onOrderUpdate) onOrderUpdate(cancelledOrder);
+        }}
+      />
+    )}
     <div className="page">
       <div style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 20 }}>
         <div className="avatar-lg">{displayName[0].toUpperCase()}</div>
@@ -2551,22 +2646,38 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
                 <table>
                   <thead><tr><th>ID</th><th>Producto(s)</th><th>Red</th><th>Total</th><th>Estado</th><th>Pedido</th><th>Fecha</th></tr></thead>
                   <tbody>
-                    {myOrders.slice().reverse().map(o => (
+                    {myOrders.slice().reverse().map(o => {
+                      const isExpired = o.expiresAt && new Date() > new Date(o.expiresAt);
+                      const canPay = o.status === "pending" && !isExpired;
+                      return (
                       <tr key={o.id}>
                         <td><code style={{ fontSize: 11, color: "var(--purple)" }}>{o.id}</code></td>
                         <td style={{ maxWidth: 200, fontSize: 12 }}>{o.items.map(i => i.name).join(", ")}</td>
                         <td><span className="tag-network">{o.network}</span></td>
                         <td><strong style={{ color: "var(--usdt)" }}>{fmtUSDT(o.total)}</strong></td>
-                        <td><StatusPill status={o.status} /></td>
+                        <td>
+                          <StatusPill status={isExpired && o.status === "pending" ? "cancelled" : o.status} />
+                          {canPay && (
+                            <button
+                              onClick={() => setReopenOrder(o)}
+                              style={{ marginLeft: 8, padding: "2px 10px", borderRadius: 6, border: "1.5px solid var(--usdt)", background: "transparent", color: "var(--usdt)", fontSize: 11, cursor: "pointer", fontWeight: 700 }}
+                            >
+                              Pagar →
+                            </button>
+                          )}
+                        </td>
                         <td>
                           {o.deliveryContent
                             ? <button className="deliver-ready" onClick={() => downloadDelivery(o.deliveryContent, o.id)}>⬇️ Descargar pedido</button>
-                            : <span className="deliver-pending">⏳ Pendiente</span>
+                            : (o.status === "cancelled" || (isExpired && o.status === "pending"))
+                              ? <span style={{ fontSize: 11, color: "#ef4444", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", padding: "3px 9px", borderRadius: 6, fontWeight: 600, whiteSpace: "nowrap" }}>✕ Cancelado</span>
+                              : <span className="deliver-pending">⏳ Pendiente</span>
                           }
                         </td>
                         <td style={{ color: "var(--muted)", fontSize: 12 }}>{o.createdAt ? new Date(o.createdAt).toLocaleDateString("es-AR") : "—"}</td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -2778,6 +2889,7 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
         </div>
       )}
     </div>
+    </>
   );
 };
 
@@ -3143,7 +3255,7 @@ const CouponManager = ({ coupons, setCoupons }) => {
   const pct = sel !== null ? sel : parseInt(custom) || null;
 
   const generate = async () => {
-    if (!pct || pct < 1 || pct > 99) return;
+    if (!pct || pct < 1 || pct > 100) return;
     const code = genCode(pct);
     try {
       const res = await fetch("/api/coupons", {
@@ -3192,7 +3304,7 @@ const CouponManager = ({ coupons, setCoupons }) => {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
           <span style={{ fontSize: 13, color: "#6D28D9", fontWeight: 600 }}>Personalizado:</span>
-          <input className="custom-percent" type="number" min="1" max="99" placeholder="35" value={custom} onChange={e => { setCustom(e.target.value); setSel(null); }} />
+          <input className="custom-percent" type="number" min="1" max="100" placeholder="35" value={custom} onChange={e => { setCustom(e.target.value); setSel(null); }} />
           <span style={{ fontSize: 14, color: "#6D28D9", fontWeight: 700 }}>%</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
@@ -3203,7 +3315,7 @@ const CouponManager = ({ coupons, setCoupons }) => {
             ))}
           </div>
         </div>
-        <button className="btn btn-purple" onClick={generate} style={{ opacity: (!pct || pct < 1 || pct > 99) ? 0.5 : 1 }}>⚡ Generar cupón</button>
+        <button className="btn btn-purple" onClick={generate} style={{ opacity: (!pct || pct < 1 || pct > 100) ? 0.5 : 1 }}>⚡ Generar cupón</button>
         {generated && (
           <div className="coupon-result">
             <div>
@@ -3997,13 +4109,15 @@ export default function App() {
   // ── ORDERS ──
   const [orders, setOrders] = useState([]);
   const [lastOrder, setLastOrder] = useState(null);
-  useEffect(() => {
+  const refreshOrders = () => {
     if (!user) return;
     fetch("/api/orders")
       .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setOrders(data); })
       .catch(() => {});
-  }, [user?.email]);
+  };
+  useEffect(() => { refreshOrders(); }, [user?.email]);
+  useEffect(() => { if (view === "account") refreshOrders(); }, [view]);
 
   // ── COUPONS (admin) ──
   const [coupons, setCoupons] = useState([]);
@@ -4254,7 +4368,7 @@ export default function App() {
       {view === "shop" && !selectedProduct && <ShopPage cart={cart} onAddToCart={addToCart} onBuyNow={handleBuyNow} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} onProductClick={p => setSelectedProduct(p)} />}
       {view === "shop" && selectedProduct && <ProductDetailPage product={selectedProduct} cart={cart} onBack={() => setSelectedProduct(null)} onAddToCartQty={addToCartQty} onBuyNowQty={handleBuyNowQty} liked={liked} onToggleLike={toggleLike} user={user} />}
       {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); }} wallets={wallets} />}
-      {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} />}
+      {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} wallets={wallets} onOrderUpdate={updatedOrder => setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o))} />}
 
       {showMiniCart && cart.length > 0 && (
         <MiniCart
@@ -4267,7 +4381,7 @@ export default function App() {
         />
       )}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} onSuccess={() => setShowPayment(pendingTotal > 0)} initialTab={authTab} />}
-      {showPayment && user && <PaymentModal cart={cart} user={user} coupon={pendingCoupon} finalTotal={pendingTotal} onClose={() => setShowPayment(false)} onSuccess={handlePaySuccess} wallets={wallets} />}
+      {showPayment && user && <PaymentModal cart={cart} user={user} coupon={pendingCoupon} finalTotal={pendingTotal} onClose={() => setShowPayment(false)} onSuccess={handlePaySuccess} onOrderUpdate={o => setOrders(prev => { const ex = prev.find(x => x.id === o.id); return ex ? prev.map(x => x.id === o.id ? o : x) : [o, ...prev]; })} wallets={wallets} />}
       {showSuccess && lastOrder && <SuccessModal order={lastOrder} onClose={() => { setShowSuccess(false); setView("account"); }} />}
       {resetToken && <ResetPasswordModal token={resetToken} onClose={() => { setResetToken(null); setAuthTab("login"); setShowAuth(true); }} />}
       {verifyResult && (

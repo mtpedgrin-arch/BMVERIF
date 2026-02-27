@@ -44,10 +44,13 @@ export async function POST(req) {
     return NextResponse.json({ error: "Faltan campos obligatorios." }, { status: 400 });
   }
 
-  // Generate unique amount: add random 0.01–0.99 cents for blockchain identification
+  // Generate unique amount: sequential per-hour counter (01, 02, 03…)
+  // Count orders created in the last hour to get sequential position
   const parsedTotal = parseFloat(total);
-  const randomCents = (Math.floor(Math.random() * 99) + 1) / 100;
-  const uniqueAmount = parseFloat((parsedTotal + randomCents).toFixed(2));
+  const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const recentCount = await prisma.order.count({ where: { createdAt: { gte: hourAgo } } });
+  const sequentialCents = ((recentCount % 99) + 1) / 100; // 0.01 → 0.99, wraps
+  const uniqueAmount = parseFloat((parsedTotal + sequentialCents).toFixed(2));
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
   const order = await prisma.order.create({
