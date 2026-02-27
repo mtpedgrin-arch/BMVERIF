@@ -4276,6 +4276,86 @@ const LegalPlaceholder = ({ title }) => (
   <p style={{ color: "var(--muted)" }}>El contenido de <strong>{title}</strong> estará disponible próximamente.</p>
 );
 
+const LegalPublicOffer = () => (
+  <div>
+    <p><strong>IMPORTANTE:</strong> Antes de aceptar esta Oferta, el Vendedor debe leer cuidadosamente sus términos, así como el Acuerdo de Usuario, la Política de Privacidad, las Reglas Generales de BM Verificada y las Reglas de Reemplazo de Productos Inválidos (colectivamente, los "Documentos de la Plataforma"). La aceptación de esta Oferta constituye un acuerdo pleno e incondicional del Vendedor con todos los términos.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>1. Definiciones</p>
+    <p>1.1. Los términos usados tienen los significados definidos en el Acuerdo de Usuario de BM Verificada.</p>
+    <p>1.2. <strong>Vendedor (Proveedor)</strong> — Usuario de la Plataforma que ha aceptado esta Oferta y utiliza las funcionalidades de la Plataforma para listar Bienes Digitales a la venta.</p>
+    <p>1.3. <strong>Bienes Digitales</strong> — cuentas de redes sociales, cuentas de plataformas publicitarias, servicios promocionales, claves digitales, software, bases de datos y otros contenidos digitales.</p>
+    <p>1.4. <strong>Cuenta del Vendedor</strong> — sección dedicada de la Plataforma para gestionar listados, ventas, transacciones financieras y comunicación con Compradores.</p>
+    <p>1.5. <strong>Comisión de la Plataforma</strong> — tarifa pagadera por el Vendedor a la Plataforma por el uso de sus funcionalidades. El monto y método de cálculo se comunican al Vendedor a través de la Cuenta del Vendedor.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>2. Objeto del Acuerdo</p>
+    <p>2.1. La Plataforma otorga al Vendedor el derecho a usar las funcionalidades de BM Verificada para listar Bienes Digitales y proporciona servicios informativos y tecnológicos relacionados.</p>
+    <p>2.2. La Plataforma <strong>no es vendedora, propietaria ni titular de derechos</strong> de los Bienes Digitales. Actúa únicamente como intermediaria tecnológica.</p>
+    <p>2.3. Todos los contratos de venta de Bienes Digitales se celebran directamente entre el Vendedor y el Comprador. La Plataforma no es parte de dichos contratos.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>3. Aceptación de la Oferta</p>
+    <p>El Vendedor acepta esta Oferta mediante: registro en BM Verificada como Usuario, marcación del checkbox de aceptación durante el registro, e inicio del uso de funcionalidades del Vendedor (carga de Bienes Digitales, fijación de precios). Desde ese momento, el Acuerdo se considera celebrado.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>4. Derechos y Obligaciones</p>
+    <p><strong>La Plataforma se compromete a:</strong></p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Proveer al Vendedor acceso a la Cuenta del Vendedor y funcionalidades relacionadas.</li>
+      <li>Notificar al Vendedor sobre cambios en esta Oferta y los Documentos de la Plataforma.</li>
+      <li>Aceptar pagos de Compradores y transferir los ingresos al Vendedor menos la Comisión.</li>
+    </ul>
+    <p style={{ marginTop: 10 }}><strong>La Plataforma tiene derecho a:</strong></p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Cobrar Comisión.</li>
+      <li>Rechazar, suspender o eliminar listados que violen los términos, derechos de terceros o la ley.</li>
+      <li>Restringir o bloquear la Cuenta del Vendedor en caso de infracciones.</li>
+      <li>Modificar esta Oferta, Documentos de la Plataforma y tarifas de Comisión unilateralmente.</li>
+      <li>Usar la información de productos del Vendedor con fines de marketing.</li>
+    </ul>
+    <p style={{ marginTop: 10 }}><strong>El Vendedor se compromete a:</strong></p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Proporcionar información precisa y actualizada.</li>
+      <li>Listar únicamente Bienes Digitales lícitos para los cuales posea derechos de distribución.</li>
+      <li>Ser el único responsable de la calidad, legalidad y cumplimiento de los Bienes Digitales.</li>
+      <li>Cumplir las Reglas de Reemplazo de Productos Inválidos.</li>
+      <li>Pagar oportunamente la Comisión de la Plataforma.</li>
+      <li>Resolver de forma independiente los reclamos de Compradores y terceros.</li>
+      <li>No intentar eludir los pagos de Comisión ni usar indebidamente los datos de Compradores.</li>
+    </ul>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>5. Condiciones Financieras</p>
+    <p>5.1. Las tarifas de Comisión se establecen en la Cuenta del Vendedor o sección relevante de la Plataforma.</p>
+    <p>5.2. La Plataforma puede deducir la Comisión de los pagos del Comprador antes de transferir los fondos al Vendedor.</p>
+    <p>5.3. Todos los pagos se realizan en la moneda indicada en la Plataforma. Los gastos de conversión y bancarios corren por cuenta del Vendedor.</p>
+    <p>5.4. La Plataforma no es agente fiscal del Vendedor. El Vendedor es responsable del cumplimiento fiscal.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>6. Responsabilidad y Limitaciones</p>
+    <p>6.1. El Vendedor asume plena responsabilidad por la exactitud y legalidad de la información proporcionada, la calidad y legalidad de los Bienes Digitales, las violaciones de derechos de terceros, y las pérdidas causadas a la Plataforma, Compradores o terceros.</p>
+    <p>6.2. La Plataforma actúa únicamente como intermediaria técnica y no autoriza, promueve ni avala ningún uso de Bienes Digitales que viole las leyes aplicables o las reglas de plataformas de terceros.</p>
+    <p>6.3. La Plataforma no es responsable por el contenido, calidad o legalidad de los Bienes Digitales; acciones de Vendedores o Compradores; fallos técnicos o causas de fuerza mayor.</p>
+    <p>6.4. La responsabilidad de la Plataforma se limita a la Comisión pagada por el Vendedor en los últimos 3 meses.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>7. Propiedad Intelectual</p>
+    <p>7.1. Todos los derechos sobre BM Verificada pertenecen a la Plataforma o sus afiliados.</p>
+    <p>7.2. Al publicar contenido, el Vendedor otorga a la Plataforma una licencia mundial, libre de regalías y no exclusiva para usar dicho contenido en el funcionamiento de la Plataforma.</p>
+    <p>7.3. El Vendedor garantiza que el contenido publicado no infringe derechos de terceros.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>8. Confidencialidad y Datos Personales</p>
+    <p>El tratamiento de datos personales se rige por la Política de Privacidad de BM Verificada. El Vendedor debe cumplir las leyes de protección de datos y usar los datos del Comprador únicamente para cumplir este Acuerdo.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>9. Vigencia y Rescisión</p>
+    <p>9.1. Este Acuerdo es efectivo desde la aceptación y permanece vigente hasta su rescisión. El Vendedor puede terminar el uso de la Plataforma eliminando la Cuenta, siempre que no existan obligaciones pendientes. La rescisión no libera al Vendedor de las obligaciones contraídas antes de la misma.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>10. Fuerza Mayor</p>
+    <p>Las partes no son responsables por incumplimientos causados por fuerza mayor (desastres naturales, guerra, actos gubernamentales, fallos de internet, ataques a servidores, etc.). Si la fuerza mayor dura más de 30 días, cualquiera de las partes puede rescindir el Acuerdo.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>11. Ley Aplicable y Resolución de Disputas</p>
+    <p>Las disputas se resolverán mediante negociaciones. Si no se resuelven, serán sometidas al tribunal en la ubicación de la Plataforma.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>12. Disposiciones Finales</p>
+    <p>12.1. La Plataforma puede modificar esta Oferta y los Documentos de la Plataforma de forma unilateral publicando actualizaciones. El uso continuado de la Plataforma tras las actualizaciones constituye la aceptación por parte del Vendedor.</p>
+    <p>12.2. Los siguientes Apéndices forman parte integral de este Acuerdo: Apéndice 1 — Lista de Bienes y Servicios Prohibidos; Apéndice 2 — Procedimiento para Solicitudes de Autoridades Gubernamentales.</p>
+  </div>
+);
+
 const LegalUserAgreement = () => (
   <div>
     <p>Este Acuerdo de Usuario (el "Acuerdo") rige la relación entre el titular de la plataforma online <strong>BM Verificada</strong> (la "Plataforma" o el "Marketplace") y cualquier persona física o jurídica (el "Usuario") que se registre y/o utilice las funcionalidades de la Plataforma.</p>
@@ -4842,7 +4922,7 @@ export default function App() {
             <div style={{ fontSize: 13, lineHeight: 1.8, color: "var(--muted)", maxHeight: "70vh", overflowY: "auto" }}>
               {legalModal === "privacy" && <LegalPrivacy />}
               {legalModal === "user-agreement" && <LegalUserAgreement />}
-              {legalModal === "public-offer" && <LegalPlaceholder title="Oferta Pública" />}
+              {legalModal === "public-offer" && <LegalPublicOffer />}
               {legalModal === "replacement" && <LegalPlaceholder title="Política de Reemplazo de Bienes Digitales" />}
               {legalModal === "rules" && <LegalPlaceholder title="Reglas de la Plataforma" />}
             </div>
