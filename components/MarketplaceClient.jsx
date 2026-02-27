@@ -1207,13 +1207,12 @@ const PendingPanelCard = ({ title, children, accent }) => (
   </div>
 );
 
-const PaymentPendingModal = ({ order, walletAddr, walletColor, onSuccess, onCancel, onCancelled }) => {
+const PaymentPendingModal = ({ order, walletAddr, walletColor, onSuccess, onCancel, onCancelled, onMinimize }) => {
   const [payStatus, setPayStatus] = useState("polling"); // polling | paid | expired
   const [timeLeft, setTimeLeft] = useState(3600);
   const [copied, setCopied] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const [minimized, setMinimized] = useState(false);
   const network = order.network;
 
   // Countdown
@@ -1274,65 +1273,15 @@ const PaymentPendingModal = ({ order, walletAddr, walletColor, onSuccess, onCanc
     }
   };
 
-  // Minimized floating widget
-  if (minimized) {
-    const widgetColor = payStatus === "paid" ? "#22c55e" : payStatus === "expired" ? "#ef4444" : walletColor;
-    return (
-      <div
-        onClick={() => payStatus !== "paid" && setMinimized(false)}
-        style={{
-          position: "fixed", bottom: 28, right: 28, zIndex: 1200,
-          background: "#0f1e2e", border: `2px solid ${widgetColor}`,
-          borderRadius: 18, padding: "16px 22px", cursor: payStatus === "paid" ? "default" : "pointer",
-          display: "flex", flexDirection: "column", gap: 10,
-          boxShadow: `0 6px 32px ${widgetColor}55`, minWidth: 280,
-        }}
-      >
-        {/* Header row */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ background: widgetColor + "22", color: widgetColor, borderRadius: 8, padding: "4px 11px", fontSize: 13, fontWeight: 800 }}>{network}</span>
-          {payStatus === "polling" && (
-            <div style={{ width: 18, height: 18, border: "2.5px solid #1e3a5f", borderTop: `2.5px solid ${walletColor}`, borderRadius: "50%", animation: "spin 1s linear infinite", flexShrink: 0 }} />
-          )}
-          <button
-            onClick={e => { e.stopPropagation(); setMinimized(false); }}
-            style={{ marginLeft: "auto", background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 20, lineHeight: 1 }}
-          >⤢</button>
-        </div>
-
-        {payStatus === "paid" ? (
-          <div style={{ color: "#22c55e", fontWeight: 800, fontSize: 16 }}>✅ Pago confirmado</div>
-        ) : payStatus === "expired" ? (
-          <div style={{ color: "#ef4444", fontWeight: 700, fontSize: 15 }}>✕ Orden expirada</div>
-        ) : (
-          <>
-            <div style={{ color: "#e2e8f0", fontSize: 15, fontWeight: 700 }}>
-              💳 Pago pendiente
-            </div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ color: "#94a3b8", fontSize: 13 }}>Tiempo restante</span>
-              <span style={{ color: timeLeft < 300 ? "#ef4444" : "#f59e0b", fontSize: 15, fontWeight: 800, fontFamily: "monospace" }}>
-                {String(Math.floor(timeLeft / 60)).padStart(2,"0")}:{String(timeLeft % 60).padStart(2,"0")}
-              </span>
-            </div>
-            <div style={{ color: "#64748b", fontSize: 12, marginTop: 2 }}>
-              Tocá para ver instrucciones de pago →
-            </div>
-          </>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "#070d14", overflowY: "auto", padding: "22px 16px 40px" }}>
       {/* Top bar */}
       <div style={{ display: "flex", justifyContent: "space-between", maxWidth: 1100, margin: "0 auto 20px" }}>
-        <button onClick={() => setMinimized(true)} style={{
+        <button onClick={() => onMinimize?.()} style={{
           background: "#1e3a5f", color: "#94a3b8", padding: "8px 22px",
           borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 14,
         }}>← Volver</button>
-        <button onClick={() => setMinimized(true)} style={{
+        <button onClick={() => onMinimize?.()} style={{
           background: "#1e3a5f", color: "#94a3b8", padding: "8px 18px",
           borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 14,
         }}>− Minimizar</button>
@@ -1544,8 +1493,87 @@ const PaymentPendingModal = ({ order, walletAddr, walletColor, onSuccess, onCanc
   );
 };
 
+// ─── GLOBAL PENDING ORDER WIDGET (persists across navigation and F5) ─────────
+const GlobalPendingWidget = ({ order, wallets, onExpand, onClear }) => {
+  const [payStatus, setPayStatus] = useState("polling");
+  const [timeLeft, setTimeLeft] = useState(() =>
+    order?.expiresAt ? Math.max(0, Math.floor((new Date(order.expiresAt) - Date.now()) / 1000)) : 3600
+  );
+  const walletColor = wallets?.[order?.network]?.color || "#f0a500";
+  const widgetColor = payStatus === "paid" ? "#22c55e" : payStatus === "expired" ? "#ef4444" : walletColor;
+
+  useEffect(() => {
+    if (!order?.expiresAt) return;
+    const tick = () => {
+      const left = Math.max(0, Math.floor((new Date(order.expiresAt) - Date.now()) / 1000));
+      setTimeLeft(left);
+      if (left === 0) setPayStatus(s => s === "polling" ? "expired" : s);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [order?.expiresAt]);
+
+  useEffect(() => {
+    if (!order?.id || payStatus !== "polling") return;
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/orders/${order.id}/check-payment`);
+        const data = await res.json();
+        if (data.paid) setPayStatus("paid");
+        else if (data.expired) setPayStatus("expired");
+      } catch {}
+    };
+    poll();
+    const id = setInterval(poll, 30000);
+    return () => clearInterval(id);
+  }, [order?.id, payStatus]);
+
+  useEffect(() => {
+    if (payStatus === "paid") setTimeout(onClear, 3000);
+  }, [payStatus]);
+
+  const mins = String(Math.floor(timeLeft / 60)).padStart(2, "0");
+  const secs = String(timeLeft % 60).padStart(2, "0");
+
+  return (
+    <div
+      onClick={() => payStatus === "polling" && onExpand()}
+      style={{
+        position: "fixed", bottom: 28, right: 28, zIndex: 1200,
+        background: "#0f1e2e", border: `2px solid ${widgetColor}`,
+        borderRadius: 18, padding: "16px 22px", cursor: payStatus === "polling" ? "pointer" : "default",
+        display: "flex", flexDirection: "column", gap: 10,
+        boxShadow: `0 6px 32px ${widgetColor}55`, minWidth: 280,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ background: widgetColor + "22", color: widgetColor, borderRadius: 8, padding: "4px 11px", fontSize: 13, fontWeight: 800 }}>{order?.network}</span>
+        {payStatus === "polling" && (
+          <div style={{ width: 18, height: 18, border: "2.5px solid #1e3a5f", borderTop: `2.5px solid ${walletColor}`, borderRadius: "50%", animation: "spin 1s linear infinite", flexShrink: 0 }} />
+        )}
+        <button onClick={e => { e.stopPropagation(); onClear(); }} style={{ marginLeft: "auto", background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>✕</button>
+      </div>
+      {payStatus === "paid" ? (
+        <div style={{ color: "#22c55e", fontWeight: 800, fontSize: 16 }}>✅ Pago confirmado</div>
+      ) : payStatus === "expired" ? (
+        <div style={{ color: "#ef4444", fontWeight: 700, fontSize: 15 }}>✕ Orden expirada</div>
+      ) : (
+        <>
+          <div style={{ color: "#e2e8f0", fontSize: 15, fontWeight: 700 }}>💳 Pago pendiente</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ color: "#94a3b8", fontSize: 13 }}>Tiempo restante</span>
+            <span style={{ color: timeLeft < 300 ? "#ef4444" : "#f59e0b", fontSize: 15, fontWeight: 800, fontFamily: "monospace" }}>{mins}:{secs}</span>
+          </div>
+          <div style={{ color: "#64748b", fontSize: 12, marginTop: 2 }}>Tocá para ver instrucciones →</div>
+        </>
+      )}
+    </div>
+  );
+};
+
 // ─── PAYMENT MODAL (step 1: select network + proceed) ────────────────────────
-const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOrderUpdate, wallets: W = WALLETS }) => {
+const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOrderUpdate, onOrderPending, wallets: W = WALLETS }) => {
   const [network, setNetwork] = useState(null);
   const [creating, setCreating] = useState(false);
   const [order, setOrder] = useState(null);
@@ -1576,6 +1604,7 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOr
       });
       const newOrder = await res.json();
       setOrder(newOrder);
+      onOrderPending?.(newOrder);
     } catch {
       alert("Error al crear la orden. Intentá de nuevo.");
     } finally {
@@ -1591,6 +1620,7 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOr
       walletColor={W[network].color}
       onSuccess={onSuccess}
       onCancel={onClose}
+      onMinimize={onClose}
       onCancelled={(cancelledOrder) => {
         if (onOrderUpdate) onOrderUpdate(cancelledOrder);
         onClose();
@@ -1671,7 +1701,7 @@ const SuccessModal = ({ order, onClose }) => {
 };
 
 // ─── CHECKOUT PAGE ────────────────────────────────────────────────────────────
-const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShowAuth, wallets: W = WALLETS }) => {
+const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShowAuth, onOrderPending, wallets: W = WALLETS }) => {
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponState, setCouponState] = useState("idle");
@@ -1720,6 +1750,7 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
       setCreatedOrder(order);
       setShowPendingModal(true);
       onSuccess(order);
+      onOrderPending?.(order);
     } catch { alert("Error al procesar. Intentá de nuevo."); }
     finally { setSubmitting(false); }
   };
@@ -1749,7 +1780,8 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
         setPayStatus("paid");
         setShowPendingModal(false);
       }}
-      onCancel={() => setShowPendingModal(false)}
+      onCancel={() => { setShowPendingModal(false); setCreatedOrder(null); onGoShop(); }}
+      onMinimize={() => { setShowPendingModal(false); setCreatedOrder(null); onGoShop(); }}
       onCancelled={(cancelledOrder) => {
         setCreatedOrder(cancelledOrder);
         setPayStatus("cancelled");
@@ -4129,6 +4161,24 @@ export default function App() {
   }, [cart]);
   const [cartOpen, setCartOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+
+  // ── GLOBAL PENDING ORDER (persists across navigation and F5) ──
+  const [globalPending, setGlobalPending] = useState(() => {
+    try {
+      const s = sessionStorage.getItem("bmveri_pending_order");
+      if (!s) return null;
+      const o = JSON.parse(s);
+      if (o?.expiresAt && new Date() > new Date(o.expiresAt)) return null;
+      return o;
+    } catch { return null; }
+  });
+  const [globalPendingFull, setGlobalPendingFull] = useState(false);
+  useEffect(() => {
+    try {
+      if (globalPending) sessionStorage.setItem("bmveri_pending_order", JSON.stringify(globalPending));
+      else sessionStorage.removeItem("bmveri_pending_order");
+    } catch {}
+  }, [globalPending?.id]);
   const [resetToken, setResetToken] = useState(null);
   const [verifyResult, setVerifyResult] = useState(null); // null | "success" | "error" | string(error msg)
   // Detect ?reset=TOKEN and ?verify=TOKEN in URL
@@ -4422,7 +4472,7 @@ export default function App() {
 
       {view === "shop" && !selectedProduct && <ShopPage cart={cart} onAddToCart={addToCart} onBuyNow={handleBuyNow} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} onProductClick={p => setSelectedProduct(p)} />}
       {view === "shop" && selectedProduct && <ProductDetailPage product={selectedProduct} cart={cart} onBack={() => setSelectedProduct(null)} onAddToCartQty={addToCartQty} onBuyNowQty={handleBuyNowQty} liked={liked} onToggleLike={toggleLike} user={user} />}
-      {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); }} wallets={wallets} />}
+      {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); }} onOrderPending={order => setGlobalPending(order)} wallets={wallets} />}
       {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} wallets={wallets} onOrderUpdate={updatedOrder => setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o))} />}
 
       {showMiniCart && cart.length > 0 && (
@@ -4436,7 +4486,7 @@ export default function App() {
         />
       )}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} onSuccess={() => setShowPayment(pendingTotal > 0)} initialTab={authTab} />}
-      {showPayment && user && <PaymentModal cart={cart} user={user} coupon={pendingCoupon} finalTotal={pendingTotal} onClose={() => setShowPayment(false)} onSuccess={handlePaySuccess} onOrderUpdate={o => setOrders(prev => { const ex = prev.find(x => x.id === o.id); return ex ? prev.map(x => x.id === o.id ? o : x) : [o, ...prev]; })} wallets={wallets} />}
+      {showPayment && user && <PaymentModal cart={cart} user={user} coupon={pendingCoupon} finalTotal={pendingTotal} onClose={() => setShowPayment(false)} onSuccess={handlePaySuccess} onOrderUpdate={o => setOrders(prev => { const ex = prev.find(x => x.id === o.id); return ex ? prev.map(x => x.id === o.id ? o : x) : [o, ...prev]; })} onOrderPending={order => setGlobalPending(order)} wallets={wallets} />}
       {showSuccess && lastOrder && <SuccessModal order={lastOrder} onClose={() => { setShowSuccess(false); setView("account"); }} />}
       {resetToken && <ResetPasswordModal token={resetToken} onClose={() => { setResetToken(null); setAuthTab("login"); setShowAuth(true); }} />}
       {verifyResult && (
@@ -4464,6 +4514,27 @@ export default function App() {
       )}
 
       <ChatWidget user={user} open={chatOpen} onClose={() => setChatOpen(false)} />
+
+      {/* Global pending order widget — persists across navigation and F5 */}
+      {globalPending && !globalPendingFull && (
+        <GlobalPendingWidget
+          order={globalPending}
+          wallets={wallets}
+          onExpand={() => setGlobalPendingFull(true)}
+          onClear={() => { setGlobalPending(null); setGlobalPendingFull(false); }}
+        />
+      )}
+      {globalPending && globalPendingFull && (
+        <PaymentPendingModal
+          order={globalPending}
+          walletAddr={wallets?.[globalPending.network]?.addr || ""}
+          walletColor={wallets?.[globalPending.network]?.color || "#f0a500"}
+          onSuccess={() => { setGlobalPending(null); setGlobalPendingFull(false); refreshOrders(); }}
+          onCancel={() => setGlobalPendingFull(false)}
+          onMinimize={() => setGlobalPendingFull(false)}
+          onCancelled={() => { setGlobalPending(null); setGlobalPendingFull(false); refreshOrders(); }}
+        />
+      )}
     </div>
   );
 }
