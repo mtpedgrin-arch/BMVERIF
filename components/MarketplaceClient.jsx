@@ -912,10 +912,12 @@ const ChatWidget = ({ user, open, onClose }) => {
 
 // ─── AUTH MODAL ───────────────────────────────────────────────────────────────
 const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
-  const [tab, setTab] = useState(initialTab);
+  const [tab, setTab] = useState(initialTab); // "login" | "register" | "forgot"
   const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSent, setForgotSent] = useState(false);
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
 
   const handleLogin = async () => {
@@ -961,41 +963,105 @@ const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
     }
   };
 
+  const handleForgot = async () => {
+    setError(""); setLoading(true);
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotEmail.trim().toLowerCase() }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Error al enviar el email."); return; }
+      setForgotSent(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const goBackToLogin = () => { setTab("login"); setError(""); setForgotSent(false); setForgotEmail(""); };
+
+  const modalTitle = tab === "login" ? "Iniciá sesión" : tab === "register" ? "Creá tu cuenta" : "Recuperar contraseña";
+  const modalSub  = tab === "login" ? "Ingresá para continuar con tu compra" : tab === "register" ? "Registrate para poder comprar" : "Te enviaremos un enlace para restablecer tu contraseña";
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize: 32, marginBottom: 10 }}>🛒</div>
-        <div className="modal-title">{tab === "login" ? "Iniciá sesión" : "Creá tu cuenta"}</div>
-        <div className="modal-sub">{tab === "login" ? "Ingresá para continuar con tu compra" : "Registrate para poder comprar"}</div>
-        <div className="auth-tabs" style={{ display: "flex", border: "1.5px solid var(--border)", borderRadius: 11, overflow: "hidden", marginBottom: 18 }}>
-          <button style={{ flex: 1, padding: 9, fontSize: 13, fontWeight: 600, border: "none", background: tab === "login" ? "var(--red)" : "none", color: tab === "login" ? "#fff" : "var(--muted)", cursor: "pointer" }} onClick={() => { setTab("login"); setError(""); }}>Iniciar sesión</button>
-          <button style={{ flex: 1, padding: 9, fontSize: 13, fontWeight: 600, border: "none", background: tab === "register" ? "var(--red)" : "none", color: tab === "register" ? "#fff" : "var(--muted)", cursor: "pointer" }} onClick={() => { setTab("register"); setError(""); }}>Registrarse</button>
-        </div>
+        <div style={{ fontSize: 32, marginBottom: 10 }}>{tab === "forgot" ? "🔐" : "🛒"}</div>
+        <div className="modal-title">{modalTitle}</div>
+        <div className="modal-sub">{modalSub}</div>
+
+        {/* Tabs (hidden in forgot view) */}
+        {tab !== "forgot" && (
+          <div className="auth-tabs" style={{ display: "flex", border: "1.5px solid var(--border)", borderRadius: 11, overflow: "hidden", marginBottom: 18 }}>
+            <button style={{ flex: 1, padding: 9, fontSize: 13, fontWeight: 600, border: "none", background: tab === "login" ? "var(--red)" : "none", color: tab === "login" ? "#fff" : "var(--muted)", cursor: "pointer" }} onClick={() => { setTab("login"); setError(""); }}>Iniciar sesión</button>
+            <button style={{ flex: 1, padding: 9, fontSize: 13, fontWeight: 600, border: "none", background: tab === "register" ? "var(--red)" : "none", color: tab === "register" ? "#fff" : "var(--muted)", cursor: "pointer" }} onClick={() => { setTab("register"); setError(""); }}>Registrarse</button>
+          </div>
+        )}
+
         {error && <div className="error-msg">{error}</div>}
-        {tab === "register" && (
-          <div className="form-group">
-            <label className="form-label">Nombre</label>
-            <input className="form-input" placeholder="Tu nombre" value={form.name} onChange={set("name")} />
-          </div>
+
+        {/* ── FORGOT PASSWORD VIEW ── */}
+        {tab === "forgot" && (
+          forgotSent ? (
+            <div style={{ textAlign: "center", padding: "12px 0 4px" }}>
+              <div style={{ fontSize: 44, marginBottom: 12 }}>📬</div>
+              <div style={{ fontFamily: "Syne", fontSize: 16, fontWeight: 800, marginBottom: 8 }}>¡Listo!</div>
+              <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>
+                Si el email está registrado, recibirás un enlace para restablecer tu contraseña en los próximos minutos.
+              </div>
+              <button className="btn btn-outline btn-full" style={{ marginTop: 20 }} onClick={goBackToLogin}>← Volver al inicio de sesión</button>
+            </div>
+          ) : (
+            <>
+              <div className="form-group">
+                <label className="form-label">Email de tu cuenta</label>
+                <input className="form-input" type="email" placeholder="email@ejemplo.com" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && handleForgot()} autoFocus />
+              </div>
+              <button className="btn btn-primary btn-full" onClick={handleForgot} disabled={loading || !forgotEmail.trim()}>
+                {loading ? "Enviando..." : "Enviar enlace de recuperación"}
+              </button>
+              <button className="btn btn-outline btn-full" style={{ marginTop: 8 }} onClick={goBackToLogin}>← Volver</button>
+            </>
+          )
         )}
-        <div className="form-group">
-          <label className="form-label">Email</label>
-          <input className="form-input" type="email" placeholder="email@ejemplo.com" value={form.email} onChange={set("email")} />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Contraseña</label>
-          <input className="form-input" type="password" placeholder="••••••••" value={form.password} onChange={set("password")} onKeyDown={e => e.key === "Enter" && (tab === "login" ? handleLogin() : null)} />
-        </div>
-        {tab === "register" && (
-          <div className="form-group">
-            <label className="form-label">Confirmar contraseña</label>
-            <input className="form-input" type="password" placeholder="••••••••" value={form.confirm} onChange={set("confirm")} />
-          </div>
+
+        {/* ── LOGIN / REGISTER VIEW ── */}
+        {tab !== "forgot" && (
+          <>
+            {tab === "register" && (
+              <div className="form-group">
+                <label className="form-label">Nombre</label>
+                <input className="form-input" placeholder="Tu nombre" value={form.name} onChange={set("name")} />
+              </div>
+            )}
+            <div className="form-group">
+              <label className="form-label">Email</label>
+              <input className="form-input" type="email" placeholder="email@ejemplo.com" value={form.email} onChange={set("email")} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Contraseña</label>
+              <input className="form-input" type="password" placeholder="••••••••" value={form.password} onChange={set("password")} onKeyDown={e => e.key === "Enter" && (tab === "login" ? handleLogin() : null)} />
+              {tab === "login" && (
+                <div style={{ textAlign: "right", marginTop: 5 }}>
+                  <button type="button" style={{ background: "none", border: "none", color: "var(--red)", fontSize: 12, cursor: "pointer", padding: 0 }} onClick={() => { setTab("forgot"); setError(""); setForgotEmail(form.email); }}>
+                    ¿Olvidaste tu contraseña?
+                  </button>
+                </div>
+              )}
+            </div>
+            {tab === "register" && (
+              <div className="form-group">
+                <label className="form-label">Confirmar contraseña</label>
+                <input className="form-input" type="password" placeholder="••••••••" value={form.confirm} onChange={set("confirm")} />
+              </div>
+            )}
+            <button className="btn btn-primary btn-full" onClick={tab === "login" ? handleLogin : handleRegister} disabled={loading}>
+              {loading ? "Procesando..." : tab === "login" ? "→ Entrar" : "✓ Crear cuenta"}
+            </button>
+            <button className="btn btn-outline btn-full" style={{ marginTop: 8 }} onClick={onClose}>Cancelar</button>
+          </>
         )}
-        <button className="btn btn-primary btn-full" onClick={tab === "login" ? handleLogin : handleRegister} disabled={loading}>
-          {loading ? "Procesando..." : tab === "login" ? "→ Entrar" : "✓ Crear cuenta"}
-        </button>
-        <button className="btn btn-outline btn-full" style={{ marginTop: 8 }} onClick={onClose}>Cancelar</button>
       </div>
     </div>
   );
@@ -1891,6 +1957,38 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
   const myOrders = userOrders; // la API ya filtra por usuario
   const favProducts = products.filter(p => liked[p.id]);
 
+  // ── Change password state ──
+  const [pwForm, setPwForm] = useState({ current: "", newPw: "", confirm: "" });
+  const [pwMsg, setPwMsg] = useState(null); // { text, ok }
+  const [pwLoading, setPwLoading] = useState(false);
+  const setPw = k => e => setPwForm(p => ({ ...p, [k]: e.target.value }));
+
+  const handleChangePassword = async () => {
+    setPwMsg(null);
+    if (!pwForm.current || !pwForm.newPw || !pwForm.confirm) return setPwMsg({ text: "Completá todos los campos.", ok: false });
+    if (pwForm.newPw !== pwForm.confirm) return setPwMsg({ text: "Las contraseñas nuevas no coinciden.", ok: false });
+    if (pwForm.newPw.length < 6) return setPwMsg({ text: "Mínimo 6 caracteres.", ok: false });
+    setPwLoading(true);
+    try {
+      const res = await fetch("/api/user/password", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ current: pwForm.current, newPassword: pwForm.newPw }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPwMsg({ text: "¡Contraseña actualizada con éxito!", ok: true });
+        setPwForm({ current: "", newPw: "", confirm: "" });
+      } else {
+        setPwMsg({ text: data.error || "Error al cambiar la contraseña.", ok: false });
+      }
+    } catch {
+      setPwMsg({ text: "Error de red.", ok: false });
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
   const downloadDelivery = (content, orderId) => {
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -1908,7 +2006,7 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
         <div><div style={{ fontFamily: "Syne", fontSize: 19, fontWeight: 800 }}>Hola, {displayName.split(" ")[0]} 👋</div><div style={{ fontSize: 13, color: "var(--muted)" }}>{user.email}</div></div>
       </div>
       <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
-        {[["orders", "📦 Mis órdenes"], ["favorites", `❤️ Favoritos${favProducts.length > 0 ? ` (${favProducts.length})` : ""}`]].map(([id, label]) => (
+        {[["orders", "📦 Mis órdenes"], ["favorites", `❤️ Favoritos${favProducts.length > 0 ? ` (${favProducts.length})` : ""}`], ["settings", "⚙️ Ajustes"]].map(([id, label]) => (
           <button key={id} className={`nav-tab ${tab === id ? "active" : ""}`} onClick={() => setTab(id)}>{label}</button>
         ))}
       </div>
@@ -1989,6 +2087,35 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
             </>
           )}
         </>
+      )}
+
+      {/* ── AJUSTES ── */}
+      {tab === "settings" && (
+        <div className="card" style={{ maxWidth: 480 }}>
+          <div className="card-title">🔒 Cambiar contraseña</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 4 }}>
+            <div className="form-group">
+              <label className="form-label">Contraseña actual</label>
+              <input className="form-input" type="password" placeholder="••••••••" value={pwForm.current} onChange={setPw("current")} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Nueva contraseña</label>
+              <input className="form-input" type="password" placeholder="••••••••" value={pwForm.newPw} onChange={setPw("newPw")} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Confirmar nueva contraseña</label>
+              <input className="form-input" type="password" placeholder="••••••••" value={pwForm.confirm} onChange={setPw("confirm")} onKeyDown={e => e.key === "Enter" && handleChangePassword()} />
+            </div>
+            {pwMsg && (
+              <div style={{ fontSize: 13, padding: "9px 13px", borderRadius: 9, background: pwMsg.ok ? "#F0FDF4" : "#FEF2F2", color: pwMsg.ok ? "#15803D" : "#B91C1C", border: `1px solid ${pwMsg.ok ? "#BBF7D0" : "#FECACA"}` }}>
+                {pwMsg.ok ? "✅ " : "⚠️ "}{pwMsg.text}
+              </div>
+            )}
+            <button className="btn btn-primary" style={{ alignSelf: "flex-start", minWidth: 200 }} onClick={handleChangePassword} disabled={pwLoading}>
+              {pwLoading ? "Guardando..." : "Guardar contraseña"}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -3070,6 +3197,73 @@ const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, coupons, setCoupon
   );
 };
 
+// ─── RESET PASSWORD MODAL ─────────────────────────────────────────────────────
+const ResetPasswordModal = ({ token, onClose }) => {
+  const [form, setForm] = useState({ newPw: "", confirm: "" });
+  const [msg, setMsg] = useState(null); // { text, ok }
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const handleReset = async () => {
+    setMsg(null);
+    if (!form.newPw || !form.confirm) return setMsg({ text: "Completá todos los campos.", ok: false });
+    if (form.newPw !== form.confirm) return setMsg({ text: "Las contraseñas no coinciden.", ok: false });
+    if (form.newPw.length < 6) return setMsg({ text: "Mínimo 6 caracteres.", ok: false });
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password: form.newPw }),
+      });
+      const data = await res.json();
+      if (res.ok) { setDone(true); }
+      else { setMsg({ text: data.error || "Error al restablecer la contraseña.", ok: false }); }
+    } catch {
+      setMsg({ text: "Error de red.", ok: false });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={!done ? undefined : onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 32, marginBottom: 10 }}>🔐</div>
+        <div className="modal-title">Nueva contraseña</div>
+        <div className="modal-sub">Elegí una contraseña segura para tu cuenta</div>
+        {done ? (
+          <div style={{ textAlign: "center", padding: "12px 0" }}>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>✅</div>
+            <div style={{ fontFamily: "Syne", fontSize: 16, fontWeight: 800, marginBottom: 8 }}>¡Contraseña actualizada!</div>
+            <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 20 }}>Ya podés iniciar sesión con tu nueva contraseña.</div>
+            <button className="btn btn-primary btn-full" onClick={onClose}>Ir al inicio de sesión</button>
+          </div>
+        ) : (
+          <>
+            <div className="form-group">
+              <label className="form-label">Nueva contraseña</label>
+              <input className="form-input" type="password" placeholder="••••••••" value={form.newPw} onChange={e => setForm(p => ({ ...p, newPw: e.target.value }))} autoFocus />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Confirmar contraseña</label>
+              <input className="form-input" type="password" placeholder="••••••••" value={form.confirm} onChange={e => setForm(p => ({ ...p, confirm: e.target.value }))} onKeyDown={e => e.key === "Enter" && handleReset()} />
+            </div>
+            {msg && (
+              <div style={{ fontSize: 13, padding: "9px 13px", borderRadius: 9, marginBottom: 8, background: msg.ok ? "#F0FDF4" : "#FEF2F2", color: msg.ok ? "#15803D" : "#B91C1C", border: `1px solid ${msg.ok ? "#BBF7D0" : "#FECACA"}` }}>
+                {msg.text}
+              </div>
+            )}
+            <button className="btn btn-primary btn-full" onClick={handleReset} disabled={loading}>
+              {loading ? "Guardando..." : "Guardar nueva contraseña"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const sessionResult = useSession();
@@ -3108,6 +3302,18 @@ export default function App() {
   }, [cart]);
   const [cartOpen, setCartOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [resetToken, setResetToken] = useState(null);
+  // Detect ?reset=TOKEN in URL (password reset link from email)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get("reset");
+      if (token) {
+        setResetToken(token);
+        window.history.replaceState({}, "", "/"); // clean the URL
+      }
+    }
+  }, []);
   const [showMiniCart, setShowMiniCart] = useState(false);
   const [lastAdded, setLastAdded] = useState(null);
   const miniCartTimer = useRef(null);
@@ -3420,6 +3626,7 @@ export default function App() {
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} onSuccess={() => setShowPayment(pendingTotal > 0)} initialTab={authTab} />}
       {showPayment && user && <PaymentModal cart={cart} user={user} coupon={pendingCoupon} finalTotal={pendingTotal} onClose={() => setShowPayment(false)} onSuccess={handlePaySuccess} wallets={wallets} />}
       {showSuccess && lastOrder && <SuccessModal order={lastOrder} onClose={() => { setShowSuccess(false); setView("account"); }} />}
+      {resetToken && <ResetPasswordModal token={resetToken} onClose={() => { setResetToken(null); setAuthTab("login"); setShowAuth(true); }} />}
 
       <ChatWidget user={user} open={chatOpen} onClose={() => setChatOpen(false)} />
     </div>
