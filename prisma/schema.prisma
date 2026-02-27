@@ -122,3 +122,14 @@ model Review {
   userId String?
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
+
+model Notification {
+  id        String   @id @default(cuid())
+  userEmail String
+  type      String   // order_created | order_paid | order_delivered
+  title     String
+  body      String
+  orderId   String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

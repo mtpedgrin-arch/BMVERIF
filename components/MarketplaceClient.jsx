@@ -379,6 +379,27 @@ const css = `
   .dark-toggle { background: none; border: 1.5px solid var(--border); border-radius: 8px; width: 34px; height: 34px; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
   .dark-toggle:hover { border-color: var(--red); background: var(--red-light); }
 
+  /* NOTIFICATIONS */
+  .notif-wrap { position: relative; }
+  .notif-btn { background: none; border: 1.5px solid var(--border); border-radius: 8px; width: 34px; height: 34px; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; flex-shrink: 0; position: relative; }
+  .notif-btn:hover { border-color: var(--red); background: var(--red-light); }
+  .notif-badge { position: absolute; top: -5px; right: -5px; background: var(--red); color: #fff; font-size: 10px; font-weight: 800; min-width: 16px; height: 16px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0 3px; border: 2px solid var(--surface); }
+  .notif-dropdown { position: absolute; right: 0; top: calc(100% + 8px); width: 340px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-lg); z-index: 500; overflow: hidden; }
+  .notif-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .notif-header-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 800; }
+  .notif-mark-read { background: none; border: none; font-size: 11px; color: var(--red); font-weight: 600; cursor: pointer; }
+  .notif-list { max-height: 320px; overflow-y: auto; }
+  .notif-item { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: flex-start; transition: background 0.1s; }
+  .notif-item:last-child { border-bottom: none; }
+  .notif-item.unread { background: var(--red-light); }
+  .notif-item:hover { background: var(--bg); }
+  .notif-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); flex-shrink: 0; margin-top: 5px; }
+  .notif-dot.read { background: transparent; }
+  .notif-title { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+  .notif-body { font-size: 12px; color: var(--muted); line-height: 1.4; }
+  .notif-time { font-size: 10px; color: var(--muted); margin-top: 3px; }
+  .notif-empty { padding: 28px 16px; text-align: center; color: var(--muted); font-size: 13px; }
+
   /* ── DARK MODE ── */
   .app.dark {
     --bg: #111318; --surface: #1C1F2E; --border: #2E3148; --text: #E2E6F0; --muted: #8892A4;
@@ -597,6 +618,146 @@ const StatusPill = ({ status }) => {
   if (status === "pending") return <span className="status-pending">⏳ Pendiente</span>;
   return <span className="status-cancelled">✕ Cancelado</span>;
 };
+
+// ─── NOTIFICATION BELL ────────────────────────────────────────────────────────
+function playChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [[880, 0, 0.18], [1108, 0.2, 0.42]].forEach(([freq, t0, t1]) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = "sine"; osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, ctx.currentTime + t0);
+      gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + t0 + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t1);
+      osc.start(ctx.currentTime + t0);
+      osc.stop(ctx.currentTime + t1);
+    });
+  } catch {}
+}
+
+function timeAgo(dateStr) {
+  const diff = (Date.now() - new Date(dateStr)) / 1000;
+  if (diff < 60) return "ahora";
+  if (diff < 3600) return `${Math.floor(diff / 60)} min`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} h`;
+  return `${Math.floor(diff / 86400)} d`;
+}
+
+const NotificationBell = ({ user }) => {
+  const [notifs, setNotifs] = useState([]);
+  const [open, setOpen] = useState(false);
+  const prevUnread = useRef(0);
+  const faviconRef = useRef(null);
+  const blinkInterval = useRef(null);
+  const dropRef = useRef(null);
+
+  const unread = notifs.filter(n => !n.read).length;
+
+  // ── Favicon blink ──
+  const getFaviconEl = () => {
+    if (faviconRef.current) return faviconRef.current;
+    let el = document.querySelector("link[rel~='icon']");
+    if (!el) { el = document.createElement("link"); el.rel = "icon"; document.head.appendChild(el); }
+    faviconRef.current = el;
+    return el;
+  };
+
+  const makeFavicon = (dot) => {
+    const c = document.createElement("canvas"); c.width = 32; c.height = 32;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#1877F2"; ctx.fillRect(0, 0, 32, 32);
+    ctx.fillStyle = "#fff"; ctx.font = "bold 22px Arial"; ctx.fillText("B", 5, 25);
+    if (dot) {
+      ctx.fillStyle = "#EF4444"; ctx.beginPath(); ctx.arc(26, 6, 7, 0, Math.PI * 2); ctx.fill();
+    }
+    return c.toDataURL();
+  };
+
+  useEffect(() => {
+    const el = getFaviconEl();
+    if (unread > 0) {
+      let toggle = true;
+      blinkInterval.current = setInterval(() => {
+        el.href = makeFavicon(toggle); toggle = !toggle;
+      }, 800);
+    } else {
+      clearInterval(blinkInterval.current);
+      el.href = makeFavicon(false);
+    }
+    return () => clearInterval(blinkInterval.current);
+  }, [unread]);
+
+  // ── Polling ──
+  const fetchNotifs = async () => {
+    try {
+      const res = await fetch("/api/notifications");
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!Array.isArray(data)) return;
+      setNotifs(data);
+      const newUnread = data.filter(n => !n.read).length;
+      if (newUnread > prevUnread.current) playChime();
+      prevUnread.current = newUnread;
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    fetchNotifs();
+    const id = setInterval(fetchNotifs, 20000);
+    return () => clearInterval(id);
+  }, [user?.email]);
+
+  // ── Close on outside click ──
+  useEffect(() => {
+    const handler = (e) => { if (dropRef.current && !dropRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const markAllRead = async () => {
+    await fetch("/api/notifications/read", { method: "PATCH" }).catch(() => {});
+    setNotifs(prev => prev.map(n => ({ ...n, read: true })));
+    prevUnread.current = 0;
+  };
+
+  if (!user) return null;
+
+  return (
+    <div className="notif-wrap" ref={dropRef}>
+      <button className="notif-btn" onClick={() => setOpen(o => !o)} title="Notificaciones">
+        🔔
+        {unread > 0 && <span className="notif-badge">{unread > 9 ? "9+" : unread}</span>}
+      </button>
+      {open && (
+        <div className="notif-dropdown">
+          <div className="notif-header">
+            <span className="notif-header-title">Notificaciones</span>
+            {unread > 0 && <button className="notif-mark-read" onClick={markAllRead}>Marcar todo leído</button>}
+          </div>
+          <div className="notif-list">
+            {notifs.length === 0
+              ? <div className="notif-empty">Sin notificaciones</div>
+              : notifs.map(n => (
+                <div key={n.id} className={`notif-item${!n.read ? " unread" : ""}`}>
+                  <div className={`notif-dot${n.read ? " read" : ""}`} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="notif-title">{n.title}</div>
+                    <div className="notif-body">{n.body}</div>
+                    <div className="notif-time">{timeAgo(n.createdAt)}</div>
+                  </div>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Stars = ({ rating, reviews }) => {
   if (!rating) return null;
   const full = Math.floor(rating), partial = rating % 1 >= 0.5 ? 1 : 0, empty = 5 - full - partial;
@@ -3164,6 +3325,7 @@ export default function App() {
             <>
               <button className={`nav-tab ${view === "shop" ? "active" : ""}`} onClick={() => { setView("shop"); setSelectedProduct(null); }}>🛍 Tienda</button>
               <button className={`nav-tab ${view === "account" ? "active" : ""}`} onClick={() => setView("account")}>👤 Mi cuenta</button>
+              <NotificationBell user={user} />
               <button className="btn btn-outline btn-sm" onClick={() => signOut()}>Salir</button>
             </>
           ) : (

@@ -3,6 +3,16 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../../../lib/authOptions";
 import { prisma } from "../../../lib/prisma";
 
+function nid() { return "n" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+async function createNotification({ userEmail, type, title, body, orderId }) {
+  await prisma.$executeRawUnsafe(
+    `INSERT INTO "Notification" (id, "userEmail", type, title, body, "orderId", read, "createdAt")
+     VALUES ($1, $2, $3, $4, $5, $6, false, NOW())`,
+    nid(), userEmail, type, title, body, orderId || null
+  ).catch(() => {});
+}
+
 // GET /api/orders — admin: todas; usuario: las suyas
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -57,6 +67,16 @@ export async function POST(req) {
       },
     },
     include: { items: true },
+  });
+
+  // Notification: order created
+  const productSummary = order.items.map(i => `${i.name.slice(0, 30)} ×${i.qty}`).join(", ");
+  await createNotification({
+    userEmail: session.user.email,
+    type: "order_created",
+    title: "✅ Orden creada",
+    body: `#${order.id.slice(-8)} · ${productSummary} · ${order.total.toFixed(2)} USD`,
+    orderId: order.id,
   });
 
   return NextResponse.json(order);
