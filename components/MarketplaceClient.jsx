@@ -1459,7 +1459,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
           <span className="hero-badge">✓ Entrega inmediata</span>
           <span className="hero-badge">₮ USDT TRC20 / BEP20</span>
           <span className="hero-badge">🔒 Compra segura</span>
-          <span className="hero-badge">🏷 Cupones de descuento</span>
+          <span className="hero-badge">🏷 Descuentos por cantidad</span>
         </div>
       </div>
       <div className="shop-wrap">
