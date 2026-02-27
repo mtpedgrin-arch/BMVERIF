@@ -657,6 +657,7 @@ const NotificationBell = ({ user, onGoAccount }) => {
   const [open, setOpen] = useState(false);
   const prevUnread = useRef(0);
   const faviconRef = useRef(null);
+  const faviconImgRef = useRef(null);
   const blinkInterval = useRef(null);
   const dropRef = useRef(null);
 
@@ -671,11 +672,18 @@ const NotificationBell = ({ user, onGoAccount }) => {
     return el;
   };
 
-  const makeFavicon = (dot) => {
+  const loadFaviconImg = () => new Promise((resolve) => {
+    if (faviconImgRef.current) { resolve(faviconImgRef.current); return; }
+    const img = new Image();
+    img.onload = () => { faviconImgRef.current = img; resolve(img); };
+    img.src = "/favicon.png";
+  });
+
+  const makeFavicon = async (dot) => {
+    const img = await loadFaviconImg();
     const c = document.createElement("canvas"); c.width = 32; c.height = 32;
     const ctx = c.getContext("2d");
-    ctx.fillStyle = "#1877F2"; ctx.fillRect(0, 0, 32, 32);
-    ctx.fillStyle = "#fff"; ctx.font = "bold 22px Arial"; ctx.fillText("B", 5, 25);
+    ctx.drawImage(img, 0, 0, 32, 32);
     if (dot) {
       ctx.fillStyle = "#EF4444"; ctx.beginPath(); ctx.arc(26, 6, 7, 0, Math.PI * 2); ctx.fill();
     }
@@ -686,12 +694,12 @@ const NotificationBell = ({ user, onGoAccount }) => {
     const el = getFaviconEl();
     if (unread > 0) {
       let toggle = true;
-      blinkInterval.current = setInterval(() => {
-        el.href = makeFavicon(toggle); toggle = !toggle;
-      }, 800);
+      const update = async () => { el.href = await makeFavicon(toggle); toggle = !toggle; };
+      update();
+      blinkInterval.current = setInterval(update, 800);
     } else {
       clearInterval(blinkInterval.current);
-      el.href = makeFavicon(false);
+      el.href = "/favicon.png";
     }
     return () => clearInterval(blinkInterval.current);
   }, [unread]);
