@@ -472,13 +472,28 @@ const getNextTier = (tiers, totalQty) => {
   return sorted.find(t => t.qty > totalQty) || null;
 };
 // Recalculates prices for the whole cart:
-// items sharing the same basePrice count together toward tier thresholds
+// items sharing the same basePrice count together toward tier thresholds.
+// Tiers are merged across all items at the same base price, so if ANY
+// product at $80 has tiers configured, ALL $80 products benefit.
 const rebalanceTiers = (cart) => {
   const qtyByPrice = {};
-  cart.forEach(i => { const b = i.basePrice ?? i.price; qtyByPrice[b] = (qtyByPrice[b] || 0) + i.qty; });
+  const tiersByPrice = {};
+  cart.forEach(i => {
+    const b = i.basePrice ?? i.price;
+    qtyByPrice[b] = (qtyByPrice[b] || 0) + i.qty;
+    if (i.tiers && i.tiers.length > 0) {
+      if (!tiersByPrice[b]) tiersByPrice[b] = [];
+      i.tiers.forEach(t => {
+        const existing = tiersByPrice[b].find(x => x.qty === t.qty);
+        if (!existing) tiersByPrice[b].push({ qty: t.qty, price: t.price });
+        else if (t.price < existing.price) existing.price = t.price;
+      });
+    }
+  });
   return cart.map(i => {
     const base = i.basePrice ?? i.price;
-    return { ...i, price: getTierPrice(base, i.tiers, qtyByPrice[base] || i.qty) };
+    const effectiveTiers = tiersByPrice[base] || i.tiers || [];
+    return { ...i, tiers: effectiveTiers, price: getTierPrice(base, effectiveTiers, qtyByPrice[base] || i.qty) };
   });
 };
 const nowTime = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -2180,6 +2195,25 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem("bmveri_cart", JSON.stringify(cart)); } catch {}
   }, [cart]);
+  // When products are fetched (or updated), sync cart items with the latest
+  // tiers/cost/basePrice from the server so localStorage-loaded items stay fresh
+  useEffect(() => {
+    if (products.length === 0) return;
+    setCart(prev => {
+      if (prev.length === 0) return prev;
+      const updated = prev.map(item => {
+        const product = products.find(p => p.id === item.id);
+        if (!product) return item;
+        return {
+          ...item,
+          tiers: product.tiers ?? item.tiers ?? [],
+          basePrice: item.basePrice ?? product.price,
+          cost: product.cost ?? item.cost ?? 0,
+        };
+      });
+      return rebalanceTiers(updated);
+    });
+  }, [products]);
   const [cartOpen, setCartOpen] = useState(false);
   const [showMiniCart, setShowMiniCart] = useState(false);
   const [lastAdded, setLastAdded] = useState(null);
@@ -2262,7 +2296,10 @@ export default function App() {
         const base = p.basePrice ?? p.price;
         next = [...prev, { ...p, basePrice: base, qty: 1 }];
       } else {
-        next = prev.map(i => i.id === p.id ? { ...i, qty: i.qty + 1 } : i);
+        // Also refresh tiers/cost from the live product so stale localStorage items get updated
+        next = prev.map(i => i.id === p.id
+          ? { ...i, qty: i.qty + 1, tiers: p.tiers ?? i.tiers ?? [], basePrice: i.basePrice ?? p.price, cost: p.cost ?? i.cost ?? 0 }
+          : i);
       }
       return rebalanceTiers(next);
     });
@@ -2285,7 +2322,9 @@ export default function App() {
         const base = p.basePrice ?? p.price;
         next = [...prev, { ...p, basePrice: base, qty: 1 }];
       } else {
-        next = prev.map(i => i.id === p.id ? { ...i, qty: i.qty + 1 } : i);
+        next = prev.map(i => i.id === p.id
+          ? { ...i, qty: i.qty + 1, tiers: p.tiers ?? i.tiers ?? [], basePrice: i.basePrice ?? p.price, cost: p.cost ?? i.cost ?? 0 }
+          : i);
       }
       return rebalanceTiers(next);
     });
