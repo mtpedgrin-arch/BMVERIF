@@ -1493,14 +1493,14 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
                 </div>
                 <div className="prod-right">
                   {p.badgeDiscount > 0 ? (() => {
-                    const origPrice = p.price / (1 - p.badgeDiscount / 100);
+                    const discountedPrice = p.price * (1 - p.badgeDiscount / 100);
                     return (
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <span style={{ fontSize: 11, fontWeight: 800, background: "var(--red)", color: "#fff", borderRadius: 6, padding: "2px 8px" }}>-{p.badgeDiscount}%</span>
-                          <span style={{ fontSize: 12, color: "var(--muted)", textDecoration: "line-through" }}>{fmtUSDT(origPrice)}</span>
+                          <span style={{ fontSize: 12, color: "var(--muted)", textDecoration: "line-through" }}>{fmtUSDT(p.price)}</span>
                         </div>
-                        <div className="prod-price" style={{ marginTop: 0 }}>{fmtUSDT(p.price)}</div>
+                        <div className="prod-price" style={{ marginTop: 0 }}>{fmtUSDT(discountedPrice)}</div>
                       </div>
                     );
                   })() : <div className="prod-price">{fmtUSDT(p.price)}</div>}
