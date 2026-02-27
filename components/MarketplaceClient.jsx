@@ -2507,8 +2507,8 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
   const [activeCat, setActiveCat] = useState("all");
   const getQty = id => cart.find(i => i.id === id)?.qty || 0;
   const CATS = [
-    { key: "bm", label: "BMs Verificadas" },
     { key: "ads-account", label: "Cuentas para Publicidad" },
+    { key: "bm", label: "BMs Verificadas" },
   ];
   const visibleCats = activeCat === "all" ? CATS : CATS.filter(c => c.key === activeCat);
   const sortProds = arr => [...arr].sort((a, b) => {
