@@ -111,8 +111,8 @@ export async function GET(req, { params }) {
       const { result: currentBlockHex } = await blockRes.json();
       const currentBlock = parseInt(currentBlockHex, 16);
 
-      // Search last ~400 blocks (~20 min at 3s/block) — covers full order window
-      const fromBlock = Math.max(0, currentBlock - 400);
+      // Search last ~1300 blocks (~65 min at 3s/block) — covers full 1h order window
+      const fromBlock = Math.max(0, currentBlock - 1300);
       // Pad wallet address to 32 bytes for topic filter
       const paddedWallet = "0x000000000000000000000000" + wallet.replace("0x", "").toLowerCase();
 
