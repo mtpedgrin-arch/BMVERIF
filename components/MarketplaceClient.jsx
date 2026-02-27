@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 
 // ─── WALLETS ──────────────────────────────────────────────────────────────────
@@ -2046,8 +2046,7 @@ const ProductManager = ({ products, setProducts }) => {
               {products.map(p => {
                 const margin = p.cost > 0 ? (((p.price - p.cost) / p.price) * 100).toFixed(0) : null;
                 return (
-                <React.Fragment key={p.id}>
-                <tr style={{ opacity: p.isActive ? 1 : 0.5 }}>
+                <tr key={p.id} style={{ opacity: p.isActive ? 1 : 0.5 }}>
                   <td style={{ maxWidth: 200, fontSize: 12, fontWeight: 600 }}>{p.name}</td>
                   <td style={{ maxWidth: 180, fontSize: 11, color: "var(--muted)" }}>{p.details || "—"}</td>
                   <td><strong style={{ color: "var(--usdt)" }}>{fmtUSDT(p.price)}</strong></td>
@@ -2095,24 +2094,23 @@ const ProductManager = ({ products, setProducts }) => {
                     </div>
                   </td>
                 </tr>
-                {reviewProductId === p.id && (
-                  <tr>
-                    <td colSpan={10} style={{ padding: "0 0 4px 0", background: "transparent" }}>
-                      <AdminReviewPanel
-                        product={p}
-                        onClose={() => setReviewProductId(null)}
-                        onRatingChange={() => fetch("/api/products?all=true").then(r => r.json()).then(data => setProducts(Array.isArray(data) ? data : []))}
-                      />
-                    </td>
-                  </tr>
-                )}
-                </React.Fragment>
                 );
               })}
             </tbody>
           </table>
         </div>
       </div>
+
+      {reviewProductId && (() => {
+        const rp = products.find(x => x.id === reviewProductId);
+        return rp ? (
+          <AdminReviewPanel
+            product={rp}
+            onClose={() => setReviewProductId(null)}
+            onRatingChange={() => fetch("/api/products?all=true").then(r => r.json()).then(data => setProducts(Array.isArray(data) ? data : []))}
+          />
+        ) : null;
+      })()}
     </div>
   );
 };
