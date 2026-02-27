@@ -4491,6 +4491,48 @@ const LegalAppendix1 = () => (
   </div>
 );
 
+const LegalAppendix2 = () => (
+  <div>
+    <p>Este Procedimiento establece las condiciones y procesos bajo los cuales la Plataforma responde a solicitudes de información de usuarios y registros de actividad recibidas de: organismos de aplicación de la ley, tribunales, otros órganos gubernamentales o municipales ("Autoridades Gubernamentales"), así como representantes de terceros que actúen bajo procedimientos legales (consultas de abogados, procedimientos civiles o arbitrales respaldados por orden judicial).</p>
+    <p style={{ marginTop: 8 }}>La Plataforma se compromete a: proteger la confidencialidad de los datos de los usuarios y el derecho a la privacidad, y cumplir con las leyes aplicables cooperando con las Autoridades Gubernamentales cuando sea requerido.</p>
+    <p style={{ marginTop: 8 }}><strong>Principios fundamentales:</strong> Legalidad (los datos se divulgan solo cuando existe una base legal válida); Necesidad y Proporcionalidad (la divulgación se limita estrictamente a lo requerido); Protección de Datos (la Plataforma toma medidas para evitar divulgaciones excesivas).</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>2. Bases para la Divulgación</p>
+    <p>La Plataforma puede divulgar información únicamente bajo una de las siguientes bases legales:</p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Solicitud oficial de una Autoridad Gubernamental emitida conforme a la ley aplicable: órdenes judiciales, mandamientos o resoluciones; solicitudes de organismos de investigación o fiscales; solicitudes de otros organismos competentes (tributarios, antimonopolio, etc.) dentro de su autoridad legal.</li>
+      <li>Circunstancias de emergencia que impliquen una amenaza inminente a la vida o riesgo grave para la salud. En tales casos se divulgará solo el mínimo de datos necesarios y se requerirá una solicitud formal posterior.</li>
+      <li>Consentimiento voluntario del usuario, en forma escrita o electrónica.</li>
+      <li>Cumplimiento de regulaciones AML/CFT (antilavado de dinero y financiamiento del terrorismo), donde corresponda.</li>
+    </ul>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>3. Procedimiento de Gestión de Solicitudes</p>
+    <p><strong>Forma y contenido:</strong> Las solicitudes deben presentarse por escrito en papel membretado oficial de la autoridad solicitante, o en formato electrónico desde un dominio oficial. Cada solicitud debe especificar: nombre de la autoridad, base legal, propósito, información específica requerida, plazo de respuesta y datos de contacto del funcionario solicitante.</p>
+    <p style={{ marginTop: 8 }}><strong>Revisión por la Plataforma:</strong> La Plataforma verificará el cumplimiento de la solicitud con la ley aplicable, la existencia de bases legales válidas, la autoridad del firmante y la claridad del alcance de los datos solicitados. La Plataforma puede rechazar la divulgación si la solicitud no cumple los requisitos, solicitar aclaraciones o posponer la ejecución.</p>
+    <p style={{ marginTop: 8 }}><strong>Plazos de respuesta:</strong> La Plataforma se esforzará por cumplir dentro del plazo especificado. Si no se indica plazo, responderá en un período razonable, normalmente no mayor a 10 días hábiles.</p>
+    <p style={{ marginTop: 8 }}><strong>Notificación al usuario:</strong> Salvo prohibición legal, la Plataforma puede notificar al Usuario sobre la solicitud y cualquier divulgación de sus datos. La notificación puede demorarse si una prohibición legal lo impide o si la divulgación podría comprometer evidencia o interferir con una investigación.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>4. Solicitudes Internacionales</p>
+    <p>La Plataforma puede procesar solicitudes de autoridades extranjeras sujeto a: existencia de un tratado o acuerdo internacional entre el país solicitante y la jurisdicción de la Plataforma; presentación de traducción oficial al español u otro idioma legalmente requerido; validez legal y cumplimiento tanto del derecho internacional como doméstico. En casos de emergencia excepcionales (amenazas inminentes a la vida), se puede tomar acción preliminar antes de completar las formalidades.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>5. Restricciones y Rechazos</p>
+    <p>La Plataforma se reserva el derecho de rechazar la divulgación si:</p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>La solicitud no cumple los requisitos formales, carece de detalles obligatorios o es presentada por una parte no autorizada.</li>
+      <li>No existen bases legales o se ha violado el procedimiento legal.</li>
+      <li>El alcance de los datos solicitados es desproporcionado respecto al propósito declarado.</li>
+      <li>La solicitud infringe los derechos y libertades de los Usuarios (ausencia de orden judicial obligatoria).</li>
+      <li>Se duda de la autenticidad o fiabilidad de la solicitud.</li>
+    </ul>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>6. Registro y Almacenamiento</p>
+    <p>Todas las solicitudes y acciones relacionadas se registran y almacenan en un sistema cifrado, incluyendo: fecha y hora de recepción, información del remitente, contenido y base legal de la solicitud, detalles de los datos divulgados, empleado responsable y motivos de rechazo (si aplica).</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>7. Disposiciones Finales</p>
+    <p>Este Procedimiento aplica a todos los Usuarios de la Plataforma, independientemente de su nacionalidad o ubicación. La Plataforma puede modificar este documento unilateralmente. Todas las actualizaciones se publicarán, y el uso continuado de la Plataforma constituye la aceptación de dichas actualizaciones.</p>
+  </div>
+);
+
 const LegalRules = () => (
   <div>
     <p><strong>Introducción</strong></p>
@@ -4720,7 +4762,7 @@ export default function App() {
       else sessionStorage.removeItem("bmveri_pending_order");
     } catch {}
   }, [globalPending?.id]);
-  const [legalModal, setLegalModal] = useState(null); // null | "privacy" | "user-agreement" | "public-offer" | "replacement" | "rules" | "appendix1"
+  const [legalModal, setLegalModal] = useState(null); // null | "privacy" | "user-agreement" | "public-offer" | "replacement" | "rules" | "appendix1" | "appendix2"
   const [resetToken, setResetToken] = useState(null);
   const [verifyResult, setVerifyResult] = useState(null); // null | "success" | "error" | string(error msg)
   // Detect ?reset=TOKEN and ?verify=TOKEN in URL
@@ -5091,6 +5133,7 @@ export default function App() {
                 {legalModal === "replacement" && "Política de Reemplazo de Bienes Digitales"}
                 {legalModal === "rules" && "Reglas de la Plataforma"}
                 {legalModal === "appendix1" && "Apéndice 1 – Productos y Servicios Prohibidos"}
+                {legalModal === "appendix2" && "Apéndice 2 – Solicitudes de Autoridades Gubernamentales"}
               </h2>
               <button onClick={() => setLegalModal(null)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "var(--muted)", lineHeight: 1 }}>×</button>
             </div>
@@ -5101,6 +5144,7 @@ export default function App() {
               {legalModal === "replacement" && <LegalReplacement />}
               {legalModal === "rules" && <LegalRules />}
               {legalModal === "appendix1" && <LegalAppendix1 />}
+              {legalModal === "appendix2" && <LegalAppendix2 />}
             </div>
           </div>
         </div>
@@ -5116,6 +5160,7 @@ export default function App() {
             <button className="site-footer-link" onClick={() => setLegalModal("replacement")}>Política de Reemplazo de Bienes Digitales</button>
             <button className="site-footer-link" onClick={() => setLegalModal("rules")}>Reglas de la Plataforma</button>
             <button className="site-footer-link" onClick={() => setLegalModal("appendix1")}>Productos Prohibidos</button>
+            <button className="site-footer-link" onClick={() => setLegalModal("appendix2")}>Solicitudes Gubernamentales</button>
           </div>
           <div className="site-footer-copy">© {new Date().getFullYear()} BM Verificada</div>
         </div>
