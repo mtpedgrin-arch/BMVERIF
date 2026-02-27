@@ -3959,16 +3959,15 @@ export default function App() {
               <button className={`nav-tab ${view === "shop" ? "active" : ""}`} onClick={() => { setView("shop"); setSelectedProduct(null); }}>🛍 Tienda</button>
               <button className={`nav-tab ${view === "account" ? "active" : ""}`} onClick={() => setView("account")}>👤 Mi cuenta</button>
               <NotificationBell user={user} onGoAccount={() => setView("account")} />
-              <button className="chat-support-btn" onClick={() => setChatOpen(true)} title="Soporte">🎧</button>
               <button className="btn btn-outline btn-sm" onClick={() => signOut()}>Salir</button>
             </>
           ) : (
             <>
-              <button className="chat-support-btn" onClick={() => { setAuthTab("login"); setShowAuth(true); }} title="Soporte — iniciá sesión">🎧</button>
               <button className="btn btn-outline btn-sm" onClick={() => { setAuthTab("login"); setShowAuth(true); }}>Iniciar sesión</button>
               <button className="btn btn-primary btn-sm" onClick={() => { setAuthTab("register"); setShowAuth(true); }}>Registrarse</button>
             </>
           )}
+          <button className="chat-support-btn" onClick={() => user ? setChatOpen(true) : (setAuthTab("login"), setShowAuth(true))} title="Soporte">🎧</button>
           <button className="dark-toggle" onClick={toggleDark} title={darkMode ? "Modo claro" : "Modo oscuro"}>{darkMode ? "☀️" : "🌙"}</button>
           <button
             className="cart-fab"
