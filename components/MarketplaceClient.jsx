@@ -60,28 +60,28 @@ const css = `
   .shop-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
   .shop-count { font-size: 13px; color: var(--muted); }
   .product-list { display: flex; flex-direction: column; background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
-  .product-row { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); transition: background 0.12s; }
+  .product-row { display: flex; align-items: center; padding: 19px 24px; border-bottom: 1px solid var(--border); transition: background 0.12s; }
   .product-row:last-child { border-bottom: none; }
   .product-row:hover { background: #FAFAFA; }
-  .prod-thumb { width: 64px; height: 64px; flex-shrink: 0; border-radius: 10px; overflow: hidden; position: relative; margin-right: 16px; }
+  .prod-thumb { width: 77px; height: 77px; flex-shrink: 0; border-radius: 12px; overflow: hidden; position: relative; margin-right: 19px; }
   .prod-thumb-inner { width: 100%; height: 100%; background: linear-gradient(145deg, #1877F2 0%, #0d5bbf 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
-  .prod-thumb-icon { font-size: 26px; line-height: 1; }
-  .prod-thumb-label { font-size: 9px; font-weight: 700; color: #fff; letter-spacing: 0.3px; }
-  .verified-badge { position: absolute; top: -3px; left: -3px; width: 18px; height: 18px; background: #22c55e; border-radius: 50%; border: 2px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 9px; }
-  .prod-info { flex: 1; min-width: 0; margin-right: 20px; }
-  .prod-name { font-size: 14px; font-weight: 600; margin-bottom: 3px; line-height: 1.4; }
-  .prod-details { font-size: 12px; color: var(--muted); margin-bottom: 7px; line-height: 1.4; }
+  .prod-thumb-icon { font-size: 31px; line-height: 1; }
+  .prod-thumb-label { font-size: 11px; font-weight: 700; color: #fff; letter-spacing: 0.3px; }
+  .verified-badge { position: absolute; top: -3px; left: -3px; width: 20px; height: 20px; background: #22c55e; border-radius: 50%; border: 2px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+  .prod-info { flex: 1; min-width: 0; margin-right: 24px; }
+  .prod-name { font-size: 17px; font-weight: 600; margin-bottom: 4px; line-height: 1.4; }
+  .prod-details { font-size: 14px; color: var(--muted); margin-bottom: 8px; line-height: 1.4; }
   .prod-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .stars { display: flex; align-items: center; gap: 2px; }
-  .star { color: #F59E0B; font-size: 13px; }
-  .star-empty { color: #D1D5DB; font-size: 13px; }
-  .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .star { color: #F59E0B; font-size: 14px; }
+  .star-empty { color: #D1D5DB; font-size: 14px; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; }
   .chip-stock { background: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0; }
   .chip-sales { background: #F8FAFC; color: #64748B; border: 1px solid #E2E8F0; }
-  .prod-right { display: flex; flex-direction: row; align-items: center; gap: 12px; flex-shrink: 0; }
-  .prod-price { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; white-space: nowrap; }
+  .prod-right { display: flex; flex-direction: row; align-items: center; gap: 14px; flex-shrink: 0; }
+  .prod-price { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; white-space: nowrap; }
   .prod-actions { display: flex; align-items: center; gap: 8px; }
-  .buy-btn { background: var(--red); color: #fff; border: none; padding: 9px 20px; border-radius: 8px; font-size: 14px; font-weight: 700; transition: all 0.15s; white-space: nowrap; }
+  .buy-btn { background: var(--red); color: #fff; border: none; padding: 11px 24px; border-radius: 8px; font-size: 15px; font-weight: 700; transition: all 0.15s; white-space: nowrap; }
   .buy-btn:hover:not(:disabled) { background: var(--red-dark); transform: translateY(-1px); }
   .buy-btn:disabled { background: #D1D5DB; color: #9CA3AF; cursor: not-allowed; }
   .icon-btn { width: 36px; height: 36px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--muted); transition: all 0.15s; flex-shrink: 0; }
