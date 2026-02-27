@@ -345,15 +345,16 @@ const css = `
   .chat-panel-header { padding: 13px 17px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
 
   /* CHAT WIDGET */
-  .chat-fab-btn { position: fixed; bottom: 22px; right: 22px; width: 50px; height: 50px; background: var(--red); border: none; border-radius: 50%; color: #fff; font-size: 19px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 18px rgba(217,43,43,0.45); z-index: 150; transition: transform 0.18s; }
-  .chat-fab-btn:hover { transform: scale(1.1); }
-  .online-dot { position: absolute; top: -1px; right: -1px; width: 13px; height: 13px; background: #22c55e; border-radius: 50%; border: 2px solid #fff; }
-  .chat-window { position: fixed; bottom: 80px; right: 22px; width: 310px; height: 430px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 17px; box-shadow: var(--shadow-lg); z-index: 150; display: flex; flex-direction: column; overflow: hidden; animation: slideUp 0.2s ease; }
+  .chat-support-btn { background: none; border: 1.5px solid var(--border); border-radius: 8px; width: 34px; height: 34px; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
+  .chat-support-btn:hover { border-color: var(--red); background: var(--red-light); }
+  .chat-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; display: flex; align-items: center; justify-content: center; }
+  .chat-window { width: 370px; max-height: 560px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 17px; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; overflow: hidden; animation: fadeIn 0.2s ease; }
   .chat-head { background: var(--red); color: #fff; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; }
   .chat-agent-info { display: flex; align-items: center; gap: 9px; }
-  .agent-av { width: 29px; height: 29px; background: rgba(255,255,255,0.25); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+  .agent-av { width: 34px; height: 34px; background: rgba(255,255,255,0.25); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 17px; }
   .agent-nm { font-weight: 700; font-size: 13px; }
   .agent-st { font-size: 10px; opacity: 0.85; }
+  .chat-hours { font-size: 10px; opacity: 0.70; margin-top: 1px; }
   .chat-x { background: none; border: none; color: #fff; font-size: 15px; opacity: 0.8; }
   .chat-msgs { flex: 1; overflow-y: auto; padding: 11px; display: flex; flex-direction: column; gap: 7px; }
   .cmsg { max-width: 83%; }
@@ -444,6 +445,7 @@ const css = `
   .app.dark .amount-highlight { background: linear-gradient(135deg, #082015, #0a2a1a); border-color: #1f6b42; }
   .app.dark .order-summary-mini { background: var(--bg); }
   .app.dark .warning-box { background: #281900; border-color: #6b4c00; }
+  .app.dark .chat-overlay { background: rgba(0,0,0,0.60); }
   .app.dark .chat-window { background: var(--surface); border-color: var(--border); }
   .app.dark .chat-head { background: #A81E1E; }
   .app.dark .cmsg-a .cmsg-b { background: #2D3350; color: var(--text); }
@@ -807,13 +809,21 @@ const Stars = ({ rating, reviews }) => {
 };
 
 // ─── CHAT WIDGET ─────────────────────────────────────────────────────────────
-const ChatWidget = ({ user, onShowAuth }) => {
-  const [open, setOpen] = useState(false);
+const ChatWidget = ({ user, open, onClose }) => {
   const [msgs, setMsgs] = useState([]);
   const [inp, setInp] = useState("");
   const [sending, setSending] = useState(false);
   const endRef = useRef(null);
   const pollRef = useRef(null);
+
+  // Working hours: Mon–Fri 09:00–20:00 (local time)
+  const isOnline = () => {
+    const now = new Date();
+    const day = now.getDay(); // 0=Dom, 6=Sáb
+    const hour = now.getHours();
+    return day >= 1 && day <= 5 && hour >= 9 && hour < 20;
+  };
+  const online = isOnline();
 
   const fetchMsgs = async () => {
     try {
@@ -849,54 +859,54 @@ const ChatWidget = ({ user, onShowAuth }) => {
     finally { setSending(false); }
   };
 
-  const handleFabClick = () => {
-    if (!user) { onShowAuth?.(); return; }
-    setOpen(o => !o);
-  };
+  if (!open || !user) return null;
 
   return (
-    <>
-      <button className="chat-fab-btn" onClick={handleFabClick}>
-        💬<span className="online-dot" />
-      </button>
-      {open && user && (
-        <div className="chat-window">
-          <div className="chat-head">
-            <div className="chat-agent-info">
-              <div className="agent-av">S</div>
-              <div><div className="agent-nm">Soporte</div><div className="agent-st">● En línea</div></div>
+    <div className="chat-overlay" onClick={e => { if (e.target === e.currentTarget) onClose?.(); }}>
+      <div className="chat-window">
+        <div className="chat-head">
+          <div className="chat-agent-info">
+            <div className="agent-av">🎧</div>
+            <div>
+              <div className="agent-nm">Soporte</div>
+              <div className="agent-st">{online ? "● En línea" : "● Fuera de horario"}</div>
+              <div className="chat-hours">Lun – Vie · 09:00 – 20:00</div>
             </div>
-            <button className="chat-x" onClick={() => setOpen(false)}>✕</button>
           </div>
-          <div className="chat-msgs">
-            {msgs.length === 0 && (
-              <div className="cmsg cmsg-a">
-                <div className="cmsg-b">¡Hola! 👋 ¿En qué puedo ayudarte hoy?</div>
-                <div className="cmsg-t">{nowTime()}</div>
-              </div>
-            )}
-            {msgs.map((m) => (
-              <div key={m.id} className={`cmsg ${m.isAdmin ? "cmsg-a" : "cmsg-u"}`}>
-                <div className="cmsg-b">{m.text}</div>
-                <div className="cmsg-t">{new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
-              </div>
-            ))}
-            <div ref={endRef} />
-          </div>
-          <div className="chat-input-row">
-            <input
-              className="chat-inp"
-              placeholder="Escribe aquí..."
-              value={inp}
-              onChange={e => setInp(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && send()}
-              disabled={sending}
-            />
-            <button className="chat-snd" onClick={send} disabled={sending}>➤</button>
-          </div>
+          <button className="chat-x" onClick={onClose}>✕</button>
         </div>
-      )}
-    </>
+        <div className="chat-msgs">
+          {msgs.length === 0 && (
+            <div className="cmsg cmsg-a">
+              <div className="cmsg-b">
+                {online
+                  ? "¡Hola! 👋 ¿En qué puedo ayudarte hoy?"
+                  : "¡Hola! 👋 Estamos fuera de horario, pero te responderemos a la brevedad."}
+              </div>
+              <div className="cmsg-t">{nowTime()}</div>
+            </div>
+          )}
+          {msgs.map((m) => (
+            <div key={m.id} className={`cmsg ${m.isAdmin ? "cmsg-a" : "cmsg-u"}`}>
+              <div className="cmsg-b">{m.text}</div>
+              <div className="cmsg-t">{new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+            </div>
+          ))}
+          <div ref={endRef} />
+        </div>
+        <div className="chat-input-row">
+          <input
+            className="chat-inp"
+            placeholder="Escribe aquí..."
+            value={inp}
+            onChange={e => setInp(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && send()}
+            disabled={sending}
+          />
+          <button className="chat-snd" onClick={send} disabled={sending}>➤</button>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -3087,6 +3097,7 @@ export default function App() {
     try { localStorage.setItem("bmveri_cart", JSON.stringify(cart)); } catch {}
   }, [cart]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [showMiniCart, setShowMiniCart] = useState(false);
   const [lastAdded, setLastAdded] = useState(null);
   const miniCartTimer = useRef(null);
@@ -3360,6 +3371,7 @@ export default function App() {
               <button className={`nav-tab ${view === "shop" ? "active" : ""}`} onClick={() => { setView("shop"); setSelectedProduct(null); }}>🛍 Tienda</button>
               <button className={`nav-tab ${view === "account" ? "active" : ""}`} onClick={() => setView("account")}>👤 Mi cuenta</button>
               <NotificationBell user={user} onGoAccount={() => setView("account")} />
+              <button className="chat-support-btn" onClick={() => setChatOpen(true)} title="Soporte">🎧</button>
               <button className="btn btn-outline btn-sm" onClick={() => signOut()}>Salir</button>
             </>
           ) : (
@@ -3399,7 +3411,7 @@ export default function App() {
       {showPayment && user && <PaymentModal cart={cart} user={user} coupon={pendingCoupon} finalTotal={pendingTotal} onClose={() => setShowPayment(false)} onSuccess={handlePaySuccess} wallets={wallets} />}
       {showSuccess && lastOrder && <SuccessModal order={lastOrder} onClose={() => { setShowSuccess(false); setView("account"); }} />}
 
-      <ChatWidget user={user} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} />
+      <ChatWidget user={user} open={chatOpen} onClose={() => setChatOpen(false)} />
     </div>
   );
 }
