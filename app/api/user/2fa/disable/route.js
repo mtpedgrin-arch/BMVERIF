@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../../lib/authOptions";
-import { authenticator } from "otplib";
+import { verifySync } from "otplib";
 import { prisma } from "../../../../../lib/prisma";
 
 // POST /api/user/2fa/disable — verify current TOTP code and disable 2FA
@@ -19,7 +19,7 @@ export async function POST(req) {
 
   if (!user?.twoFactorEnabled) return NextResponse.json({ error: "El 2FA no está activo." }, { status: 400 });
 
-  const valid = authenticator.verify({ token: code, secret: user.twoFactorSecret });
+  const valid = verifySync({ token: code, secret: user.twoFactorSecret })?.valid;
   if (!valid) return NextResponse.json({ error: "Código incorrecto." }, { status: 400 });
 
   await prisma.user.update({

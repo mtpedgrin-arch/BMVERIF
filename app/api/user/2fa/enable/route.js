@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../../lib/authOptions";
-import { authenticator } from "otplib";
+import { verifySync } from "otplib";
 import { prisma } from "../../../../../lib/prisma";
 
 // POST /api/user/2fa/enable — verify code and save secret
@@ -12,7 +12,7 @@ export async function POST(req) {
   const { code, secret } = await req.json();
   if (!code || !secret) return NextResponse.json({ error: "Datos incompletos." }, { status: 400 });
 
-  const valid = authenticator.verify({ token: code, secret });
+  const valid = verifySync({ token: code, secret })?.valid;
   if (!valid) return NextResponse.json({ error: "Código incorrecto. Intentá de nuevo." }, { status: 400 });
 
   await prisma.user.update({
