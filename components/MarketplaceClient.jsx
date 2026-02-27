@@ -63,11 +63,11 @@ const css = `
   .shop-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .shop-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
   .shop-count { font-size: 13px; color: var(--muted); }
-  .cat-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .cat-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
   .cat-chip { display: flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 50px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); transition: all 0.15s; }
   .cat-chip:hover { border-color: #1877F2; color: #1877F2; }
   .cat-chip.active { background: #1877F2; border-color: #1877F2; color: #fff; box-shadow: 0 2px 10px rgba(24,119,242,0.35); }
-  .cat-chip img { width: 16px; height: 16px; border-radius: 3px; }
+  .cat-section-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 10px; margin-top: 4px; padding-bottom: 8px; border-bottom: 2px solid #1877F2; display: inline-block; }
   .product-list { display: flex; flex-direction: column; background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
   .product-row { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); transition: background 0.12s; }
   .product-row:last-child { border-bottom: none; }
@@ -2506,7 +2506,17 @@ const ProductDetailPage = ({ product: p, cart, onBack, onAddToCartQty, onBuyNowQ
 const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike, products, onProductClick }) => {
   const [activeCat, setActiveCat] = useState("all");
   const getQty = id => cart.find(i => i.id === id)?.qty || 0;
-  const filtered = activeCat === "all" ? products : products.filter(p => (p.category || "bm") === activeCat);
+  const CATS = [
+    { key: "bm", label: "BMs Verificadas" },
+    { key: "ads-account", label: "Cuentas para Publicidad" },
+  ];
+  const visibleCats = activeCat === "all" ? CATS : CATS.filter(c => c.key === activeCat);
+  const sortProds = arr => [...arr].sort((a, b) => {
+    const effA = a.badgeDiscount > 0 ? a.price * (1 - a.badgeDiscount / 100) : a.price;
+    const effB = b.badgeDiscount > 0 ? b.price * (1 - b.badgeDiscount / 100) : b.price;
+    return effA - effB;
+  });
+  const totalVisible = visibleCats.reduce((acc, c) => acc + products.filter(p => (p.category || "bm") === c.key).length, 0);
   return (
     <>
       <div className="hero">
@@ -2521,75 +2531,72 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
         </div>
       </div>
       <div className="shop-wrap">
-        <div className="cat-filter">
-          <button className={`cat-chip${activeCat === "all" ? " active" : ""}`} onClick={() => setActiveCat("all")}>
-            <img src="/facebook-verificado.png" alt="" /> Todo
-          </button>
-          <button className={`cat-chip${activeCat === "bm" ? " active" : ""}`} onClick={() => setActiveCat("bm")}>
-            <img src="/facebook-verificado.png" alt="" /> Business Managers
-          </button>
-          <button className={`cat-chip${activeCat === "ads-account" ? " active" : ""}`} onClick={() => setActiveCat("ads-account")}>
-            <img src="/facebook-verificado.png" alt="" /> Accounts for Advertising
-          </button>
-        </div>
         <div className="shop-header">
           <div className="shop-title">Productos disponibles</div>
-          <div className="shop-count">{filtered.length} productos</div>
+          <div className="shop-count">{totalVisible} productos</div>
         </div>
-        <div className="product-list">
-          {filtered.length === 0 && (
-            <div style={{ textAlign: "center", padding: "50px 20px", color: "var(--muted)" }}>
-              <div style={{ fontSize: 40, marginBottom: 10 }}>🛍</div>
-              <div style={{ fontWeight: 600 }}>Cargando productos...</div>
-            </div>
-          )}
-          {[...filtered].sort((a, b) => {
-              const effA = a.badgeDiscount > 0 ? a.price * (1 - a.badgeDiscount / 100) : a.price;
-              const effB = b.badgeDiscount > 0 ? b.price * (1 - b.badgeDiscount / 100) : b.price;
-              return effA - effB;
-            }).map(p => {
-            const qty = getQty(p.id);
-            return (
-              <div key={p.id} className="product-row" onClick={() => onProductClick && onProductClick(p)}>
-                <div className="prod-thumb">
-                  <div className="prod-thumb-inner"><img src="/facebook-verificado.png" alt="Facebook" /></div>
-                  <div className="verified-badge">✓</div>
-                </div>
-                <div className="prod-info">
-                  <div className="prod-name">{p.name}</div>
-                  <div className="prod-details">{p.details}</div>
-                  <div className="prod-meta">
-                    {p.rating > 0 && <Stars rating={p.rating} reviews={p.reviews} />}
-                    <span className="chip chip-stock">In Stock: <strong>{p.stock} pcs.</strong></span>
-                    <span className="chip chip-sales">Sales: <strong>{p.sales} pcs.</strong></span>
-                  </div>
-                </div>
-                <div className="prod-right">
-                  {p.badgeDiscount > 0 ? (() => {
-                    const discountedPrice = p.price * (1 - p.badgeDiscount / 100);
-                    return (
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ fontSize: 11, fontWeight: 800, background: "var(--red)", color: "#fff", borderRadius: 6, padding: "2px 8px" }}>-{p.badgeDiscount}%</span>
-                          <span style={{ fontSize: 12, color: "var(--muted)", textDecoration: "line-through" }}>{fmtUSDT(p.price)}</span>
-                        </div>
-                        <div className="prod-price" style={{ marginTop: 0 }}>{fmtUSDT(discountedPrice)}</div>
+        <div className="cat-filter">
+          <button className={`cat-chip${activeCat === "all" ? " active" : ""}`} onClick={() => setActiveCat("all")}>Todo</button>
+          {CATS.map(c => (
+            <button key={c.key} className={`cat-chip${activeCat === c.key ? " active" : ""}`} onClick={() => setActiveCat(c.key)}>{c.label}</button>
+          ))}
+        </div>
+        {products.length === 0 && (
+          <div style={{ textAlign: "center", padding: "50px 20px", color: "var(--muted)" }}>
+            <div style={{ fontSize: 40, marginBottom: 10 }}>🛍</div>
+            <div style={{ fontWeight: 600 }}>Cargando productos...</div>
+          </div>
+        )}
+        {visibleCats.map(({ key, label }) => {
+          const catProducts = sortProds(products.filter(p => (p.category || "bm") === key));
+          if (catProducts.length === 0) return null;
+          return (
+            <div key={key} style={{ marginBottom: 28 }}>
+              <div className="cat-section-title">{label}</div>
+              <div className="product-list">
+                {catProducts.map(p => (
+                  <div key={p.id} className="product-row" onClick={() => onProductClick && onProductClick(p)}>
+                    <div className="prod-thumb">
+                      <div className="prod-thumb-inner"><img src="/facebook-verificado.png" alt="Facebook" /></div>
+                      <div className="verified-badge">✓</div>
+                    </div>
+                    <div className="prod-info">
+                      <div className="prod-name">{p.name}</div>
+                      <div className="prod-details">{p.details}</div>
+                      <div className="prod-meta">
+                        {p.rating > 0 && <Stars rating={p.rating} reviews={p.reviews} />}
+                        <span className="chip chip-stock">In Stock: <strong>{p.stock} pcs.</strong></span>
+                        <span className="chip chip-sales">Sales: <strong>{p.sales} pcs.</strong></span>
                       </div>
-                    );
-                  })() : <div className="prod-price">{fmtUSDT(p.price)}</div>}
-                  <div className="prod-actions">
-                    {p.stock === 0
-                      ? <button className="buy-btn" disabled>Sin stock</button>
-                      : <button className="buy-btn" onClick={e => { e.stopPropagation(); onBuyNow(p); }}>Buy now</button>
-                    }
-                    <button className="icon-btn" title="Agregar al carrito" onClick={e => { e.stopPropagation(); if (p.stock > 0) onAddToCart(p); }}>🛒</button>
-                    <button className={`icon-btn ${liked[p.id] ? "liked" : ""}`} onClick={e => { e.stopPropagation(); onToggleLike(p.id); }}>{liked[p.id] ? "❤️" : "🤍"}</button>
+                    </div>
+                    <div className="prod-right">
+                      {p.badgeDiscount > 0 ? (() => {
+                        const discountedPrice = p.price * (1 - p.badgeDiscount / 100);
+                        return (
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <span style={{ fontSize: 11, fontWeight: 800, background: "var(--red)", color: "#fff", borderRadius: 6, padding: "2px 8px" }}>-{p.badgeDiscount}%</span>
+                              <span style={{ fontSize: 12, color: "var(--muted)", textDecoration: "line-through" }}>{fmtUSDT(p.price)}</span>
+                            </div>
+                            <div className="prod-price" style={{ marginTop: 0 }}>{fmtUSDT(discountedPrice)}</div>
+                          </div>
+                        );
+                      })() : <div className="prod-price">{fmtUSDT(p.price)}</div>}
+                      <div className="prod-actions">
+                        {p.stock === 0
+                          ? <button className="buy-btn" disabled>Sin stock</button>
+                          : <button className="buy-btn" onClick={e => { e.stopPropagation(); onBuyNow(p); }}>Buy now</button>
+                        }
+                        <button className="icon-btn" title="Agregar al carrito" onClick={e => { e.stopPropagation(); if (p.stock > 0) onAddToCart(p); }}>🛒</button>
+                        <button className={`icon-btn ${liked[p.id] ? "liked" : ""}`} onClick={e => { e.stopPropagation(); onToggleLike(p.id); }}>{liked[p.id] ? "❤️" : "🤍"}</button>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="info-section">
@@ -3378,8 +3385,8 @@ const ProductManager = ({ products, setProducts }) => {
             <div className="form-group">
               <label className="form-label">Categoría</label>
               <select className="form-input" value={form.category} onChange={setF("category")}>
-                <option value="bm">Business Manager Verificado</option>
-                <option value="ads-account">Account for Advertising</option>
+                <option value="bm">BM Verificada</option>
+                <option value="ads-account">Cuenta para Publicidad</option>
               </select>
             </div>
           </div>
@@ -3436,7 +3443,7 @@ const ProductManager = ({ products, setProducts }) => {
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>Nombre</th><th>Detalles</th><th>Venta</th><th>Costo</th><th>Margen</th><th>Stock</th><th>Ventas</th><th>Badge %</th><th>Estado</th><th>Acciones</th></tr>
+              <tr><th>Nombre</th><th>Detalles</th><th>Categoría</th><th>Venta</th><th>Costo</th><th>Margen</th><th>Stock</th><th>Ventas</th><th>Badge %</th><th>Estado</th><th>Acciones</th></tr>
             </thead>
             <tbody>
               {products.length === 0 && (
@@ -3448,6 +3455,11 @@ const ProductManager = ({ products, setProducts }) => {
                 <tr key={p.id} style={{ opacity: p.isActive ? 1 : 0.5 }}>
                   <td style={{ maxWidth: 200, fontSize: 12, fontWeight: 600 }}>{p.name}</td>
                   <td style={{ maxWidth: 180, fontSize: 11, color: "var(--muted)" }}>{p.details || "—"}</td>
+                  <td>
+                    <span className="chip" style={{ background: (p.category || "bm") === "ads-account" ? "#EFF6FF" : "#F0FDF4", color: (p.category || "bm") === "ads-account" ? "#1D4ED8" : "#15803D", border: `1px solid ${(p.category || "bm") === "ads-account" ? "#BFDBFE" : "#BBF7D0"}`, whiteSpace: "nowrap", fontSize: 10 }}>
+                      {(p.category || "bm") === "ads-account" ? "Cuentas Ads" : "BM Verificada"}
+                    </span>
+                  </td>
                   <td><strong style={{ color: "var(--usdt)" }}>{fmtUSDT(p.price)}</strong></td>
                   <td style={{ fontSize: 12, color: p.cost > 0 ? "var(--red)" : "var(--muted)" }}>{p.cost > 0 ? fmtUSDT(p.cost) : "—"}</td>
                   <td>
