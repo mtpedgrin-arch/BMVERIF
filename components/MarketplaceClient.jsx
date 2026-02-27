@@ -572,6 +572,20 @@ const css = `
   .app.dark .pd-tier-row { border-color: var(--border); }
   .app.dark .pd-price-panel { background: var(--surface); border-color: var(--border); }
   .app.dark .pd-warranty { background: var(--green-light); border-color: var(--green-border); }
+  .info-section { max-width: 1200px; margin: 40px auto 0; padding: 0 20px 40px; }
+  .info-section h2 { font-size: 22px; font-weight: 800; margin: 32px 0 10px; color: var(--text); }
+  .info-section h3 { font-size: 16px; font-weight: 700; margin: 24px 0 8px; color: var(--text); }
+  .info-section p { font-size: 13px; line-height: 1.7; color: var(--muted); margin: 0 0 10px; }
+  .info-section ul { margin: 6px 0 10px 18px; padding: 0; }
+  .info-section ul li { font-size: 13px; line-height: 1.7; color: var(--muted); margin-bottom: 4px; }
+  .info-section .info-divider { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  .info-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 12px 0; }
+  .info-table th { background: var(--surface); border: 1px solid var(--border); padding: 8px 10px; text-align: left; font-weight: 700; color: var(--text); }
+  .info-table td { border: 1px solid var(--border); padding: 8px 10px; color: var(--muted); vertical-align: top; }
+  .info-faq { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
+  .info-faq-item { border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; background: var(--surface); }
+  .info-faq-q { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .info-faq-a { font-size: 12px; color: var(--muted); line-height: 1.6; }
   .site-footer { border-top: 1px solid var(--border); padding: 28px 24px; margin-top: auto; }
   .site-footer-inner { max-width: 1200px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
   .site-footer-logo { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; color: var(--text); }
@@ -2547,6 +2561,86 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
               </div>
             );
           })}
+        </div>
+      </div>
+
+      <div className="info-section">
+        <h2>¿Qué es un Facebook Business Manager verificado?</h2>
+        <p>Un Facebook Business Manager verificado es una cuenta corporativa en el sistema de Meta, confirmada con documentos de empresa y validada por Meta. Estas cuentas tienen derechos extendidos en la gestión de anuncios y acceso a funciones no disponibles para usuarios no verificados.</p>
+        <p>En esencia, es un "pasaporte corporativo" en el ecosistema de Meta, que garantiza que la empresa opera de forma legítima y puede usar herramientas publicitarias sin restricciones.</p>
+
+        <h3>¿Por qué necesitás un Business Manager verificado para publicidad?</h3>
+        <p>Un Business Manager verificado es necesario para acceder de forma estable a las herramientas publicitarias, conectar métodos de pago y gestionar páginas de clientes de manera legal. Las empresas lo usan para reducir la probabilidad de baneos, gestionar múltiples cuentas publicitarias y aumentar la confianza de Meta.</p>
+
+        <h3>¿Cuáles son las ventajas de un Business Manager verificado?</h3>
+        <p>Un Business Manager verificado da acceso a métodos de promoción avanzados, formatos publicitarios adicionales y mayor confianza de los algoritmos de Meta. Las principales ventajas incluyen:</p>
+        <ul>
+          <li>Capacidad de crear y escalar múltiples cuentas publicitarias.</li>
+          <li>Conexión de distintos métodos de pago.</li>
+          <li>Gestión segura de páginas y dominios.</li>
+          <li>Menor probabilidad de baneos.</li>
+        </ul>
+
+        <h3>¿Cómo difiere un Business Manager verificado de uno regular?</h3>
+        <p>Un BM regular permite gestionar páginas y anuncios pero tiene límites de confianza y de cuentas publicitarias. El verificado elimina esas barreras, brindando mayor flexibilidad y seguridad para escalar campañas.</p>
+
+        <h3>¿Cómo ayudan los BM verificados contra los baneos?</h3>
+        <p>Las cuentas verificadas tienen menos probabilidad de ser restringidas automáticamente y pueden recuperarse más rápido durante revisiones de seguridad. Sin embargo, no son protección absoluta: violar las políticas de Meta puede igual derivar en baneos.</p>
+
+        <h3>¿Cuáles son los riesgos de comprar o alquilar un BM verificado?</h3>
+        <p>Los principales riesgos incluyen:</p>
+        <ul>
+          <li>Baneos permanentes sin reembolso.</li>
+          <li>Pérdida de acceso si se revoca la titularidad.</li>
+          <li>Consecuencias legales por usar datos de terceros.</li>
+        </ul>
+
+        <h3>¿A quién están dirigidos los Business Managers verificados?</h3>
+        <p>Los públicos clave incluyen agencias de marketing digital, dueños de e-commerce, especialistas en arbitraje de tráfico y servicios que trabajan con productos tanto white-hat como gray-hat.</p>
+
+        <hr className="info-divider" />
+
+        <h2>Tabla comparativa: BM Regular vs BM Verificado</h2>
+        <div style={{ overflowX: "auto" }}>
+          <table className="info-table">
+            <thead>
+              <tr>
+                <th>Característica</th>
+                <th>BM Regular</th>
+                <th>BM Verificado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Nivel de confianza Meta</td><td>Bajo, alto riesgo de baneo</td><td>Alto, riesgo reducido</td></tr>
+              <tr><td>Límite de cuentas publicitarias</td><td>Limitado (1–2)</td><td>Extendido (5+ según nivel)</td></tr>
+              <tr><td>Métodos de pago</td><td>Opciones limitadas</td><td>Soporte completo</td></tr>
+              <tr><td>Proceso de adquisición</td><td>Gratis, sin documentos</td><td>Requiere documentos o compra</td></tr>
+              <tr><td>Riesgo de baneo</td><td>Alto</td><td>Reducido, no eliminado</td></tr>
+              <tr><td>Costo</td><td>Gratis</td><td>Alto (verificación o compra)</td></tr>
+              <tr><td>Ideal para</td><td>Pequeñas empresas, pruebas</td><td>Agencias, e-commerce, arbitraje</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <hr className="info-divider" />
+
+        <h2>Preguntas frecuentes (FAQ)</h2>
+        <div className="info-faq">
+          {[
+            ["¿Qué brinda la verificación de Facebook Business Manager?", "Desbloquea capacidades publicitarias avanzadas, reduce el riesgo de baneos y aumenta la confianza de Meta en el negocio."],
+            ["¿Puedo comprar un Business Manager verificado listo para usar?", "Sí, este tipo de cuentas se venden en plataformas especializadas como BM Verificada, aunque su uso conlleva riesgos legales y técnicos."],
+            ["¿Qué riesgos tiene comprar una cuenta verificada?", "Pérdida de acceso, baneos permanentes sin reembolso y posibles problemas legales por violar las reglas de Meta."],
+            ["¿Quién necesita un Business Manager verificado?", "Son valiosos para agencias, dueños de e-commerce, especialistas en arbitraje y negocios que trabajan con anuncios de Facebook."],
+            ["¿Puedo verificar mi Business Manager por mi cuenta?", "Sí, Meta permite a las empresas enviar documentos oficiales y completar el proceso de verificación empresarial."],
+            ["¿Cuántas cuentas publicitarias puede crear un BM verificado?", "Las cuentas verificadas permiten significativamente más cuentas publicitarias que los BM regulares, facilitando el escalado."],
+            ["¿La verificación previene los baneos?", "Reduce la probabilidad, pero no garantiza inmunidad si se violan las políticas de Meta."],
+            ["¿Cómo se debe usar correctamente un BM verificado?", "Para distribución de presupuestos, configuración de dominios y píxeles, y cumplimiento de las reglas publicitarias de Meta."],
+          ].map(([q, a]) => (
+            <div key={q} className="info-faq-item">
+              <div className="info-faq-q">{q}</div>
+              <div className="info-faq-a">{a}</div>
+            </div>
+          ))}
         </div>
       </div>
     </>
