@@ -41,14 +41,14 @@ export async function GET(req) {
     return NextResponse.json(Object.values(convMap));
   }
 
-  // usuario normal — sus mensajes
+  // usuario normal — sus mensajes (filtramos por userEmail para incluir respuestas del admin)
   const msgs = await prisma.chatMessage.findMany({
-    where: { userId: session.user.id },
+    where: { userEmail: session.user.email },
     orderBy: { createdAt: "asc" },
   });
   // marcar como leídos los mensajes del admin hacia el usuario
   await prisma.chatMessage.updateMany({
-    where: { userId: session.user.id, isAdmin: true, read: false },
+    where: { userEmail: session.user.email, isAdmin: true, read: false },
     data: { read: true },
   });
   return NextResponse.json(msgs);
