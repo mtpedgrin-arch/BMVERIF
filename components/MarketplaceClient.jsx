@@ -1184,57 +1184,34 @@ const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
   );
 };
 
-// ─── PAYMENT MODAL ────────────────────────────────────────────────────────────
-const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, wallets: W = WALLETS }) => {
-  const [network, setNetwork] = useState(null);
-  const [step, setStep] = useState(1); // 1=select network, 2=waiting payment
-  const [creating, setCreating] = useState(false);
-  const [order, setOrder] = useState(null);
-  const [copied, setCopied] = useState(false);
+// ─── PAYMENT PENDING MODAL (full-screen dark layout) ─────────────────────────
+const PendingDigit = ({ n, expired }) => (
+  <span style={{
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    background: "#0d1b2a", color: expired ? "#ef4444" : "#22c55e",
+    fontFamily: "monospace", fontSize: 28, fontWeight: 900,
+    width: 44, height: 52, borderRadius: 8, border: "1px solid #1e3a5f",
+  }}>{n}</span>
+);
+
+const PendingPanelCard = ({ title, children, accent }) => (
+  <div style={{
+    background: accent ? "rgba(240,165,0,0.05)" : "#111827",
+    border: `1px solid ${accent ? "rgba(240,165,0,0.25)" : "#1f2937"}`,
+    borderRadius: 12, padding: "14px 16px",
+  }}>
+    <div style={{ color: "#f0a500", fontWeight: 700, fontSize: 13, marginBottom: 8 }}>{title}</div>
+    <div style={{ fontSize: 12, color: accent ? "#f0a500" : "#9ca3af", lineHeight: 1.65 }}>{children}</div>
+  </div>
+);
+
+const PaymentPendingModal = ({ order, walletAddr, walletColor, onSuccess, onCancel }) => {
   const [payStatus, setPayStatus] = useState("polling"); // polling | paid | expired
   const [timeLeft, setTimeLeft] = useState(3600);
+  const [copied, setCopied] = useState(false);
+  const network = order.network;
 
-  const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const discountAmt = coupon ? subtotal * (coupon.discount / 100) : 0;
-
-  const selectNetwork = async (n) => {
-    setNetwork(n);
-    setCreating(true);
-    try {
-      if (coupon) {
-        await fetch("/api/coupons/use", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: coupon.code }),
-        }).catch(() => {});
-      }
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: cart.map(i => ({ name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty, productId: i.id || null })),
-          subtotal, discount: discountAmt,
-          coupon: coupon?.code || null,
-          total: finalTotal,
-          network: n,
-        }),
-      });
-      const newOrder = await res.json();
-      setOrder(newOrder);
-      setStep(2);
-    } catch {
-      alert("Error al crear la orden. Intentá de nuevo.");
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const copy = () => {
-    navigator.clipboard.writeText(W[network]?.addr).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  // Countdown timer
+  // Countdown
   useEffect(() => {
     if (!order?.expiresAt) return;
     const tick = () => {
@@ -1247,7 +1224,7 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, wall
     return () => clearInterval(id);
   }, [order?.expiresAt]);
 
-  // Auto-close after paid (show success 2.5s then close)
+  // Auto-forward after paid
   useEffect(() => {
     if (payStatus !== "paid" || !order) return;
     const t = setTimeout(() => onSuccess({ ...order, status: "paid" }), 2500);
@@ -1271,9 +1248,226 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, wall
 
   const mins = String(Math.floor(timeLeft / 60)).padStart(2, "0");
   const secs = String(timeLeft % 60).padStart(2, "0");
+  const copy = () => {
+    navigator.clipboard.writeText(walletAddr).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
-    <div className="modal-overlay" onClick={step === 1 ? onClose : undefined}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "#070d14", overflowY: "auto", padding: "22px 16px 40px" }}>
+      {/* Top bar */}
+      <div style={{ display: "flex", justifyContent: "flex-end", maxWidth: 1100, margin: "0 auto 20px" }}>
+        <button onClick={onCancel} style={{
+          background: "#6d28d9", color: "#fff", padding: "8px 22px",
+          borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 14,
+        }}>← Volver</button>
+      </div>
+
+      {/* 3-column grid */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "minmax(0,240px) 1fr minmax(0,240px)",
+        gap: 16, maxWidth: 1100, margin: "0 auto",
+      }}>
+
+        {/* ─── LEFT COLUMN ─── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* Countdown */}
+          <div style={{ background: "#0d1b2a", border: "1px solid #1e3a5f", borderRadius: 12, padding: "18px 12px", textAlign: "center" }}>
+            <div style={{ color: "#f0a500", fontWeight: 700, fontSize: 12, marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              ⏱ Payment Time Remaining
+            </div>
+            {payStatus === "polling" ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                <PendingDigit n={mins[0]} expired={payStatus === "expired"} /><PendingDigit n={mins[1]} expired={payStatus === "expired"} />
+                <span style={{ color: "#22c55e", fontSize: 26, fontWeight: 900, lineHeight: 1 }}>:</span>
+                <PendingDigit n={secs[0]} expired={payStatus === "expired"} /><PendingDigit n={secs[1]} expired={payStatus === "expired"} />
+              </div>
+            ) : (
+              <div style={{ color: payStatus === "paid" ? "#22c55e" : "#ef4444", fontWeight: 800, fontSize: 15 }}>
+                {payStatus === "paid" ? "✅ Pagado" : "⏰ Expirado"}
+              </div>
+            )}
+          </div>
+
+          <PendingPanelCard title="ℹ Dirección">
+            <strong style={{ color: "#e5e7eb" }}>Una sola vez.</strong> Copiá o escaneá el QR. No envíes fondos a esta dirección por ningún otro motivo que no sea esta orden.
+          </PendingPanelCard>
+
+          <PendingPanelCard title="⚠ Advertencia" accent>
+            Red incorrecta, monto incorrecto o reutilización de esta dirección resultará en <strong style={{ color: "#fbbf24" }}>pérdida de fondos.</strong>
+          </PendingPanelCard>
+        </div>
+
+        {/* ─── CENTER ─── */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          {payStatus === "paid" && (
+            <div style={{ textAlign: "center", paddingTop: 50 }}>
+              <div style={{ fontSize: 70, marginBottom: 16 }}>🎉</div>
+              <div style={{ fontFamily: "Syne", fontSize: 26, fontWeight: 900, color: "#22c55e" }}>¡Pago confirmado!</div>
+              <div style={{ fontSize: 14, color: "#9ca3af", marginTop: 10 }}>Tu orden fue verificada automáticamente en la blockchain.</div>
+            </div>
+          )}
+
+          {payStatus === "expired" && (
+            <div style={{ textAlign: "center", paddingTop: 50 }}>
+              <div style={{ fontSize: 70, marginBottom: 16 }}>⏰</div>
+              <div style={{ fontFamily: "Syne", fontSize: 22, fontWeight: 900, color: "#ef4444" }}>Orden vencida</div>
+              <div style={{ fontSize: 14, color: "#9ca3af", marginTop: 10, marginBottom: 20 }}>El tiempo expiró. Podés crear una nueva orden.</div>
+              <button onClick={onCancel} style={{ background: "#1f2937", color: "#e5e7eb", padding: "10px 24px", borderRadius: 8, border: "1px solid #374151", cursor: "pointer", fontWeight: 600 }}>
+                ← Volver a la tienda
+              </button>
+            </div>
+          )}
+
+          {payStatus === "polling" && (
+            <>
+              {/* Title */}
+              <div style={{ marginBottom: 18, textAlign: "center" }}>
+                <span style={{ fontFamily: "Syne", fontSize: 24, fontWeight: 900, color: "#fff" }}>Payment </span>
+                <span style={{ fontFamily: "Syne", fontSize: 24, fontWeight: 900, color: "#f0a500" }}>Pending</span>
+                <span style={{
+                  display: "inline-block", width: 10, height: 10, borderRadius: "50%",
+                  background: "#f0a500", marginLeft: 10, verticalAlign: "middle",
+                  animation: "pulse 1.5s ease-in-out infinite",
+                }} />
+              </div>
+
+              {/* Amount */}
+              <div style={{ textAlign: "center", marginBottom: 20 }}>
+                <div style={{ fontFamily: "Syne", fontSize: 54, fontWeight: 900, color: "#22c55e", lineHeight: 1 }}>
+                  ${order.uniqueAmount?.toFixed(2)}
+                </div>
+                <div style={{ color: "#9ca3af", fontSize: 15, marginTop: 6 }}>
+                  = {order.uniqueAmount?.toFixed(2)} USDT ({network})
+                </div>
+              </div>
+
+              {/* QR */}
+              <div style={{ background: "#fff", padding: 10, borderRadius: 12, marginBottom: 18, display: "inline-block", border: `3px solid ${walletColor || "#22c55e"}` }}>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=175x175&data=${encodeURIComponent(walletAddr)}&margin=4`}
+                  alt="QR"
+                  style={{ width: 175, height: 175, display: "block" }}
+                />
+              </div>
+
+              {/* Payment address */}
+              <div style={{ width: "100%", background: "#0d1b2a", borderRadius: 12, padding: "16px 18px" }}>
+                <div style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 10 }}>
+                  Payment Address
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <div style={{
+                    flex: 1, background: "#070d14", border: "1px solid #1e3a5f",
+                    color: "#d1d5db", padding: "10px 12px",
+                    borderRadius: 8, fontSize: 12, fontFamily: "monospace",
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  }}>
+                    {walletAddr}
+                  </div>
+                  <button onClick={copy} style={{
+                    background: "#6d28d9", color: "#fff", padding: "10px 18px",
+                    borderRadius: 8, border: "none", cursor: "pointer",
+                    fontWeight: 700, fontSize: 13, whiteSpace: "nowrap", flexShrink: 0,
+                  }}>
+                    {copied ? "✓ Copiado" : "Copy"}
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ fontSize: 12, color: "#4b5563", marginTop: 14, textAlign: "center" }}>
+                🔄 Verificando automáticamente cada 30 segundos...
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* ─── RIGHT COLUMN ─── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <PendingPanelCard title="⚠ Disclaimer" accent>
+            Enviá <strong style={{ color: "#fbbf24" }}>exactamente</strong> el monto mostrado. Los centavos únicos identifican tu pago. No redondees ni modifiques el monto.
+          </PendingPanelCard>
+
+          <PendingPanelCard title={`⏱ USDT (${network})`}>
+            El pago debe realizarse en USDT por la red <strong style={{ color: "#e5e7eb" }}>{network === "TRC20" ? "TRON (TRC20)" : "BNB Smart Chain (BEP20)"}</strong>. No se aceptan otras monedas ni redes.
+          </PendingPanelCard>
+
+          <PendingPanelCard title="ℹ Nota">
+            Tenés <strong style={{ color: "#e5e7eb" }}>1 hora</strong> para completar el pago. El sistema verifica automáticamente. Si el pago no aparece en 30 min, contactá soporte.
+          </PendingPanelCard>
+        </div>
+      </div>
+
+      {/* Cancel button */}
+      {payStatus === "polling" && (
+        <div style={{ textAlign: "center", marginTop: 28 }}>
+          <button onClick={onCancel} style={{
+            background: "transparent", color: "#6b7280",
+            border: "1px solid #374151", padding: "10px 28px",
+            borderRadius: 8, cursor: "pointer", fontSize: 14,
+          }}>
+            Cancelar
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── PAYMENT MODAL (step 1: select network + proceed) ────────────────────────
+const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, wallets: W = WALLETS }) => {
+  const [network, setNetwork] = useState(null);
+  const [creating, setCreating] = useState(false);
+  const [order, setOrder] = useState(null);
+
+  const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const discountAmt = coupon ? subtotal * (coupon.discount / 100) : 0;
+
+  const proceed = async () => {
+    if (!network) return;
+    setCreating(true);
+    try {
+      if (coupon) {
+        await fetch("/api/coupons/use", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: coupon.code }),
+        }).catch(() => {});
+      }
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: cart.map(i => ({ name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty, productId: i.id || null })),
+          subtotal, discount: discountAmt,
+          coupon: coupon?.code || null,
+          total: finalTotal,
+          network,
+        }),
+      });
+      const newOrder = await res.json();
+      setOrder(newOrder);
+    } catch {
+      alert("Error al crear la orden. Intentá de nuevo.");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  // Once order is created, show PaymentPendingModal full-screen
+  if (order) return (
+    <PaymentPendingModal
+      order={order}
+      walletAddr={W[network].addr}
+      walletColor={W[network].color}
+      onSuccess={onSuccess}
+      onCancel={onClose}
+    />
+  );
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="usdt-header">
           <div className="usdt-logo">₮</div>
@@ -1288,110 +1482,32 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, wall
           <div className="order-row bold"><span>Total a pagar</span><span style={{ color: "var(--usdt)" }}>{fmtUSDT(finalTotal)}</span></div>
         </div>
 
-        {step === 1 && !creating && (
-          <>
-            <div style={{ fontFamily: "Syne", fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Selecciona la red:</div>
-            <div className="network-selector">
-              {Object.entries(W).map(([key, w]) => (
-                <div key={key} className={`network-card ${network === key ? "selected" : ""}`} onClick={() => selectNetwork(key)}>
-                  <div className="network-logo">{w.logo}</div>
-                  <div className="network-name">{key}</div>
-                  <div className="network-chain">{w.network}</div>
-                  <div className="network-meta">
-                    <span className="network-tag">Fee: {w.fee}</span>
-                    <span className="network-tag">{w.time}</span>
-                  </div>
-                </div>
-              ))}
+        <div style={{ fontFamily: "Syne", fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Selecciona la red:</div>
+        <div className="network-selector">
+          {Object.entries(W).map(([key, w]) => (
+            <div key={key} className={`network-card ${network === key ? "selected" : ""}`} onClick={() => setNetwork(key)}>
+              <div className="network-logo">{w.logo}</div>
+              <div className="network-name">{key}</div>
+              <div className="network-chain">{w.network}</div>
+              <div className="network-meta">
+                <span className="network-tag">Fee: {w.fee}</span>
+                <span className="network-tag">{w.time}</span>
+              </div>
             </div>
-            <button className="btn btn-outline btn-full" style={{ marginTop: 0 }} onClick={onClose}>Cancelar</button>
-          </>
-        )}
+          ))}
+        </div>
 
-        {creating && (
-          <div style={{ textAlign: "center", padding: "30px 0", color: "var(--muted)", fontSize: 14 }}>
-            ⏳ Generando orden...
-          </div>
-        )}
-
-        {step === 2 && order && (
-          <>
-            {/* Countdown bar */}
-            <div style={{
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-              background: payStatus === "expired" ? "rgba(239,68,68,0.08)" : payStatus === "paid" ? "rgba(34,197,94,0.08)" : "var(--amber-light,#fffbeb)",
-              border: `1px solid ${payStatus === "expired" ? "var(--red,#ef4444)" : payStatus === "paid" ? "var(--green,#22c55e)" : "var(--amber-border,#fde68a)"}`,
-              borderRadius: 10, padding: "10px 16px", marginBottom: 12,
-            }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: payStatus === "expired" ? "var(--red,#ef4444)" : payStatus === "paid" ? "var(--green,#22c55e)" : "var(--amber,#d97706)" }}>
-                {payStatus === "expired" ? "⚠️ Orden vencida" : payStatus === "paid" ? "✅ Pago detectado" : "⏱ Tiempo restante"}
-              </span>
-              {payStatus === "polling" && (
-                <span style={{ fontFamily: "monospace", fontSize: 20, fontWeight: 800, color: timeLeft < 300 ? "var(--red,#ef4444)" : "var(--amber,#d97706)" }}>
-                  {mins}:{secs}
-                </span>
-              )}
-            </div>
-
-            {/* Exact amount warning */}
-            {payStatus === "polling" && (
-              <div style={{
-                background: "rgba(239,68,68,0.07)", border: "2px solid var(--red,#ef4444)",
-                borderRadius: 12, padding: "14px 18px", marginBottom: 14, textAlign: "center",
-              }}>
-                <div style={{ fontSize: 11, color: "var(--red,#ef4444)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
-                  ⚠ Manda EXACTAMENTE
-                </div>
-                <div style={{ fontFamily: "Syne", fontSize: 32, fontWeight: 900, color: "var(--red,#ef4444)", letterSpacing: "-0.5px" }}>
-                  {order.uniqueAmount?.toFixed(2)} USDT
-                </div>
-                <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
-                  No redondees — los centavos identifican tu pago
-                </div>
-              </div>
-            )}
-
-            {/* Paid screen */}
-            {payStatus === "paid" && (
-              <div style={{ textAlign: "center", padding: "20px 0" }}>
-                <div style={{ fontSize: 54, marginBottom: 10 }}>✅</div>
-                <div style={{ fontFamily: "Syne", fontSize: 18, fontWeight: 800, color: "var(--green,#22c55e)" }}>¡Pago confirmado!</div>
-                <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 6 }}>Tu orden fue verificada automáticamente en la blockchain.</div>
-              </div>
-            )}
-
-            {/* Expired screen */}
-            {payStatus === "expired" && (
-              <div style={{ textAlign: "center", padding: "20px 0" }}>
-                <div style={{ fontSize: 54, marginBottom: 10 }}>⏰</div>
-                <div style={{ fontFamily: "Syne", fontSize: 16, fontWeight: 800, color: "var(--red,#ef4444)" }}>Orden vencida</div>
-                <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 6, marginBottom: 16 }}>El tiempo para pagar expiró. Podés crear una nueva orden.</div>
-                <button className="btn btn-outline btn-full" onClick={onClose}>Cerrar</button>
-              </div>
-            )}
-
-            {/* Wallet + QR */}
-            {payStatus === "polling" && network && (
-              <>
-                <div className="wallet-box">
-                  <div className="wallet-box-label">{W[network].logo} Wallet USDT {network} — {W[network].network}</div>
-                  <div style={{ textAlign: "center", margin: "10px 0 8px" }}>
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(W[network].addr)}&margin=10`}
-                      alt={`QR ${network}`}
-                      style={{ width: 180, height: 180, border: `3px solid ${W[network].color}`, borderRadius: 10, padding: 4, background: "#fff" }}
-                    />
-                  </div>
-                  <div className="wallet-address">{W[network].addr}</div>
-                  <button className="wallet-copy-btn" onClick={copy}>{copied ? "✓ Copiado!" : "📋 Copiar dirección"}</button>
-                </div>
-                <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", padding: "8px 0 4px" }}>
-                  🔄 Verificando automáticamente cada 30 segundos...
-                </div>
-              </>
-            )}
-          </>
-        )}
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <button
+            className="btn btn-usdt"
+            style={{ flex: 1, justifyContent: "center", opacity: (!network || creating) ? 0.5 : 1 }}
+            disabled={!network || creating}
+            onClick={proceed}
+          >
+            {creating ? "⏳ Generando orden..." : "✓ Proceder al pago →"}
+          </button>
+          <button className="btn btn-outline" onClick={onClose}>Cancelar</button>
+        </div>
       </div>
     </div>
   );
@@ -1433,8 +1549,8 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [createdOrder, setCreatedOrder] = useState(null); // order after creation
+  const [showPendingModal, setShowPendingModal] = useState(false); // show full-screen pending
   const [payStatus, setPayStatus] = useState("polling"); // polling | paid | expired
-  const [timeLeft, setTimeLeft] = useState(3600);
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const discountAmt = appliedCoupon ? subtotal * (appliedCoupon.discount / 100) : 0;
@@ -1471,27 +1587,15 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
       });
       const order = await res.json();
       setCreatedOrder(order);
+      setShowPendingModal(true);
       onSuccess(order);
     } catch { alert("Error al procesar. Intentá de nuevo."); }
     finally { setSubmitting(false); }
   };
 
-  // Countdown timer (once order is created)
+  // Background polling when modal is closed
   useEffect(() => {
-    if (!createdOrder?.expiresAt) return;
-    const tick = () => {
-      const left = Math.max(0, Math.floor((new Date(createdOrder.expiresAt) - Date.now()) / 1000));
-      setTimeLeft(left);
-      if (left === 0) setPayStatus(s => s === "polling" ? "expired" : s);
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [createdOrder?.expiresAt]);
-
-  // Blockchain polling every 30s
-  useEffect(() => {
-    if (!createdOrder?.id || payStatus !== "polling") return;
+    if (!createdOrder?.id || payStatus !== "polling" || showPendingModal) return;
     const poll = async () => {
       try {
         const res = await fetch(`/api/orders/${createdOrder.id}/check-payment`);
@@ -1502,89 +1606,62 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
     };
     const id = setInterval(poll, 30000);
     return () => clearInterval(id);
-  }, [createdOrder?.id, payStatus]);
+  }, [createdOrder?.id, payStatus, showPendingModal]);
 
-  const mins = String(Math.floor(timeLeft / 60)).padStart(2, "0");
-  const secs = String(timeLeft % 60).padStart(2, "0");
+  // Show full-screen payment pending modal
+  if (createdOrder && showPendingModal) return (
+    <PaymentPendingModal
+      order={createdOrder}
+      walletAddr={wallet.addr}
+      walletColor={wallet.color}
+      onSuccess={(paidOrder) => {
+        setPayStatus("paid");
+        setShowPendingModal(false);
+      }}
+      onCancel={() => setShowPendingModal(false)}
+    />
+  );
 
-  // Waiting for payment screen (after order created)
+  // "Orden pendiente" card — shown after modal is closed
   if (createdOrder) return (
     <div className="checkout-page">
-      <div className="checkout-card" style={{ maxWidth: 540, margin: "40px auto" }}>
-        {/* Countdown */}
-        <div style={{
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-          background: payStatus === "expired" ? "rgba(239,68,68,0.08)" : payStatus === "paid" ? "rgba(34,197,94,0.08)" : "var(--amber-light,#fffbeb)",
-          border: `1px solid ${payStatus === "expired" ? "var(--red,#ef4444)" : payStatus === "paid" ? "var(--green,#22c55e)" : "var(--amber-border,#fde68a)"}`,
-          borderRadius: 10, padding: "12px 18px", marginBottom: 16,
-        }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: payStatus === "expired" ? "var(--red,#ef4444)" : payStatus === "paid" ? "var(--green,#22c55e)" : "var(--amber,#d97706)" }}>
-            {payStatus === "expired" ? "⚠️ Orden vencida" : payStatus === "paid" ? "✅ Pago confirmado" : "⏱ Tiempo para pagar"}
-          </span>
-          {payStatus === "polling" && (
-            <span style={{ fontFamily: "monospace", fontSize: 22, fontWeight: 800, color: timeLeft < 300 ? "var(--red,#ef4444)" : "var(--amber,#d97706)" }}>
-              {mins}:{secs}
-            </span>
-          )}
-        </div>
-
-        {payStatus === "paid" && (
-          <div style={{ textAlign: "center", padding: "20px 0 16px" }}>
-            <div style={{ fontSize: 60, marginBottom: 12 }}>🎉</div>
-            <div style={{ fontFamily: "Syne", fontSize: 22, fontWeight: 800, marginBottom: 8 }}>¡Pago confirmado!</div>
-            <div style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.7, marginBottom: 20 }}>
+      <div className="checkout-card" style={{ maxWidth: 500, margin: "50px auto", textAlign: "center", padding: "40px 30px" }}>
+        {payStatus === "paid" ? (
+          <>
+            <div style={{ fontSize: 60, marginBottom: 14 }}>🎉</div>
+            <div style={{ fontFamily: "Syne", fontSize: 22, fontWeight: 800, marginBottom: 10 }}>¡Pago confirmado!</div>
+            <div style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.7, marginBottom: 24 }}>
               Tu orden <strong style={{ color: "var(--text)" }}>#{createdOrder.id?.slice(-8)}</strong> fue verificada automáticamente en la blockchain.
             </div>
             <button className="btn btn-primary btn-full" onClick={onGoShop}>← Volver a la tienda</button>
-          </div>
-        )}
-
-        {payStatus === "expired" && (
-          <div style={{ textAlign: "center", padding: "20px 0 16px" }}>
-            <div style={{ fontSize: 60, marginBottom: 12 }}>⏰</div>
-            <div style={{ fontFamily: "Syne", fontSize: 18, fontWeight: 800, marginBottom: 8, color: "var(--red,#ef4444)" }}>Orden vencida</div>
-            <div style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.7, marginBottom: 20 }}>El tiempo expiró. Podés volver a la tienda y crear una nueva orden.</div>
-            <button className="btn btn-primary btn-full" onClick={onGoShop}>← Volver a la tienda</button>
-          </div>
-        )}
-
-        {payStatus === "polling" && (
+          </>
+        ) : payStatus === "expired" ? (
           <>
-            {/* Exact amount */}
-            <div style={{
-              background: "rgba(239,68,68,0.07)", border: "2px solid var(--red,#ef4444)",
-              borderRadius: 12, padding: "16px 20px", marginBottom: 16, textAlign: "center",
-            }}>
-              <div style={{ fontSize: 12, color: "var(--red,#ef4444)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>
-                ⚠ Manda EXACTAMENTE
-              </div>
-              <div style={{ fontFamily: "Syne", fontSize: 36, fontWeight: 900, color: "var(--red,#ef4444)", letterSpacing: "-0.5px" }}>
-                {createdOrder.uniqueAmount?.toFixed(2)} USDT
-              </div>
-              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
-                No redondees — los centavos identifican tu pago en la blockchain
-              </div>
+            <div style={{ fontSize: 60, marginBottom: 14 }}>⏰</div>
+            <div style={{ fontFamily: "Syne", fontSize: 18, fontWeight: 800, marginBottom: 10, color: "var(--red,#ef4444)" }}>Orden vencida</div>
+            <div style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.7, marginBottom: 24 }}>El tiempo expiró. Podés volver a la tienda y crear una nueva orden.</div>
+            <button className="btn btn-primary btn-full" onClick={onGoShop}>← Volver a la tienda</button>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 56, marginBottom: 14 }}>⏳</div>
+            <div style={{ fontFamily: "Syne", fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Orden pendiente de pago</div>
+            <div style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.7, marginBottom: 6 }}>
+              Orden <strong style={{ color: "var(--text)" }}>#{createdOrder.id?.slice(-8)}</strong> creada.
             </div>
-
-            {/* Wallet + QR */}
-            <div className="co-wallet-box">
-              <div className="co-wallet-label">Dirección {network}</div>
-              <div style={{ textAlign: "center", margin: "10px 0 8px" }}>
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(wallet.addr)}&margin=10`}
-                  alt={`QR ${network}`}
-                  style={{ width: 180, height: 180, border: `3px solid ${wallet.color}`, borderRadius: 10, padding: 4, background: "#fff" }}
-                />
-              </div>
-              <div className="co-wallet-addr">{wallet.addr}</div>
-              <button className="co-copy-btn" onClick={() => { navigator.clipboard.writeText(wallet.addr).catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
-                {copied ? "✓ Copiado!" : "📋 Copiar dirección"}
-              </button>
+            <div style={{ fontSize: 15, color: "var(--text)", fontWeight: 700, marginBottom: 24 }}>
+              Enviá exactamente{" "}
+              <span style={{ color: "var(--red,#ef4444)" }}>{createdOrder.uniqueAmount?.toFixed(2)} USDT</span>{" "}
+              por {network}.
             </div>
-
-            <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", padding: "8px 0" }}>
-              🔄 Verificando automáticamente cada 30 segundos...
-            </div>
+            <button
+              className="btn btn-usdt btn-full"
+              style={{ justifyContent: "center", marginBottom: 10 }}
+              onClick={() => setShowPendingModal(true)}
+            >
+              Ver instrucciones de pago →
+            </button>
+            <button className="btn btn-outline btn-full" onClick={onGoShop}>← Volver a la tienda</button>
           </>
         )}
       </div>
