@@ -451,6 +451,68 @@ const css = `
   .app.dark .profit-card { background: var(--surface); border-color: var(--border); }
   .app.dark .date-pill { background: var(--surface); border-color: var(--border); }
   .app.dark .date-pill:hover { background: var(--red-light); border-color: var(--red); }
+
+  /* PRODUCT DETAIL PAGE */
+  .product-row { cursor: pointer; }
+  .product-detail-page { flex: 1; background: var(--bg); min-height: calc(100vh - 60px); }
+  .pd-breadcrumb { max-width: 1000px; margin: 0 auto; padding: 14px 20px 0; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .pd-breadcrumb span { color: var(--red); cursor: pointer; font-weight: 600; }
+  .pd-breadcrumb span:hover { text-decoration: underline; }
+  .pd-grid { max-width: 1000px; margin: 0 auto; padding: 18px 20px 40px; display: grid; grid-template-columns: 190px 1fr 280px; gap: 22px; align-items: start; }
+  @media (max-width: 900px) { .pd-grid { grid-template-columns: 1fr 1fr; } .pd-price-panel { grid-column: 1 / -1; position: static; } }
+  @media (max-width: 640px) { .pd-grid { grid-template-columns: 1fr; padding: 14px 14px 30px; } }
+  .pd-img-col { position: sticky; top: 80px; }
+  .pd-thumb-large { width: 100%; aspect-ratio: 1; background: linear-gradient(145deg, #1877F2 0%, #0d5bbf 100%); border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border: 2px solid var(--border); }
+  .pd-thumb-large-icon { font-size: 60px; line-height: 1; }
+  .pd-thumb-label { font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+  .pd-info-col { min-width: 0; }
+  .pd-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; line-height: 1.3; margin-bottom: 10px; letter-spacing: -0.3px; }
+  .pd-meta-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .pd-section-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 7px; }
+  .pd-attrs { display: flex; flex-direction: column; border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
+  .pd-attr-row { display: grid; grid-template-columns: 140px 1fr; border-bottom: 1px solid var(--border); }
+  .pd-attr-row:last-child { border-bottom: none; }
+  .pd-attr-key { padding: 9px 13px; font-size: 12px; font-weight: 600; color: var(--muted); background: var(--bg); }
+  .pd-attr-val { padding: 9px 13px; font-size: 13px; font-weight: 500; }
+  .pd-tier-table { border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
+  .pd-tier-head { background: var(--bg); display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 8px 13px; border-bottom: 1px solid var(--border); }
+  .pd-tier-head span { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  .pd-tier-row { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 9px 13px; border-top: 1px solid var(--border); align-items: center; }
+  .pd-tier-row:first-child { border-top: none; }
+  .pd-tier-row.active-tier { background: var(--green-light); }
+  .pd-tier-qty { font-size: 13px; font-weight: 700; }
+  .pd-tier-price { font-size: 14px; font-weight: 800; color: var(--usdt); }
+  .pd-tier-disc { font-size: 12px; font-weight: 700; color: var(--green); }
+  .pd-desc-section { margin-bottom: 16px; }
+  .pd-desc { font-size: 13px; line-height: 1.7; color: var(--muted); white-space: pre-wrap; }
+  .pd-warranty { background: var(--green-light); border: 1.5px solid var(--green-border); border-radius: 12px; padding: 13px 15px; display: flex; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
+  .pd-warranty-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .pd-warranty-text { font-size: 12px; line-height: 1.5; color: var(--green); }
+  .pd-warranty-title { font-weight: 700; margin-bottom: 2px; font-size: 13px; }
+  .pd-price-panel { position: sticky; top: 80px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: var(--shadow-lg); }
+  .pd-panel-price { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: var(--usdt); margin-bottom: 2px; }
+  .pd-panel-base { font-size: 13px; color: var(--muted); text-decoration: line-through; margin-bottom: 4px; }
+  .pd-panel-disc { display: inline-flex; align-items: center; gap: 5px; background: var(--green-light); color: var(--green); border: 1px solid var(--green-border); border-radius: 8px; padding: 3px 10px; font-size: 12px; font-weight: 800; margin-bottom: 14px; }
+  .pd-panel-stock { font-size: 12px; color: var(--muted); margin-bottom: 16px; display: flex; align-items: center; gap: 6px; }
+  .pd-qty-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .pd-qty-label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  .pd-buy-btn { width: 100%; padding: 13px; background: var(--red); color: #fff; border: none; border-radius: 11px; font-size: 15px; font-weight: 800; font-family: 'Syne', sans-serif; transition: all 0.15s; margin-bottom: 8px; cursor: pointer; }
+  .pd-buy-btn:hover:not(:disabled) { background: var(--red-dark); transform: translateY(-1px); }
+  .pd-buy-btn:disabled { background: #D1D5DB; color: #9CA3AF; cursor: not-allowed; }
+  .pd-cart-btn { width: 100%; padding: 11px; background: none; border: 2px solid var(--usdt); color: var(--usdt); border-radius: 11px; font-size: 14px; font-weight: 700; font-family: 'Syne', sans-serif; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
+  .pd-cart-btn:hover:not(:disabled) { background: var(--usdt-light); }
+  .pd-cart-btn:disabled { border-color: #D1D5DB; color: #9CA3AF; cursor: not-allowed; }
+  .pd-next-tier { background: var(--amber-light); border: 1px solid var(--amber-border); border-radius: 9px; padding: 9px 12px; font-size: 12px; color: var(--amber); margin-top: 10px; line-height: 1.4; }
+  .app.dark .product-detail-page { background: var(--bg); }
+  .app.dark .pd-thumb-large { background: linear-gradient(145deg, #0e3a86 0%, #092261 100%); border-color: var(--border); }
+  .app.dark .pd-attrs { border-color: var(--border); }
+  .app.dark .pd-attr-key { background: var(--bg); }
+  .app.dark .pd-attr-row { border-color: var(--border); }
+  .app.dark .pd-tier-table { border-color: var(--border); }
+  .app.dark .pd-tier-head { background: var(--bg); border-color: var(--border); }
+  .app.dark .pd-tier-row { border-color: var(--border); }
+  .app.dark .pd-price-panel { background: var(--surface); border-color: var(--border); }
+  .app.dark .pd-warranty { background: var(--green-light); border-color: var(--green-border); }
 `;
 
 
@@ -1213,8 +1275,179 @@ const CartDrawer = ({ cart, onClose, onQty, onRemove, onCheckout }) => {
   );
 };
 
+// ─── PRODUCT DETAIL PAGE ──────────────────────────────────────────────────────
+const ProductDetailPage = ({ product: p, cart, onBack, onAddToCartQty, onBuyNowQty, liked, onToggleLike }) => {
+  const [qty, setLocalQty] = useState(1);
+  const cartItem = cart.find(i => i.id === p.id);
+  const cartQty = cartItem?.qty || 0;
+
+  const parseAttributes = (details) => {
+    if (!details) return [];
+    return details.split('\n').map(line => {
+      const colonIdx = line.indexOf(':');
+      if (colonIdx > 0) return { key: line.slice(0, colonIdx).trim(), val: line.slice(colonIdx + 1).trim() };
+      return null;
+    }).filter(Boolean);
+  };
+
+  const attrs = parseAttributes(p.details);
+  const hasTiers = Array.isArray(p.tiers) && p.tiers.length > 0;
+  const sortedTiers = hasTiers ? [...p.tiers].filter(t => t.qty > 0 && t.price > 0).sort((a, b) => a.qty - b.qty) : [];
+  const effectivePrice = getTierPrice(p.price, p.tiers, qty + cartQty);
+  const hasDiscount = effectivePrice < p.price;
+  const discPct = hasDiscount ? Math.round((1 - effectivePrice / p.price) * 100) : 0;
+  const nextTier = getNextTier(p.tiers || [], qty + cartQty);
+
+  return (
+    <div className="product-detail-page">
+      <div className="pd-breadcrumb">
+        <span onClick={onBack}>← Tienda</span>
+        <span style={{ color: "var(--muted)", fontWeight: 400 }}>/</span>
+        <span style={{ color: "var(--text)", fontWeight: 500 }}>{p.name}</span>
+      </div>
+
+      <div className="pd-grid">
+        {/* IMAGE */}
+        <div className="pd-img-col">
+          <div className="pd-thumb-large">
+            <span className="pd-thumb-large-icon">👜</span>
+            <span className="pd-thumb-label">Facebook</span>
+          </div>
+          {p.sales > 50 && (
+            <div style={{ marginTop: 10, textAlign: "center", background: "var(--green-light)", border: "1.5px solid var(--green-border)", borderRadius: 10, padding: "7px 12px", fontSize: 12, fontWeight: 700, color: "var(--green)" }}>
+              ✓ +{p.sales} vendidos
+            </div>
+          )}
+        </div>
+
+        {/* INFO */}
+        <div className="pd-info-col">
+          <h1 className="pd-title">{p.name}</h1>
+          <div className="pd-meta-row">
+            {p.rating > 0 && <Stars rating={p.rating} reviews={p.reviews} />}
+            <span className="chip chip-stock">📦 Stock: <strong>{p.stock}</strong></span>
+            {p.sales > 0 && <span className="chip chip-sales">🏷 Ventas: <strong>{p.sales}</strong></span>}
+          </div>
+
+          {attrs.length > 0 ? (
+            <>
+              <div className="pd-section-label">Características</div>
+              <div className="pd-attrs">
+                {attrs.map((a, i) => (
+                  <div key={i} className="pd-attr-row">
+                    <div className="pd-attr-key">{a.key}</div>
+                    <div className="pd-attr-val">{a.val}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : p.details ? (
+            <>
+              <div className="pd-section-label">Descripción</div>
+              <div className="pd-desc-section"><div className="pd-desc">{p.details}</div></div>
+            </>
+          ) : null}
+
+          {hasTiers && (
+            <>
+              <div className="pd-section-label">Descuentos por cantidad</div>
+              <div className="pd-tier-table">
+                <div className="pd-tier-head">
+                  <span>Cantidad</span>
+                  <span>Precio unitario</span>
+                  <span>Descuento</span>
+                </div>
+                <div className="pd-tier-row">
+                  <span className="pd-tier-qty">1+</span>
+                  <span className="pd-tier-price" style={{ color: "var(--text)" }}>{fmtUSDT(p.price)}</span>
+                  <span className="pd-tier-disc" style={{ color: "var(--muted)" }}>Precio base</span>
+                </div>
+                {sortedTiers.map((t, i) => {
+                  const disc = Math.round((1 - t.price / p.price) * 100);
+                  const isActive = (qty + cartQty) >= t.qty;
+                  return (
+                    <div key={i} className={`pd-tier-row${isActive ? " active-tier" : ""}`}>
+                      <span className="pd-tier-qty">x{t.qty}+</span>
+                      <span className="pd-tier-price">{fmtUSDT(t.price)}</span>
+                      <span className="pd-tier-disc">-{disc}%{isActive ? " ✓" : ""}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          <div className="pd-warranty">
+            <span className="pd-warranty-icon">🛡️</span>
+            <div className="pd-warranty-text">
+              <div className="pd-warranty-title">Garantía y soporte</div>
+              Soporte post-venta incluido. Si la cuenta presenta inconvenientes dentro de las primeras 24hs, nos comunicamos para resolverlo. Pago 100% seguro vía USDT.
+            </div>
+          </div>
+        </div>
+
+        {/* PRICE PANEL */}
+        <div className="pd-price-panel">
+          {hasDiscount ? (
+            <>
+              <div className="pd-panel-base">{fmtUSDT(p.price)} c/u</div>
+              <div className="pd-panel-price">{fmtUSDT(effectivePrice)}</div>
+              <div className="pd-panel-disc">🏷 -{discPct}% aplicado</div>
+            </>
+          ) : (
+            <div className="pd-panel-price">{fmtUSDT(p.price)}</div>
+          )}
+
+          <div className="pd-panel-stock">
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: p.stock > 0 ? "var(--green)" : "var(--red)", display: "inline-block", flexShrink: 0 }} />
+            {p.stock > 0 ? `${p.stock} unidades disponibles` : "Sin stock"}
+          </div>
+
+          <div className="pd-qty-row">
+            <span className="pd-qty-label">Cantidad</span>
+            <div className="qty-ctrl">
+              <button className="qty-btn" onClick={() => setLocalQty(q => Math.max(1, q - 1))}>−</button>
+              <span className="qty-num">{qty}</span>
+              <button className="qty-btn" onClick={() => setLocalQty(q => Math.min(p.stock || 99, q + 1))}>+</button>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, padding: "10px 12px", background: "var(--bg)", borderRadius: 9, border: "1.5px solid var(--border)" }}>
+            <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>Total ({qty} ud.)</span>
+            <span style={{ fontFamily: "Syne", fontSize: 18, fontWeight: 800, color: "var(--usdt)" }}>{fmtUSDT(effectivePrice * qty)}</span>
+          </div>
+
+          <button className="pd-buy-btn" disabled={p.stock === 0} onClick={() => onBuyNowQty(p, qty)}>
+            ⚡ Comprar ahora
+          </button>
+          <button className="pd-cart-btn" disabled={p.stock === 0} onClick={() => onAddToCartQty(p, qty)}>
+            🛒 Agregar al carrito
+          </button>
+
+          {nextTier && (
+            <div className="pd-next-tier">
+              💡 Comprá {nextTier.qty - (qty + cartQty)} más y obtenés <strong>{fmtUSDT(nextTier.price)}</strong> c/u (−{Math.round((1 - nextTier.price / p.price) * 100)}%)
+            </div>
+          )}
+
+          <button
+            style={{ width: "100%", marginTop: 10, background: "none", border: "1.5px solid var(--border)", borderRadius: 11, padding: "9px", fontSize: 13, fontWeight: 600, color: liked[p.id] ? "var(--red)" : "var(--muted)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", transition: "all 0.15s" }}
+            onClick={() => onToggleLike(p.id)}
+          >
+            {liked[p.id] ? "❤️ En favoritos" : "🤍 Guardar en favoritos"}
+          </button>
+
+          <div style={{ marginTop: 14, fontSize: 11, color: "var(--muted)", textAlign: "center", lineHeight: 1.5 }}>
+            🔒 Pago seguro · 100% USDT · Entrega inmediata
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── SHOP PAGE ────────────────────────────────────────────────────────────────
-const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike, products }) => {
+const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike, products, onProductClick }) => {
   const getQty = id => cart.find(i => i.id === id)?.qty || 0;
   return (
     <>
@@ -1243,7 +1476,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
           {products.map(p => {
             const qty = getQty(p.id);
             return (
-              <div key={p.id} className="product-row">
+              <div key={p.id} className="product-row" onClick={() => onProductClick && onProductClick(p)}>
                 <div className="prod-thumb">
                   <div className="prod-thumb-inner"><span className="prod-thumb-icon">👜</span><span className="prod-thumb-label">Facebook</span></div>
                   {p.sales > 100 && <div className="verified-badge">✓</div>}
@@ -1285,10 +1518,10 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
                   <div className="prod-actions">
                     {p.stock === 0
                       ? <button className="buy-btn" disabled>Sin stock</button>
-                      : <button className="buy-btn" onClick={() => onBuyNow(p)}>Buy now</button>
+                      : <button className="buy-btn" onClick={e => { e.stopPropagation(); onBuyNow(p); }}>Buy now</button>
                     }
-                    <button className="icon-btn" title="Agregar al carrito" onClick={() => { if (p.stock > 0) onAddToCart(p); }}>🛒</button>
-                    <button className={`icon-btn ${liked[p.id] ? "liked" : ""}`} onClick={() => onToggleLike(p.id)}>{liked[p.id] ? "❤️" : "🤍"}</button>
+                    <button className="icon-btn" title="Agregar al carrito" onClick={e => { e.stopPropagation(); if (p.stock > 0) onAddToCart(p); }}>🛒</button>
+                    <button className={`icon-btn ${liked[p.id] ? "liked" : ""}`} onClick={e => { e.stopPropagation(); onToggleLike(p.id); }}>{liked[p.id] ? "❤️" : "🤍"}</button>
                   </div>
                 </div>
               </div>
@@ -2314,6 +2547,7 @@ export default function App() {
   };
 
   const [view, setView] = useState("shop");
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [cart, setCart] = useState(() => {
     try {
       const saved = localStorage.getItem("bmveri_cart");
@@ -2452,6 +2686,32 @@ export default function App() {
     miniCartTimer.current = setTimeout(() => setShowMiniCart(false), 4000);
   };
   const removeFromCart = id => setCart(prev => rebalanceTiers(prev.filter(i => i.id !== id)));
+  const addToCartQty = (p, qty) => {
+    setCart(prev => {
+      const idx = prev.findIndex(i => i.id === p.id);
+      const base = p.basePrice ?? p.price;
+      const next = idx === -1
+        ? [...prev, { ...p, basePrice: base, qty }]
+        : prev.map(i => i.id === p.id ? { ...i, qty: i.qty + qty, tiers: p.tiers ?? i.tiers ?? [], basePrice: i.basePrice ?? base, cost: p.cost ?? i.cost ?? 0 } : i);
+      return rebalanceTiers(next);
+    });
+    setLastAdded(p);
+    setShowMiniCart(true);
+    if (miniCartTimer.current) clearTimeout(miniCartTimer.current);
+    miniCartTimer.current = setTimeout(() => setShowMiniCart(false), 4000);
+  };
+  const handleBuyNowQty = (p, qty) => {
+    setCart(prev => {
+      const idx = prev.findIndex(i => i.id === p.id);
+      const base = p.basePrice ?? p.price;
+      const next = idx === -1
+        ? [...prev, { ...p, basePrice: base, qty }]
+        : prev.map(i => i.id === p.id ? { ...i, qty: i.qty + qty, tiers: p.tiers ?? i.tiers ?? [], basePrice: i.basePrice ?? base, cost: p.cost ?? i.cost ?? 0 } : i);
+      return rebalanceTiers(next);
+    });
+    setView("checkout");
+    setSelectedProduct(null);
+  };
   const setQty = (id, qty) => {
     if (qty <= 0) return removeFromCart(id);
     setCart(prev => rebalanceTiers(prev.map(i => i.id === id ? { ...i, qty } : i)));
@@ -2552,11 +2812,11 @@ export default function App() {
     <div className={`app${darkMode ? " dark" : ""}`}>
       <style>{css}</style>
       <div className="topbar">
-        <div className="logo" onClick={() => setView("shop")}>BMVERIF</div>
+        <div className="logo" onClick={() => { setView("shop"); setSelectedProduct(null); }}>BMVERIF</div>
         <div className="topbar-right">
           {user ? (
             <>
-              <button className={`nav-tab ${view === "shop" ? "active" : ""}`} onClick={() => setView("shop")}>🛍 Tienda</button>
+              <button className={`nav-tab ${view === "shop" ? "active" : ""}`} onClick={() => { setView("shop"); setSelectedProduct(null); }}>🛍 Tienda</button>
               <button className={`nav-tab ${view === "account" ? "active" : ""}`} onClick={() => setView("account")}>👤 Mi cuenta</button>
               <button className="btn btn-outline btn-sm" onClick={() => signOut()}>Salir</button>
             </>
@@ -2573,7 +2833,8 @@ export default function App() {
         </div>
       </div>
 
-      {view === "shop" && <ShopPage cart={cart} onAddToCart={addToCart} onBuyNow={handleBuyNow} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} />}
+      {view === "shop" && !selectedProduct && <ShopPage cart={cart} onAddToCart={addToCart} onBuyNow={handleBuyNow} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} onProductClick={p => setSelectedProduct(p)} />}
+      {view === "shop" && selectedProduct && <ProductDetailPage product={selectedProduct} cart={cart} onBack={() => setSelectedProduct(null)} onAddToCartQty={addToCartQty} onBuyNowQty={handleBuyNowQty} liked={liked} onToggleLike={toggleLike} />}
       {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); }} wallets={wallets} />}
       {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} />}
 
