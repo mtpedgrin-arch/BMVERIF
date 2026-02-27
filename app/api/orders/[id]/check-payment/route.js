@@ -98,43 +98,60 @@ export async function GET(req, { params }) {
   } else if (order.network === "BEP20") {
     // Use BSC public RPC directly — no API key needed, no cost
     const USDT_BEP20 = "0x55d398326f99059fF775485246999027B3197955";
-    const BSC_RPC = "https://bsc-dataseed.binance.org/";
+    // Multiple fallback RPCs in case one fails or rate-limits
+    const BSC_RPCS = [
+      "https://bsc.publicnode.com",
+      "https://binance.llamarpc.com",
+      "https://bsc-dataseed1.binance.org/",
+      "https://bsc-dataseed2.binance.org/",
+    ];
     // Transfer(address,address,uint256) event topic
     const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
-    try {
-      // Get current block number
-      const blockRes = await fetch(BSC_RPC, {
+
+    const rpcPost = async (rpc, body) => {
+      const r = await fetch(rpc, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", method: "eth_blockNumber", params: [], id: 1 }),
+        body: JSON.stringify(body),
       });
-      const { result: currentBlockHex } = await blockRes.json();
-      const currentBlock = parseInt(currentBlockHex, 16);
+      return r.json();
+    };
 
-      // Search last ~1300 blocks (~65 min at 3s/block) — covers full 1h order window
-      const fromBlock = Math.max(0, currentBlock - 1300);
-      // Pad wallet address to 32 bytes for topic filter
+    try {
+      // Get current block number (try each RPC until one works)
+      let currentBlock = 0;
+      let workingRpc = BSC_RPCS[0];
+      for (const rpc of BSC_RPCS) {
+        try {
+          const d = await rpcPost(rpc, { jsonrpc: "2.0", method: "eth_blockNumber", params: [], id: 1 });
+          if (d.result) { currentBlock = parseInt(d.result, 16); workingRpc = rpc; break; }
+        } catch {}
+      }
+
+      // Search last ~1000 blocks (~50 min at 3s/block)
+      const fromBlock = Math.max(0, currentBlock - 1000);
       const paddedWallet = "0x000000000000000000000000" + wallet.replace("0x", "").toLowerCase();
 
-      console.log(`[check-payment] BEP20 RPC: currentBlock=${currentBlock} fromBlock=${fromBlock} paddedWallet=${paddedWallet}`);
+      console.log(`[check-payment] BEP20 RPC=${workingRpc} currentBlock=${currentBlock} fromBlock=${fromBlock}`);
 
-      const logsRes = await fetch(BSC_RPC, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jsonrpc: "2.0", method: "eth_getLogs",
-          params: [{
-            fromBlock: "0x" + fromBlock.toString(16),
-            toBlock: "latest",
-            address: USDT_BEP20,
-            topics: [TRANSFER_TOPIC, null, paddedWallet],
-          }],
-          id: 2,
-        }),
+      const logsData = await rpcPost(workingRpc, {
+        jsonrpc: "2.0", method: "eth_getLogs",
+        params: [{
+          fromBlock: "0x" + fromBlock.toString(16),
+          toBlock: "latest",
+          address: USDT_BEP20,
+          topics: [TRANSFER_TOPIC, null, paddedWallet],
+        }],
+        id: 2,
       });
-      const logsData = await logsRes.json();
-      const logs = logsData.result || [];
+
+      if (logsData.error) {
+        console.error(`[check-payment] BEP20 eth_getLogs error:`, logsData.error);
+        debugInfo.apiError = logsData.error?.message || JSON.stringify(logsData.error);
+      }
+      const logs = Array.isArray(logsData.result) ? logsData.result : [];
       debugInfo.txsChecked = logs.length;
+      debugInfo.rpcUsed = workingRpc;
       console.log(`[check-payment] BEP20 logs found: ${logs.length}`);
 
       for (const log of logs) {
