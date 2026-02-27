@@ -2164,7 +2164,7 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
       const res = await fetch("/api/user/2fa/enable", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: tfaCode }),
+        body: JSON.stringify({ code: tfaCode, secret: tfaSecret }),
       });
       const data = await res.json();
       if (res.ok) { setTfaEnabled(true); setTfaStep(null); setTfaCode(""); setTfaMsg({ text: "¡2FA activado con éxito!", ok: true }); }
