@@ -300,8 +300,8 @@ const css = `
   .stat-value { font-family: 'Syne', sans-serif; font-size: 21px; font-weight: 800; }
   .table-wrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: left; padding: 8px 11px; background: var(--bg); color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
-  td { padding: 10px 11px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  th { text-align: left; padding: 8px 11px; background: #EDEBE8; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; border-bottom: 2px solid #C8C3BC; }
+  td { padding: 10px 11px; border-bottom: 1.5px solid #C8C3BC; vertical-align: middle; }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: #FAFAFA; }
 
@@ -388,7 +388,8 @@ const css = `
   .app.dark .prod-thumb-inner { background: linear-gradient(145deg, #0e3a86 0%, #092261 100%); }
   .app.dark .card { background: var(--surface); border-color: var(--border); }
   .app.dark .stat-card { background: var(--surface); border-color: var(--border); }
-  .app.dark table thead th { background: var(--bg); }
+  .app.dark table thead th { background: var(--bg); border-bottom-color: var(--border); }
+  .app.dark td { border-bottom-color: var(--border); }
   .app.dark tr:hover td { background: #222535; }
   .app.dark .modal { background: var(--surface); }
   .app.dark .modal-overlay { background: rgba(0,0,0,0.75); }
