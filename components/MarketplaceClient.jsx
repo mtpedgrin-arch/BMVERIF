@@ -4271,6 +4271,79 @@ const ResetPasswordModal = ({ token, onClose }) => {
   );
 };
 
+// ─── LEGAL DOCS ───────────────────────────────────────────────────────────────
+const LegalPlaceholder = ({ title }) => (
+  <p style={{ color: "var(--muted)" }}>El contenido de <strong>{title}</strong> estará disponible próximamente.</p>
+);
+
+const LegalPrivacy = () => (
+  <div>
+    <p>Esta Política de Privacidad es parte integral del Acuerdo de Usuario y los Términos Generales de la plataforma <strong>BM Verificada</strong> (en adelante "la Plataforma" o el "Marketplace"). En caso de inconsistencia, esta Política prevalecerá.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>1. Disposiciones Generales</p>
+    <p>1.1. Esta Política explica qué datos personales recopilamos, cómo y en qué bases legales los procesamos, y tus derechos según el RGPD, CCPA/CPRA y otras regulaciones aplicables. 1.2. Al usar la Plataforma, confirmas haber leído y aceptado plenamente esta Política. Si no estás de acuerdo, por favor deja de usar la Plataforma.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>2. Categorías de Datos que Recopilamos</p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Información personal proporcionada durante el registro.</li>
+      <li>Información técnica (dirección IP, tipo de navegador, detalles del dispositivo).</li>
+      <li>Historial de transacciones y actividad en la Plataforma.</li>
+      <li>Datos proporcionados voluntariamente (por ejemplo, al contactar soporte).</li>
+    </ul>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>3. Fuentes de Recopilación de Datos</p>
+    <p>Recopilamos datos:</p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Directamente de ti al registrarte, realizar un pedido o contactar soporte.</li>
+      <li>De socios como proveedores de pago y análisis.</li>
+      <li>Automáticamente mediante cookies y SDKs de terceros (ver Sección 6).</li>
+    </ul>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>4. Base Legal para el Tratamiento</p>
+    <p>Procesamos datos personales cuando se aplica al menos una de las siguientes bases legales:</p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Ejecución de un contrato con el usuario.</li>
+      <li>Cumplimiento de obligaciones legales (contabilidad, KYC/AML).</li>
+      <li>Intereses legítimos (prevención de fraude).</li>
+      <li>Consentimiento del usuario (banner de cookies, comunicaciones de marketing).</li>
+    </ul>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>5. Compartición y Divulgación de Datos</p>
+    <p><strong>5.1. Dentro de nuestro grupo corporativo</strong> — el acceso se otorga estrictamente en base a la necesidad de conocer.</p>
+    <p><strong>5.2. Proveedores de servicios externos</strong> — procesadores de pago (Capitalist, Cryptomus), proveedores de análisis (Google Analytics), hosting y nube. Las transferencias de datos se rigen por contratos que incluyen Cláusulas Contractuales Estándar de la UE donde corresponda.</p>
+    <p><strong>5.3. Transferencias transfronterizas</strong> — al usar la Plataforma, consientes la transferencia de tus datos fuera de tu jurisdicción.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>6. Cookies y Tecnologías de Seguimiento</p>
+    <p>Usamos cookies de sesión para autenticación, cookies persistentes para recordar preferencias, y píxeles/SDKs para análisis. En tu primera visita verás un banner de cookies para gestionar tus preferencias.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>7. Retención de Datos</p>
+    <p>Conservamos los datos el tiempo necesario para cumplir los fines descritos en la Sección 2, o por más tiempo cuando la ley lo exija (por ejemplo, cinco años para registros contables). Transcurrido ese período, los datos se eliminan o anonymizan.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>8. Seguridad y Limitación de Responsabilidad</p>
+    <p>8.1. Utilizamos cifrado, controles de acceso y monitoreo de incidentes para proteger tus datos. 8.2. Sin embargo, ningún método de transmisión o almacenamiento es completamente seguro. La Plataforma no se responsabiliza por accesos no autorizados fuera de su control razonable.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>9. Tus Derechos</p>
+    <p>Tenés derecho a:</p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Acceder, corregir o eliminar tus datos.</li>
+      <li>Retirar el consentimiento en cualquier momento.</li>
+      <li>Restringir u oponerte al tratamiento.</li>
+      <li>Solicitar la portabilidad de datos (donde la ley lo permita).</li>
+      <li>Presentar una queja ante una autoridad supervisora.</li>
+    </ul>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>10. Actualizaciones de la Política</p>
+    <p>Esta Política puede actualizarse periódicamente. Los cambios significativos se anunciarán con al menos 10 días de anticipación. El uso continuado de la Plataforma tras la entrada en vigor de los cambios constituye la aceptación de la Política actualizada.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>11. Información de Contacto</p>
+    <p>Para cualquier consulta sobre el tratamiento de datos personales, contáctanos:</p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Email: <a href="mailto:soporte@bmverificada.com" style={{ color: "var(--accent)" }}>soporte@bmverificada.com</a></li>
+      <li>Soporte Telegram: <a href="https://t.me/bmverificada_support" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)" }}>@bmverificada_support</a></li>
+    </ul>
+  </div>
+);
+
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const sessionResult = useSession();
@@ -4328,6 +4401,7 @@ export default function App() {
       else sessionStorage.removeItem("bmveri_pending_order");
     } catch {}
   }, [globalPending?.id]);
+  const [legalModal, setLegalModal] = useState(null); // null | "privacy" | "user-agreement" | "public-offer" | "replacement" | "rules"
   const [resetToken, setResetToken] = useState(null);
   const [verifyResult, setVerifyResult] = useState(null); // null | "success" | "error" | string(error msg)
   // Detect ?reset=TOKEN and ?verify=TOKEN in URL
@@ -4687,15 +4761,39 @@ export default function App() {
         />
       )}
 
+      {legalModal && (
+        <div className="modal-overlay" onClick={() => setLegalModal(null)} style={{ alignItems: "flex-start", paddingTop: 40 }}>
+          <div className="modal" style={{ maxWidth: 700, width: "100%" }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--text)" }}>
+                {legalModal === "privacy" && "Política de Privacidad"}
+                {legalModal === "user-agreement" && "Acuerdo de Usuario"}
+                {legalModal === "public-offer" && "Oferta Pública"}
+                {legalModal === "replacement" && "Política de Reemplazo de Bienes Digitales"}
+                {legalModal === "rules" && "Reglas de la Plataforma"}
+              </h2>
+              <button onClick={() => setLegalModal(null)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "var(--muted)", lineHeight: 1 }}>×</button>
+            </div>
+            <div style={{ fontSize: 13, lineHeight: 1.8, color: "var(--muted)", maxHeight: "70vh", overflowY: "auto" }}>
+              {legalModal === "privacy" && <LegalPrivacy />}
+              {legalModal === "user-agreement" && <LegalPlaceholder title="Acuerdo de Usuario" />}
+              {legalModal === "public-offer" && <LegalPlaceholder title="Oferta Pública" />}
+              {legalModal === "replacement" && <LegalPlaceholder title="Política de Reemplazo de Bienes Digitales" />}
+              {legalModal === "rules" && <LegalPlaceholder title="Reglas de la Plataforma" />}
+            </div>
+          </div>
+        </div>
+      )}
+
       <footer className="site-footer">
         <div className="site-footer-inner">
           <div className="site-footer-logo">BM <span>Verificada</span></div>
           <div className="site-footer-links">
-            <button className="site-footer-link">Política de Privacidad</button>
-            <button className="site-footer-link">Acuerdo de Usuario</button>
-            <button className="site-footer-link">Oferta Pública</button>
-            <button className="site-footer-link">Política de Reemplazo de Bienes Digitales</button>
-            <button className="site-footer-link">Reglas de la Plataforma</button>
+            <button className="site-footer-link" onClick={() => setLegalModal("privacy")}>Política de Privacidad</button>
+            <button className="site-footer-link" onClick={() => setLegalModal("user-agreement")}>Acuerdo de Usuario</button>
+            <button className="site-footer-link" onClick={() => setLegalModal("public-offer")}>Oferta Pública</button>
+            <button className="site-footer-link" onClick={() => setLegalModal("replacement")}>Política de Reemplazo de Bienes Digitales</button>
+            <button className="site-footer-link" onClick={() => setLegalModal("rules")}>Reglas de la Plataforma</button>
           </div>
           <div className="site-footer-copy">© {new Date().getFullYear()} BM Verificada</div>
         </div>
