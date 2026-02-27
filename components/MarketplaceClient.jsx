@@ -39,7 +39,7 @@ const css = `
 
   .topbar { background: var(--surface); border-bottom: 1.5px solid var(--border); padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
   .logo { cursor: pointer; display: flex; align-items: center; }
-  .logo img { height: 42px; width: auto; max-width: 200px; object-fit: contain; border-radius: 6px; }
+  .logo img { height: 38px; width: auto; max-width: 220px; object-fit: contain; border-radius: 0; }
   .logo span { color: var(--text); }
   .topbar-right { display: flex; align-items: center; gap: 8px; }
   .nav-tab { background: none; border: none; padding: 6px 13px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--muted); transition: all 0.15s; }
@@ -4447,7 +4447,7 @@ export default function App() {
       <style>{css}</style>
       <div className="topbar">
         <div className="logo" onClick={() => { setView("shop"); setSelectedProduct(null); }}>
-          <img src="/logo.png" alt="BM Verificada" />
+          <img src="/logoR.png" alt="BM Verificada" />
         </div>
         <div className="topbar-right">
           {user ? (
