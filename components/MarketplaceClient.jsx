@@ -805,7 +805,7 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: cart.map(i => ({ name: i.name, price: i.price, qty: i.qty })),
+          items: cart.map(i => ({ name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty })),
           subtotal, discount: discountAmt,
           coupon: appliedCoupon?.code || null,
           total, network, txHash,
@@ -1682,11 +1682,15 @@ const AdminOverview = ({ orders, products, onGoOrders }) => {
   const revenue    = paid.reduce((s, o) => s + o.total, 0);
   const pendingRev = pending.reduce((s, o) => s + o.total, 0);
 
+  // Use item.cost stored at purchase time (reliable), fallback to costMap by name for legacy orders
   const costMap = {};
   products.forEach(p => { if (p.cost > 0) costMap[p.name] = p.cost; });
-  const hasCosts = Object.keys(costMap).length > 0;
+  const hasCosts = paid.some(o => (o.items || []).some(item => (item.cost || 0) > 0)) || Object.keys(costMap).length > 0;
 
-  const calcOrderCost = (o) => (o.items || []).reduce((s, item) => s + (costMap[item.name] || 0) * item.qty, 0);
+  const calcOrderCost = (o) => (o.items || []).reduce((s, item) => {
+    const c = (item.cost || 0) > 0 ? item.cost : (costMap[item.name] || 0);
+    return s + c * item.qty;
+  }, 0);
   const totalCost = paid.reduce((s, o) => s + calcOrderCost(o), 0);
   const profit    = revenue - totalCost;
   const roas      = totalCost > 0 ? (revenue / totalCost).toFixed(2) : null;
@@ -2184,7 +2188,7 @@ export default function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: cart.map(i => ({ name: i.name, price: i.price, qty: i.qty })),
+          items: cart.map(i => ({ name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty })),
           subtotal,
           discount,
           coupon: pendingCoupon?.code || null,

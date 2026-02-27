@@ -60,6 +60,7 @@ model OrderItem {
   id      String @id @default(cuid())
   name    String
   price   Float
+  cost    Float  @default(0)
   qty     Int    @default(1)
   orderId String
 

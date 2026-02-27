@@ -50,6 +50,7 @@ export async function POST(req) {
         create: items.map(i => ({
           name: i.name,
           price: parseFloat(i.price),
+          cost: parseFloat(i.cost) || 0,
           qty: parseInt(i.qty) || 1,
         })),
       },
