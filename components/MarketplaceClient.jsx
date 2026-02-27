@@ -1681,10 +1681,20 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
 };
 
 // ─── USER ACCOUNT ─────────────────────────────────────────────────────────────
-const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products, deliveryModal, setDeliveryModal }) => {
+const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products }) => {
   const [tab, setTab] = useState("orders");
   const myOrders = userOrders; // la API ya filtra por usuario
   const favProducts = products.filter(p => liked[p.id]);
+
+  const downloadDelivery = (content, orderId) => {
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pedido-${orderId.slice(-8)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   const displayName = user.name || user.email || "Usuario";
   return (
     <div className="page">
@@ -1700,22 +1710,6 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
 
       {tab === "orders" && (
         <>
-          {/* Delivery content modal */}
-          {deliveryModal && (
-            <div className="modal-overlay" onClick={() => setDeliveryModal(null)}>
-              <div className="delivery-modal-content" onClick={e => e.stopPropagation()}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <div style={{ fontFamily: "Syne", fontSize: 18, fontWeight: 800 }}>📦 Contenido de tu pedido</div>
-                  <button onClick={() => setDeliveryModal(null)} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "var(--muted)" }}>✕</button>
-                </div>
-                <div className="delivery-text">{deliveryModal}</div>
-                <div style={{ display: "flex", gap: 10 }}>
-                  <button className="btn" style={{ flex: 1 }} onClick={() => { navigator.clipboard.writeText(deliveryModal); }}>📋 Copiar</button>
-                  <button className="btn btn-outline" onClick={() => setDeliveryModal(null)}>Cerrar</button>
-                </div>
-              </div>
-            </div>
-          )}
           <div className="stats-row">
             <div className="stat-card"><div className="stat-label">Órdenes totales</div><div className="stat-value" style={{ color: "var(--blue)" }}>{myOrders.length}</div></div>
             <div className="stat-card"><div className="stat-label">Pendientes</div><div className="stat-value" style={{ color: "var(--amber)" }}>{myOrders.filter(o => o.status === "pending").length}</div></div>
@@ -1739,7 +1733,7 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
                         <td><StatusPill status={o.status} /></td>
                         <td>
                           {o.deliveryContent
-                            ? <button className="deliver-ready" onClick={() => setDeliveryModal(o.deliveryContent)}>📦 Ver pedido</button>
+                            ? <button className="deliver-ready" onClick={() => downloadDelivery(o.deliveryContent, o.id)}>⬇️ Descargar pedido</button>
                             : <span className="deliver-pending">⏳ Pendiente</span>
                           }
                         </td>
@@ -2910,7 +2904,6 @@ export default function App() {
   // ── ORDERS ──
   const [orders, setOrders] = useState([]);
   const [lastOrder, setLastOrder] = useState(null);
-  const [deliveryModal, setDeliveryModal] = useState(null);
   useEffect(() => {
     if (!user) return;
     fetch("/api/orders")
@@ -3194,7 +3187,7 @@ export default function App() {
       {view === "shop" && !selectedProduct && <ShopPage cart={cart} onAddToCart={addToCart} onBuyNow={handleBuyNow} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} onProductClick={p => setSelectedProduct(p)} />}
       {view === "shop" && selectedProduct && <ProductDetailPage product={selectedProduct} cart={cart} onBack={() => setSelectedProduct(null)} onAddToCartQty={addToCartQty} onBuyNowQty={handleBuyNowQty} liked={liked} onToggleLike={toggleLike} user={user} />}
       {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); }} wallets={wallets} />}
-      {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} deliveryModal={deliveryModal} setDeliveryModal={setDeliveryModal} />}
+      {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} />}
 
       {showMiniCart && cart.length > 0 && (
         <MiniCart
