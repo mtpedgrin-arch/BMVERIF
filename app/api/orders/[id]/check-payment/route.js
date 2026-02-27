@@ -96,37 +96,61 @@ export async function GET(req, { params }) {
       console.error(`[check-payment] TRC20 error:`, e);
     }
   } else if (order.network === "BEP20") {
+    // Use BSC public RPC directly — no API key needed, no cost
     const USDT_BEP20 = "0x55d398326f99059fF775485246999027B3197955";
-    // BscScan migrated to Etherscan API V2 — use chainid=56 endpoint
-    const apiKey = process.env.BSCSCAN_API_KEY || process.env.ETHERSCAN_API_KEY || "";
+    const BSC_RPC = "https://bsc-dataseed.binance.org/";
+    // Transfer(address,address,uint256) event topic
+    const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
     try {
-      const url = `https://api.etherscan.io/v2/api?chainid=56&module=account&action=tokentx&address=${wallet}&contractaddress=${USDT_BEP20}&sort=desc&apikey=${apiKey}`;
-      console.log(`[check-payment] BEP20 fetch via Etherscan v2 (apiKey set: ${!!apiKey})`);
-      const bscRes = await fetch(url);
-      debugInfo.apiStatus = bscRes.status;
-      const bscData = await bscRes.json();
-      const txs = bscData?.result;
-      console.log(`[check-payment] BEP20 API status=${bscRes.status} message=${bscData?.message} txCount=${Array.isArray(txs) ? txs.length : typeof txs}`);
-      debugInfo.txsChecked = Array.isArray(txs) ? txs.length : 0;
-      if (bscData?.message) debugInfo.apiMessage = bscData.message;
+      // Get current block number
+      const blockRes = await fetch(BSC_RPC, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", method: "eth_blockNumber", params: [], id: 1 }),
+      });
+      const { result: currentBlockHex } = await blockRes.json();
+      const currentBlock = parseInt(currentBlockHex, 16);
 
-      if (Array.isArray(txs)) {
-        for (const tx of txs) {
-          const amount = parseUsdt18(tx.value); // safe 18-decimal parse
-          const txTime = parseInt(tx.timeStamp) * 1000;
-          const toMatch = tx.to?.toLowerCase() === wallet.toLowerCase();
-          const amountMatch = Math.abs(amount - order.uniqueAmount) < 0.005;
-          const timeMatch = txTime > createdAtMs;
-          console.log(`[check-payment] TX ${tx.hash?.slice(0,12)} | amount=${amount} | toMatch=${toMatch} amountMatch=${amountMatch} timeMatch=${timeMatch}`);
-          if (toMatch && amountMatch && timeMatch) {
-            foundTx = { txHash: tx.hash };
-            break;
-          }
+      // Search last ~400 blocks (~20 min at 3s/block) — covers full order window
+      const fromBlock = Math.max(0, currentBlock - 400);
+      // Pad wallet address to 32 bytes for topic filter
+      const paddedWallet = "0x000000000000000000000000" + wallet.replace("0x", "").toLowerCase();
+
+      console.log(`[check-payment] BEP20 RPC: currentBlock=${currentBlock} fromBlock=${fromBlock} paddedWallet=${paddedWallet}`);
+
+      const logsRes = await fetch(BSC_RPC, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0", method: "eth_getLogs",
+          params: [{
+            fromBlock: "0x" + fromBlock.toString(16),
+            toBlock: "latest",
+            address: USDT_BEP20,
+            topics: [TRANSFER_TOPIC, null, paddedWallet],
+          }],
+          id: 2,
+        }),
+      });
+      const logsData = await logsRes.json();
+      const logs = logsData.result || [];
+      debugInfo.txsChecked = logs.length;
+      console.log(`[check-payment] BEP20 logs found: ${logs.length}`);
+
+      for (const log of logs) {
+        // data field = amount (32-byte hex)
+        const rawAmount = BigInt(log.data);
+        const amount = parseUsdt18(rawAmount.toString());
+        const amountMatch = Math.abs(amount - order.uniqueAmount) < 0.005;
+        console.log(`[check-payment] BEP20 log tx=${log.transactionHash?.slice(0,12)} amount=${amount} amountMatch=${amountMatch}`);
+        if (amountMatch) {
+          foundTx = { txHash: log.transactionHash };
+          break;
         }
       }
     } catch (e) {
       debugInfo.apiError = e?.message || String(e);
-      console.error(`[check-payment] BEP20 error:`, e);
+      console.error(`[check-payment] BEP20 RPC error:`, e);
     }
   }
 
