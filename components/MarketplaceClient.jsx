@@ -87,7 +87,8 @@ const css = `
   .prod-price { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; white-space: nowrap; }
   .prod-actions { display: flex; align-items: center; gap: 8px; }
   .buy-btn { background: var(--red); color: #fff; border: none; padding: 9px 20px; border-radius: 8px; font-size: 14px; font-weight: 700; transition: all 0.15s; white-space: nowrap; }
-  .buy-btn:hover { background: var(--red-dark); transform: translateY(-1px); }
+  .buy-btn:hover:not(:disabled) { background: var(--red-dark); transform: translateY(-1px); }
+  .buy-btn:disabled { background: #D1D5DB; color: #9CA3AF; cursor: not-allowed; }
   .icon-btn { width: 36px; height: 36px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--muted); transition: all 0.15s; flex-shrink: 0; }
   .icon-btn:hover, .icon-btn.liked { border-color: var(--red); color: var(--red); background: var(--red-light); }
   .in-cart-badge { background: var(--green); color: #fff; border: none; padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
@@ -698,9 +699,11 @@ const ShopPage = ({ cart, onAddToCart, onCartOpen, liked, onToggleLike, products
                 <div className="prod-right">
                   <div className="prod-price">{fmtUSDT(p.price)}</div>
                   <div className="prod-actions">
-                    {qty === 0
-                      ? <button className="buy-btn" onClick={() => onAddToCart(p)}>Buy now</button>
-                      : <button className="in-cart-badge" onClick={onCartOpen}>✓ In cart ({qty})</button>
+                    {p.stock === 0
+                      ? <button className="buy-btn" disabled>Sin stock</button>
+                      : qty === 0
+                        ? <button className="buy-btn" onClick={() => onAddToCart(p)}>Buy now</button>
+                        : <button className="in-cart-badge" onClick={onCartOpen}>✓ In cart ({qty})</button>
                     }
                     <button className="icon-btn" onClick={onCartOpen}>🛒</button>
                     <button className={`icon-btn ${liked[p.id] ? "liked" : ""}`} onClick={() => onToggleLike(p.id)}>{liked[p.id] ? "❤️" : "🤍"}</button>
@@ -872,6 +875,15 @@ const ProductManager = ({ products, setProducts }) => {
     } catch {}
   };
 
+  const toggleStock = async (p) => {
+    const newStock = p.stock === 0 ? 1 : 0;
+    try {
+      const res = await fetch(`/api/products/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stock: newStock }) });
+      const data = await res.json();
+      if (res.ok) setProducts(prev => prev.map(x => x.id === p.id ? data : x));
+    } catch {}
+  };
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
@@ -934,6 +946,7 @@ const ProductManager = ({ products, setProducts }) => {
                   <td>
                     <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                       <button onClick={() => openEdit(p)} style={{ padding: "4px 10px", borderRadius: 7, border: "1.5px solid var(--border)", background: "var(--blue-light)", color: "var(--blue)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>✏️ Editar</button>
+                      <button onClick={() => toggleStock(p)} style={{ padding: "4px 10px", borderRadius: 7, border: "1.5px solid var(--border)", background: p.stock === 0 ? "var(--green-light)" : "#F1F5F9", color: p.stock === 0 ? "var(--green)" : "#64748B", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{p.stock === 0 ? "📦 Con Stock" : "📦 Sin Stock"}</button>
                       <button onClick={() => toggleActive(p)} style={{ padding: "4px 10px", borderRadius: 7, border: "1.5px solid var(--border)", background: p.isActive ? "var(--amber-light)" : "var(--green-light)", color: p.isActive ? "var(--amber)" : "var(--green)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{p.isActive ? "⏸ Ocultar" : "▶ Mostrar"}</button>
                       <button onClick={() => deleteProduct(p.id)} style={{ padding: "4px 10px", borderRadius: 7, border: "1.5px solid var(--border)", background: "var(--red-light)", color: "var(--red)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>🗑 Borrar</button>
                     </div>
