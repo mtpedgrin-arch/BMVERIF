@@ -4421,6 +4421,63 @@ const LegalUserAgreement = () => (
   </div>
 );
 
+const LegalRules = () => (
+  <div>
+    <p><strong>Introducción</strong></p>
+    <p>Estas Reglas Generales de la Plataforma BM Verificada (en adelante, las "Reglas") forman parte integral del Acuerdo de Usuario y la Oferta Pública para Vendedores (colectivamente, los "Documentos Principales"). Al usar la Plataforma, confirmás haber leído, comprendido y aceptado plenamente estas Reglas y los Documentos Principales.</p>
+    <p style={{ marginTop: 8 }}>El propósito de estas Reglas es establecer estándares de conducta, obligaciones y restricciones para todos los usuarios al utilizar la Plataforma, garantizando un entorno seguro, justo y eficiente.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>1. Principios Generales de Uso de la Plataforma</p>
+    <p><strong>1.1 Legalidad:</strong> Los usuarios deben usar la Plataforma únicamente con fines lícitos, cumpliendo las leyes aplicables de su jurisdicción, así como las normas internacionales.</p>
+    <p><strong>1.2 Integridad:</strong> Los usuarios deben actuar con honestidad y buena fe hacia otros Usuarios y la Plataforma. Cualquier forma de fraude, engaño o competencia desleal está prohibida.</p>
+    <p><strong>1.3 Respeto:</strong> Los usuarios deben tratar con respeto a los demás Usuarios y representantes de la Plataforma. Se prohíben estrictamente insultos, amenazas, conductas discriminatorias y el uso de lenguaje ofensivo.</p>
+    <p><strong>1.4 Seguridad:</strong> Los usuarios no deben realizar acciones que puedan comprometer la seguridad o estabilidad de la Plataforma o los datos de otros Usuarios.</p>
+    <p style={{ marginTop: 8, fontStyle: "italic" }}>La Plataforma actúa únicamente como intermediaria técnica y no autoriza, promueve ni avala ningún uso de productos o servicios que viole las leyes aplicables o las reglas de plataformas de terceros.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>2. Registro y Cuentas</p>
+    <p><strong>2.1 Exactitud:</strong> Al registrarse y durante el uso de la Plataforma, los Usuarios deben proporcionar información precisa, completa y actualizada.</p>
+    <p><strong>2.2 Cuenta única:</strong> Cada Usuario puede mantener generalmente solo una cuenta. Crear múltiples cuentas sin permiso explícito puede resultar en la suspensión de todas las cuentas relacionadas.</p>
+    <p><strong>2.3 Seguridad de la cuenta:</strong> Los usuarios son plenamente responsables de mantener la confidencialidad de sus credenciales y de todas las acciones realizadas bajo su cuenta. Cualquier actividad no autorizada debe reportarse de inmediato al soporte de la Plataforma.</p>
+    <p><strong>2.4 Transferencia de cuenta:</strong> Vender o transferir una cuenta de BM Verificada a terceros está prohibido sin el consentimiento previo por escrito de la Plataforma.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>3. Reglas para Listar Productos Digitales (para Vendedores)</p>
+    <p><strong>3.1 Productos permitidos:</strong> Los Vendedores solo pueden listar bienes y servicios digitales que no violen las leyes aplicables, las reglas de la Plataforma ni los derechos de terceros.</p>
+    <p><strong>3.2 Productos prohibidos:</strong> La lista de bienes y servicios prohibidos se establece en el Apéndice 1 de la Oferta Pública. Listar dichos productos está estrictamente prohibido y puede resultar en sanciones.</p>
+    <p><strong>3.3 Calidad y exactitud:</strong> Los Vendedores deben proporcionar descripciones completas y precisas de sus productos digitales que reflejen las características reales y no induzcan a error.</p>
+    <p><strong>3.4 Derechos legales:</strong> Los Vendedores garantizan que poseen todos los derechos y licencias necesarios para los productos digitales listados.</p>
+    <p><strong>3.5 Esquemas fraudulentos:</strong> La venta de productos o servicios diseñados para engañar a compradores, eludir sistemas de seguridad, hackear software o realizar actividades fraudulentas está estrictamente prohibida.</p>
+    <p><strong>3.6 Entrega técnica:</strong> Los Vendedores son responsables de garantizar el correcto funcionamiento y la entrega oportuna de los productos digitales.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>4. Comunicación y Conducta</p>
+    <p><strong>Los usuarios no deben:</strong></p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Usar la Plataforma para spam, phishing, distribución de malware o actividades similares.</li>
+      <li>Insultar a otros Usuarios o representantes de la Plataforma.</li>
+      <li>Adoptar comportamientos abusivos, provocadores o tóxicos.</li>
+      <li>Difundir información falsa o engañosa sobre la Plataforma o sus participantes.</li>
+    </ul>
+    <p>En caso de conflictos entre Usuarios, se recomienda usar el sistema de soporte interno. La comunicación con la administración debe ser cortés y constructiva.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>5. Responsabilidad y Sanciones</p>
+    <p>Las infracciones a estas Reglas pueden resultar en:</p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Advertencia.</li>
+      <li>Suspensión temporal de las funcionalidades de la cuenta.</li>
+      <li>Eliminación permanente de la cuenta.</li>
+      <li>Retención de fondos pendiente de investigación.</li>
+      <li>Remisión de información a las autoridades competentes.</li>
+    </ul>
+    <p>La Plataforma se reserva el derecho de no divulgar los motivos de suspensión o eliminación de cuentas si las acciones del Usuario representan riesgos para el servicio o violan las leyes aplicables.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>6. Quejas y Consultas</p>
+    <p>Los Usuarios pueden presentar quejas a través del formulario de contacto o el email indicado en la sección de Contacto (ver Sección 11 de la Política de Privacidad). Las quejas deben incluir descripción del problema, evidencias y datos de contacto. La Plataforma revisa las quejas generalmente dentro de los 10 días hábiles.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>7. Disposiciones Finales</p>
+    <p>7.1 Estas Reglas están vigentes desde la fecha de publicación. La Plataforma se reserva el derecho de modificarlas unilateralmente. La versión actualizada se considera aceptada por el Usuario una vez publicada.</p>
+    <p>7.2 Si un Usuario no está de acuerdo con alguna modificación, debe dejar de usar la Plataforma. El uso continuado constituye la aceptación de la versión revisada.</p>
+  </div>
+);
+
 const LegalReplacement = () => (
   <div>
     <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>1. Disposiciones Generales</p>
@@ -4971,7 +5028,7 @@ export default function App() {
               {legalModal === "user-agreement" && <LegalUserAgreement />}
               {legalModal === "public-offer" && <LegalPublicOffer />}
               {legalModal === "replacement" && <LegalReplacement />}
-              {legalModal === "rules" && <LegalPlaceholder title="Reglas de la Plataforma" />}
+              {legalModal === "rules" && <LegalRules />}
             </div>
           </div>
         </div>
