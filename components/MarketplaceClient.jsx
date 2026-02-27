@@ -2473,7 +2473,6 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
         <img src="/Banner.png" alt="BM Verificada" className="hero-banner-img" />
         <img src="/logo.png" alt="BM Verificada" className="hero-logo" />
         <h1>BM <span>Verificada</span></h1>
-        <p>Business Manager Premium · Cuentas verificadas · Entrega inmediata · Pago USDT</p>
         <div className="hero-badges">
           <span className="hero-badge">✓ Entrega inmediata</span>
           <span className="hero-badge">₮ USDT TRC20 / BEP20</span>
