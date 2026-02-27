@@ -97,10 +97,11 @@ export async function GET(req, { params }) {
     }
   } else if (order.network === "BEP20") {
     const USDT_BEP20 = "0x55d398326f99059fF775485246999027B3197955";
-    const apiKey = process.env.BSCSCAN_API_KEY || "";
+    // BscScan migrated to Etherscan API V2 — use chainid=56 endpoint
+    const apiKey = process.env.BSCSCAN_API_KEY || process.env.ETHERSCAN_API_KEY || "";
     try {
-      const url = `https://api.bscscan.com/api?module=account&action=tokentx&address=${wallet}&contractaddress=${USDT_BEP20}&sort=desc&apikey=${apiKey}`;
-      console.log(`[check-payment] BEP20 fetch (apiKey set: ${!!apiKey})`);
+      const url = `https://api.etherscan.io/v2/api?chainid=56&module=account&action=tokentx&address=${wallet}&contractaddress=${USDT_BEP20}&sort=desc&apikey=${apiKey}`;
+      console.log(`[check-payment] BEP20 fetch via Etherscan v2 (apiKey set: ${!!apiKey})`);
       const bscRes = await fetch(url);
       debugInfo.apiStatus = bscRes.status;
       const bscData = await bscRes.json();
