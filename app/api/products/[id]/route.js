@@ -22,6 +22,7 @@ export async function PATCH(req, { params }) {
   if (body.isActive != null) data.isActive = body.isActive;
   if (body.badgeDiscount != null) data.badgeDiscount = parseFloat(body.badgeDiscount) || 0;
   if (body.category != null) data.category = body.category;
+  if (body.sales != null) data.sales = parseInt(body.sales) || 0;
 
   const product = await prisma.product.update({ where: { id }, data });
   return NextResponse.json(product);

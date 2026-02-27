@@ -3262,7 +3262,7 @@ const AdminReviewPanel = ({ product, onClose, onRatingChange }) => {
 const ProductManager = ({ products, setProducts }) => {
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
-  const [form, setForm] = useState({ name: "", details: "", price: "", cost: "", stock: "", tiers: [], category: "bm" });
+  const [form, setForm] = useState({ name: "", details: "", price: "", cost: "", stock: "", sales: "", tiers: [], category: "bm" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [reviewProductId, setReviewProductId] = useState(null);
@@ -3270,14 +3270,14 @@ const ProductManager = ({ products, setProducts }) => {
 
   const openNew = () => {
     setEditProduct(null);
-    setForm({ name: "", details: "", price: "", cost: "", stock: "", tiers: [], category: "bm" });
+    setForm({ name: "", details: "", price: "", cost: "", stock: "", sales: "", tiers: [], category: "bm" });
     setError("");
     setShowForm(true);
   };
 
   const openEdit = (p) => {
     setEditProduct(p);
-    setForm({ name: p.name, details: p.details || "", price: p.price, cost: p.cost || "", stock: p.stock, tiers: Array.isArray(p.tiers) ? p.tiers.map(t => ({ qty: t.qty, price: t.price })) : [], category: p.category || "bm" });
+    setForm({ name: p.name, details: p.details || "", price: p.price, cost: p.cost || "", stock: p.stock, sales: p.sales ?? "", tiers: Array.isArray(p.tiers) ? p.tiers.map(t => ({ qty: t.qty, price: t.price })) : [], category: p.category || "bm" });
     setError("");
     setShowForm(true);
   };
@@ -3296,7 +3296,7 @@ const ProductManager = ({ products, setProducts }) => {
         .map(t => ({ qty: parseInt(t.qty), price: parseFloat(t.price) }))
         .filter(t => t.qty > 0 && t.price > 0)
         .sort((a, b) => a.qty - b.qty);
-      const body = { name: form.name, details: form.details, price: parseFloat(form.price), cost: parseFloat(form.cost) || 0, tiers: cleanTiers, stock: parseInt(form.stock) || 0, category: form.category || "bm" };
+      const body = { name: form.name, details: form.details, price: parseFloat(form.price), cost: parseFloat(form.cost) || 0, tiers: cleanTiers, stock: parseInt(form.stock) || 0, category: form.category || "bm", sales: parseInt(form.sales) || 0 };
       if (editProduct) {
         res = await fetch(`/api/products/${editProduct.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       } else {
@@ -3382,6 +3382,11 @@ const ProductManager = ({ products, setProducts }) => {
             <div className="form-group">
               <label className="form-label">Stock (unidades)</label>
               <input className="form-input" type="number" min="0" value={form.stock} onChange={setF("stock")} placeholder="1" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Ventas mostradas</label>
+              <input className="form-input" type="number" min="0" value={form.sales} onChange={setF("sales")} placeholder="0" />
+              <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 3 }}>Número de ventas visible en la tienda (social proof)</div>
             </div>
             <div className="form-group">
               <label className="form-label">Categoría</label>

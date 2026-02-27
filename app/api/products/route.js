@@ -30,7 +30,7 @@ export async function POST(req) {
   if (session?.user?.role !== "admin") {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
-  const { name, details, price, cost, tiers, stock, category } = await req.json();
+  const { name, details, price, cost, tiers, stock, category, sales } = await req.json();
   if (!name || price == null) {
     return NextResponse.json({ error: "Nombre y precio son obligatorios." }, { status: 400 });
   }
@@ -42,7 +42,7 @@ export async function POST(req) {
       cost: parseFloat(cost) || 0,
       tiers: Array.isArray(tiers) ? tiers : [],
       stock: parseInt(stock) || 0,
-      sales: 0,
+      sales: parseInt(sales) || 0,
       rating: 0,
       reviews: 0,
       isActive: true,
