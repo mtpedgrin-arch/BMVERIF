@@ -741,7 +741,17 @@ const NotificationBell = ({ user }) => {
             {notifs.length === 0
               ? <div className="notif-empty">Sin notificaciones</div>
               : notifs.map(n => (
-                <div key={n.id} className={`notif-item${!n.read ? " unread" : ""}`}>
+                <div
+                  key={n.id}
+                  className={`notif-item${!n.read ? " unread" : ""}`}
+                  style={{ cursor: n.read ? "default" : "pointer" }}
+                  onClick={async () => {
+                    if (n.read) return;
+                    await fetch(`/api/notifications/${n.id}`, { method: "PATCH" }).catch(() => {});
+                    setNotifs(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x));
+                    prevUnread.current = Math.max(0, prevUnread.current - 1);
+                  }}
+                >
                   <div className={`notif-dot${n.read ? " read" : ""}`} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="notif-title">{n.title}</div>
