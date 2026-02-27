@@ -1123,16 +1123,26 @@ const CartDrawer = ({ cart, onClose, onQty, onRemove, onCheckout }) => {
               <div style={{ width: 40, height: 40, background: "#1877F2", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>👜</div>
               <div className="cart-item-info">
                 <div className="cart-item-name">{item.name}</div>
-                <div className="cart-item-price">
-                  {item.basePrice && item.price < item.basePrice
-                    ? <><span style={{ textDecoration: "line-through", color: "var(--muted)", marginRight: 5 }}>{fmtUSDT(item.basePrice)}</span><strong style={{ color: "var(--green)" }}>{fmtUSDT(item.price)}</strong></>
-                    : fmtUSDT(item.price)
-                  }
-                  {" × "}{item.qty} = <strong style={{ color: "var(--usdt)" }}>{fmtUSDT(item.price * item.qty)}</strong>
-                </div>
-                {item.basePrice && item.price < item.basePrice && (
-                  <div style={{ fontSize: 11, color: "var(--green)", fontWeight: 600, marginTop: 2 }}>
-                    🏷 Precio x{item.qty}: ahorrás {fmtUSDT((item.basePrice - item.price) * item.qty)}
+                {item.basePrice && item.price < item.basePrice ? (
+                  <>
+                    <div className="cart-item-price" style={{ opacity: 0.45, textDecoration: "line-through", fontSize: 12 }}>
+                      {fmtUSDT(item.basePrice)} × {item.qty} = {fmtUSDT(item.basePrice * item.qty)}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
+                      <span style={{ fontSize: 10, fontWeight: 800, background: "var(--green)", color: "#fff", borderRadius: 5, padding: "1px 6px" }}>
+                        -{Math.round((1 - item.price / item.basePrice) * 100)}%
+                      </span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "var(--green)" }}>
+                        Precio con descuento: {fmtUSDT(item.price * item.qty)}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 1 }}>
+                      {fmtUSDT(item.price)} c/u · ahorrás {fmtUSDT((item.basePrice - item.price) * item.qty)}
+                    </div>
+                  </>
+                ) : (
+                  <div className="cart-item-price">
+                    {fmtUSDT(item.price)} × {item.qty} = <strong style={{ color: "var(--usdt)" }}>{fmtUSDT(item.price * item.qty)}</strong>
                   </div>
                 )}
                 {(() => {
@@ -1235,7 +1245,21 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
                   </div>
                 </div>
                 <div className="prod-right">
-                  <div className="prod-price">{fmtUSDT(p.price)}</div>
+                  {Array.isArray(p.tiers) && p.tiers.length > 0 ? (() => {
+                    const sorted = [...p.tiers].filter(t => t.qty > 0 && t.price > 0).sort((a, b) => a.qty - b.qty);
+                    const first = sorted[0];
+                    const bestDisc = Math.round((1 - first.price / p.price) * 100);
+                    return (
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, background: "var(--red)", color: "#fff", borderRadius: 6, padding: "2px 8px" }}>-{bestDisc}%</span>
+                          <span style={{ fontSize: 12, color: "var(--muted)", textDecoration: "line-through" }}>{fmtUSDT(p.price)}</span>
+                        </div>
+                        <div className="prod-price" style={{ marginTop: 0 }}>{fmtUSDT(first.price)}</div>
+                        <div style={{ fontSize: 10, color: "var(--muted)" }}>comprando x{first.qty}+</div>
+                      </div>
+                    );
+                  })() : <div className="prod-price">{fmtUSDT(p.price)}</div>}
                   {Array.isArray(p.tiers) && p.tiers.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "flex-end", marginTop: 3 }}>
                       {[...p.tiers].sort((a,b)=>a.qty-b.qty).map((t,i) => (
