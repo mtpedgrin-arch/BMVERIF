@@ -2567,10 +2567,10 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
       <div className="info-section">
         <h2>¿Qué es un Facebook Business Manager verificado?</h2>
         <p>Un Facebook Business Manager verificado es una cuenta corporativa en el sistema de Meta, confirmada con documentos de empresa y validada por Meta. Estas cuentas tienen derechos extendidos en la gestión de anuncios y acceso a funciones no disponibles para usuarios no verificados.</p>
-        <p>En esencia, es un "pasaporte corporativo" en el ecosistema de Meta, que garantiza que la empresa opera de forma legítima y puede usar herramientas publicitarias sin restricciones.</p>
+        <p>En esencia, es un "pasaporte corporativo" en el ecosistema de Meta, que garantiza que la empresa opera de forma legítima y puede usar herramientas publicitarias sin restricciones relacionadas con la desconfianza del sistema.</p>
 
         <h3>¿Por qué necesitás un Business Manager verificado para publicidad?</h3>
-        <p>Un Business Manager verificado es necesario para acceder de forma estable a las herramientas publicitarias, conectar métodos de pago y gestionar páginas de clientes de manera legal. Las empresas lo usan para reducir la probabilidad de baneos, gestionar múltiples cuentas publicitarias y aumentar la confianza de Meta.</p>
+        <p>Un Business Manager verificado es necesario para acceder de forma estable a las herramientas publicitarias, conectar métodos de pago y gestionar páginas de clientes de manera legal. Las empresas lo usan para reducir la probabilidad de baneos, gestionar múltiples cuentas publicitarias y aumentar la confianza de Meta. Sin verificación, muchas funciones están limitadas o bloqueadas.</p>
 
         <h3>¿Cuáles son las ventajas de un Business Manager verificado?</h3>
         <p>Un Business Manager verificado da acceso a métodos de promoción avanzados, formatos publicitarios adicionales y mayor confianza de los algoritmos de Meta. Las principales ventajas incluyen:</p>
@@ -2580,12 +2580,16 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
           <li>Gestión segura de páginas y dominios.</li>
           <li>Menor probabilidad de baneos.</li>
         </ul>
+        <p>La contrapartida: el proceso de verificación lleva tiempo y requiere documentos oficiales, mientras que comprar cuentas ya verificadas implica riesgos legales.</p>
 
         <h3>¿Cómo difiere un Business Manager verificado de uno regular?</h3>
-        <p>Un BM regular permite gestionar páginas y anuncios pero tiene límites de confianza y de cuentas publicitarias. El verificado elimina esas barreras, brindando mayor flexibilidad y seguridad para escalar campañas.</p>
+        <p>Un BM regular permite gestionar páginas y anuncios pero tiene límites de confianza y de cuentas publicitarias. El verificado elimina esas barreras. Elegir un BM regular ofrece configuración rápida pero sacrifica flexibilidad y seguridad. Una cuenta verificada provee esos beneficios pero exige verificación formal o la compra de una cuenta ya verificada.</p>
 
         <h3>¿Cómo ayudan los BM verificados contra los baneos?</h3>
-        <p>Las cuentas verificadas tienen menos probabilidad de ser restringidas automáticamente y pueden recuperarse más rápido durante revisiones de seguridad. Sin embargo, no son protección absoluta: violar las políticas de Meta puede igual derivar en baneos.</p>
+        <p>Las cuentas verificadas tienen menos probabilidad de ser restringidas automáticamente y pueden recuperarse más rápido durante revisiones de seguridad. Sin embargo, no son protección absoluta: violar las políticas de Meta puede igual derivar en baneos. Un BM verificado reduce los riesgos pero no los elimina.</p>
+
+        <h3>¿Qué métodos alternativos o grises existen para Business Managers?</h3>
+        <p>La industria utiliza prácticas como la compra de cuentas verificadas listas para usar, el alquiler o el uso de servicios intermediarios. La contrapartida: el acceso rápido a funciones extendidas tiene el costo de violar las políticas de Meta, lo que podría derivar en pérdida de la cuenta y recursos desperdiciados.</p>
 
         <h3>¿Cuáles son los riesgos de comprar o alquilar un BM verificado?</h3>
         <p>Los principales riesgos incluyen:</p>
@@ -2594,13 +2598,37 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
           <li>Pérdida de acceso si se revoca la titularidad.</li>
           <li>Consecuencias legales por usar datos de terceros.</li>
         </ul>
+        <p>Por eso, la velocidad y comodidad deben sopesarse contra el riesgo de perder fondos o enfrentar problemas de cumplimiento.</p>
 
         <h3>¿A quién están dirigidos los Business Managers verificados?</h3>
-        <p>Los públicos clave incluyen agencias de marketing digital, dueños de e-commerce, especialistas en arbitraje de tráfico y servicios que trabajan con productos tanto white-hat como gray-hat.</p>
+        <p>Los públicos clave incluyen:</p>
+        <ul>
+          <li>Agencias de marketing digital.</li>
+          <li>Dueños de negocios de e-commerce.</li>
+          <li>Servicios que trabajan con productos white-hat y gray-hat.</li>
+          <li>Especialistas individuales en arbitraje de tráfico.</li>
+        </ul>
+        <p>Cada grupo utiliza cuentas verificadas para aumentar la eficiencia publicitaria y reducir las barreras de escalado.</p>
+
+        <h3>¿Cuáles son las alternativas a los Business Managers verificados?</h3>
+        <p>Las alternativas incluyen:</p>
+        <ul>
+          <li>Auto-verificación a través de Meta Business Verification.</li>
+          <li>Cuentas de socios proporcionadas por agencias oficiales.</li>
+          <li>Plataformas de terceros que ofrecen acceso publicitario.</li>
+        </ul>
+        <p>La contrapartida: la verificación oficial requiere tiempo y documentación, las soluciones de agencia vienen con restricciones, y comprar cuentas conlleva riesgos de baneo.</p>
+
+        <h3>¿Cómo usar correctamente un BM verificado para escalar?</h3>
+        <p>El uso correcto incluye distribuir presupuestos entre múltiples cuentas publicitarias, configurar dominios y píxeles, y mantener un perfil publicitario white-hat. Es crucial combinar el poder de una cuenta verificada con las reglas de Meta: incluso la cuenta más sólida no puede proteger contra penalizaciones por contenido prohibido.</p>
+
+        <p style={{ marginTop: 20, padding: "14px 18px", background: "var(--surface)", borderRadius: 10, borderLeft: "3px solid #D4AF37", fontSize: 13, color: "var(--text)" }}>
+          <strong>Potenciá tu estructura de Meta Ads:</strong> BMs ilimitados, cuentas publicitarias con límite de $250 y Fan Pages crean una base sólida para publicidad estable.
+        </p>
 
         <hr className="info-divider" />
 
-        <h2>Tabla comparativa: BM Regular vs BM Verificado</h2>
+        <h2>Tabla comparativa: BM Regular vs BM Verificado vs Alternativas</h2>
         <div style={{ overflowX: "auto" }}>
           <table className="info-table">
             <thead>
@@ -2608,16 +2636,18 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
                 <th>Característica</th>
                 <th>BM Regular</th>
                 <th>BM Verificado</th>
+                <th>Alternativas (alquiler, agencias)</th>
               </tr>
             </thead>
             <tbody>
-              <tr><td>Nivel de confianza Meta</td><td>Bajo, alto riesgo de baneo</td><td>Alto, riesgo reducido</td></tr>
-              <tr><td>Límite de cuentas publicitarias</td><td>Limitado (1–2)</td><td>Extendido (5+ según nivel)</td></tr>
-              <tr><td>Métodos de pago</td><td>Opciones limitadas</td><td>Soporte completo</td></tr>
-              <tr><td>Proceso de adquisición</td><td>Gratis, sin documentos</td><td>Requiere documentos o compra</td></tr>
-              <tr><td>Riesgo de baneo</td><td>Alto</td><td>Reducido, no eliminado</td></tr>
-              <tr><td>Costo</td><td>Gratis</td><td>Alto (verificación o compra)</td></tr>
-              <tr><td>Ideal para</td><td>Pequeñas empresas, pruebas</td><td>Agencias, e-commerce, arbitraje</td></tr>
+              <tr><td>Nivel de confianza Meta</td><td>Bajo, alto riesgo de baneo</td><td>Alto, riesgo reducido</td><td>Medio, depende del proveedor</td></tr>
+              <tr><td>Límite de cuentas publicitarias</td><td>Limitado (1–2)</td><td>Extendido (5+ según nivel)</td><td>Variable según contrato</td></tr>
+              <tr><td>Métodos de pago</td><td>Opciones limitadas</td><td>Soporte completo</td><td>Frecuentemente restringido</td></tr>
+              <tr><td>Proceso de adquisición</td><td>Gratis, sin documentos</td><td>Requiere documentos o compra</td><td>Rápido, pero legalmente riesgoso</td></tr>
+              <tr><td>Riesgo de baneo</td><td>Alto para anunciantes activos</td><td>Reducido, no eliminado</td><td>Medio-alto según la fuente</td></tr>
+              <tr><td>Seguridad legal</td><td>Seguro para proyectos white-hat</td><td>Seguro si verificado oficialmente</td><td>Riesgoso, puede violar políticas Meta</td></tr>
+              <tr><td>Costo</td><td>Gratis</td><td>Alto (verificación o compra)</td><td>Variable (alquiler/tarifas)</td></tr>
+              <tr><td>Ideal para</td><td>Pequeñas empresas, pruebas</td><td>Agencias, e-commerce, arbitraje</td><td>Quienes buscan acceso rápido</td></tr>
             </tbody>
           </table>
         </div>
@@ -2634,7 +2664,9 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
             ["¿Puedo verificar mi Business Manager por mi cuenta?", "Sí, Meta permite a las empresas enviar documentos oficiales y completar el proceso de verificación empresarial."],
             ["¿Cuántas cuentas publicitarias puede crear un BM verificado?", "Las cuentas verificadas permiten significativamente más cuentas publicitarias que los BM regulares, facilitando el escalado."],
             ["¿La verificación previene los baneos?", "Reduce la probabilidad, pero no garantiza inmunidad si se violan las políticas de Meta."],
+            ["¿Cuáles son las alternativas a comprar un BM verificado?", "Las alternativas incluyen la auto-verificación, el uso de cuentas proporcionadas por agencias o soluciones de publicidad asociadas."],
             ["¿Cómo se debe usar correctamente un BM verificado?", "Para distribución de presupuestos, configuración de dominios y píxeles, y cumplimiento de las reglas publicitarias de Meta."],
+            ["¿Dónde puedo comprar un Business Manager verificado?", "En marketplaces especializados como BM Verificada, aunque los compradores deben estar al tanto de los riesgos asociados."],
           ].map(([q, a]) => (
             <div key={q} className="info-faq-item">
               <div className="info-faq-q">{q}</div>
