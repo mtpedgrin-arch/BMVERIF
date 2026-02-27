@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../lib/authOptions";
 import { prisma } from "../../../../lib/prisma";
+import { sendDeliveryEmail } from "../../../../lib/mailer";
 
 function nid() { return "n" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
@@ -78,7 +79,7 @@ export async function PATCH(req, { params }) {
     });
   }
 
-  // Notification: delivery uploaded
+  // Notification + email: delivery uploaded (only first time)
   if (deliveryContent !== undefined && !current.deliveryContent) {
     const productSummary = order.items.map(i => i.name.slice(0, 25)).join(", ");
     await createNotification({
@@ -88,6 +89,12 @@ export async function PATCH(req, { params }) {
       body: `Tu pedido #${id.slice(-8)} está disponible para descargar · ${productSummary}`,
       orderId: id,
     });
+    // Send delivery email (non-blocking)
+    sendDeliveryEmail({
+      to: current.userEmail,
+      orderId: id,
+      productSummary,
+    }).catch(() => {});
   }
 
   return NextResponse.json(order);

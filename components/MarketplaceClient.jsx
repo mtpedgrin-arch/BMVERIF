@@ -1010,7 +1010,10 @@ const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
               <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>
                 Si el email está registrado, recibirás un enlace para restablecer tu contraseña en los próximos minutos.
               </div>
-              <button className="btn btn-outline btn-full" style={{ marginTop: 20 }} onClick={goBackToLogin}>← Volver al inicio de sesión</button>
+              <div style={{ marginTop: 12, padding: "10px 14px", background: "var(--amber-light, #FFF8E1)", border: "1px solid #FCD34D", borderRadius: 9, fontSize: 12, color: "#92400E", lineHeight: 1.5 }}>
+                📁 <strong>Revisá también tu carpeta de spam / no deseados</strong> por si el email llegó ahí.
+              </div>
+              <button className="btn btn-outline btn-full" style={{ marginTop: 16 }} onClick={goBackToLogin}>← Volver al inicio de sesión</button>
             </div>
           ) : (
             <>
