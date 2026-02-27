@@ -88,6 +88,29 @@ const css = `
   .icon-btn:hover, .icon-btn.liked { border-color: var(--red); color: var(--red); background: var(--red-light); }
   .in-cart-badge { background: var(--green); color: #fff; border: none; padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
 
+  /* MINI CART POPUP */
+  .mini-cart-popup { position: fixed; top: 70px; right: 20px; width: 320px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.18); z-index: 250; animation: slideDown 0.22s ease; overflow: hidden; }
+  @keyframes slideDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+  .mini-cart-head { background: var(--text); color: #fff; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .mini-cart-head-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 7px; }
+  .mini-cart-head-count { background: var(--red); color: #fff; width: 20px; height: 20px; border-radius: 50%; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .mini-cart-close { background: rgba(255,255,255,0.15); border: none; color: #fff; width: 24px; height: 24px; border-radius: 50%; font-size: 13px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .mini-cart-added { background: #E8F7EE; border-bottom: 1px solid var(--border); padding: 10px 16px; font-size: 12px; color: var(--green); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .mini-cart-items { max-height: 200px; overflow-y: auto; }
+  .mini-cart-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+  .mini-cart-item:last-child { border-bottom: none; }
+  .mini-cart-item-icon { width: 36px; height: 36px; background: linear-gradient(135deg, #1877F2, #0d5bbf); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .mini-cart-item-info { flex: 1; min-width: 0; }
+  .mini-cart-item-name { font-size: 12px; font-weight: 600; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mini-cart-item-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .mini-cart-item-price { font-size: 13px; font-weight: 800; color: var(--usdt); white-space: nowrap; font-family: 'Syne', sans-serif; }
+  .mini-cart-footer { padding: 12px 16px; border-top: 1.5px solid var(--border); background: var(--bg); }
+  .mini-cart-total { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .mini-cart-total-label { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .mini-cart-total-value { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800; color: var(--usdt); }
+  .mini-cart-btn { width: 100%; padding: 10px; background: var(--red); color: #fff; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: 'Syne', sans-serif; transition: background 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .mini-cart-btn:hover { background: var(--red-dark); }
+
   /* CART */
   .cart-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.42); z-index: 200; animation: fadeIn 0.18s; }
   .cart-drawer { position: fixed; right: 0; top: 0; bottom: 0; width: 400px; max-width: 100vw; background: var(--surface); box-shadow: -6px 0 36px rgba(0,0,0,0.16); z-index: 201; display: flex; flex-direction: column; animation: slideLeft 0.22s ease; }
@@ -543,6 +566,48 @@ const SuccessModal = ({ order, onClose }) => (
     </div>
   </div>
 );
+
+// ─── MINI CART POPUP ──────────────────────────────────────────────────────────
+const MiniCart = ({ cart, lastAdded, onClose, onOpenCart }) => {
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const totalItems = cart.reduce((s, i) => s + i.qty, 0);
+  return (
+    <div className="mini-cart-popup">
+      <div className="mini-cart-head">
+        <div className="mini-cart-head-title">
+          🛒 Carrito <span className="mini-cart-head-count">{totalItems}</span>
+        </div>
+        <button className="mini-cart-close" onClick={onClose}>✕</button>
+      </div>
+      {lastAdded && (
+        <div className="mini-cart-added">
+          ✅ <span><strong>{lastAdded.name.split("·")[0].trim()}</strong> agregado al carrito</span>
+        </div>
+      )}
+      <div className="mini-cart-items">
+        {cart.map(item => (
+          <div key={item.id} className="mini-cart-item">
+            <div className="mini-cart-item-icon">👜</div>
+            <div className="mini-cart-item-info">
+              <div className="mini-cart-item-name">{item.name}</div>
+              <div className="mini-cart-item-sub">Cantidad: {item.qty}</div>
+            </div>
+            <div className="mini-cart-item-price">{fmtUSDT(item.price * item.qty)}</div>
+          </div>
+        ))}
+      </div>
+      <div className="mini-cart-footer">
+        <div className="mini-cart-total">
+          <span className="mini-cart-total-label">Total</span>
+          <span className="mini-cart-total-value">{fmtUSDT(total)}</span>
+        </div>
+        <button className="mini-cart-btn" onClick={() => { onOpenCart(); onClose(); }}>
+          Ver carrito →
+        </button>
+      </div>
+    </div>
+  );
+};
 
 // ─── CART DRAWER ─────────────────────────────────────────────────────────────
 const CartDrawer = ({ cart, onClose, onQty, onRemove, onCheckout }) => {
@@ -1257,6 +1322,9 @@ export default function App() {
   const [view, setView] = useState("shop");
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [showMiniCart, setShowMiniCart] = useState(false);
+  const [lastAdded, setLastAdded] = useState(null);
+  const miniCartTimer = useRef(null);
   const [showAuth, setShowAuth] = useState(false);
   const [authTab, setAuthTab] = useState("login");
   const [showPayment, setShowPayment] = useState(false);
@@ -1327,11 +1395,17 @@ export default function App() {
 
   const totalItems = cart.reduce((s, i) => s + i.qty, 0);
 
-  const addToCart = p => setCart(prev => {
-    const idx = prev.findIndex(i => i.id === p.id);
-    if (idx === -1) return [...prev, { ...p, qty: 1 }];
-    return prev.map(i => i.id === p.id ? { ...i, qty: i.qty + 1 } : i);
-  });
+  const addToCart = p => {
+    setCart(prev => {
+      const idx = prev.findIndex(i => i.id === p.id);
+      if (idx === -1) return [...prev, { ...p, qty: 1 }];
+      return prev.map(i => i.id === p.id ? { ...i, qty: i.qty + 1 } : i);
+    });
+    setLastAdded(p);
+    setShowMiniCart(true);
+    if (miniCartTimer.current) clearTimeout(miniCartTimer.current);
+    miniCartTimer.current = setTimeout(() => setShowMiniCart(false), 4000);
+  };
   const removeFromCart = id => setCart(prev => prev.filter(i => i.id !== id));
   const setQty = (id, qty) => qty <= 0 ? removeFromCart(id) : setCart(prev => prev.map(i => i.id === id ? { ...i, qty } : i));
 
@@ -1433,6 +1507,7 @@ export default function App() {
       {view === "shop" && <ShopPage cart={cart} onAddToCart={addToCart} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} />}
       {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} />}
 
+      {showMiniCart && cart.length > 0 && <MiniCart cart={cart} lastAdded={lastAdded} onClose={() => setShowMiniCart(false)} onOpenCart={() => setCartOpen(true)} />}
       {cartOpen && <CartDrawer cart={cart} onClose={() => setCartOpen(false)} onQty={setQty} onRemove={removeFromCart} onCheckout={handleCheckout} />}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} onSuccess={() => setShowPayment(pendingTotal > 0)} initialTab={authTab} />}
       {showPayment && user && <PaymentModal cart={cart} user={user} coupon={pendingCoupon} finalTotal={pendingTotal} onClose={() => setShowPayment(false)} onSuccess={handlePaySuccess} />}
