@@ -50,7 +50,7 @@ const css = `
   .cart-count { background: var(--red); color: #fff; width: 19px; height: 19px; border-radius: 50%; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
 
   .hero { position: relative; border-bottom: 1px solid rgba(212,175,55,0.25); overflow: hidden; display: block; }
-  .hero-banner-img { width: 100%; height: auto; display: block; }
+  .hero-banner-img { width: 100%; height: auto; max-height: 400px; object-fit: cover; object-position: center; display: block; }
   .hero-logo { display: none; }
   .hero h1 { display: none; }
   .hero p { display: none; }
