@@ -4143,10 +4143,11 @@ export default function App() {
   const isAdmin = user?.role === "admin";
 
   // ── DARK MODE ──
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
   useEffect(() => {
     const key = `bmverif_theme_${user?.email || "guest"}`;
-    setDarkMode(localStorage.getItem(key) === "dark");
+    const saved = localStorage.getItem(key);
+    setDarkMode(saved !== "light");
   }, [user?.email]);
   const toggleDark = () => {
     const next = !darkMode;
