@@ -431,6 +431,8 @@ const css = `
   .app.dark .co-coupon-inp { background: var(--bg); color: var(--text); border-color: var(--border); }
   .app.dark .tx-input { background: var(--bg); color: var(--text); border-color: var(--border); }
   .app.dark input::placeholder, .app.dark textarea::placeholder { color: var(--muted); }
+  .app.dark .cart-fab { background: var(--red); color: #fff; }
+  .app.dark .cart-fab:hover { background: var(--red-dark); }
 `;
 
 
