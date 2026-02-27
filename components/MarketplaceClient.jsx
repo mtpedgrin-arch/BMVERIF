@@ -927,26 +927,53 @@ const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
   const [verifyPending, setVerifyPending] = useState(false); // after register
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSent, setResendSent] = useState(false);
+  const [totpStep, setTotpStep] = useState(false);
+  const [totpCode, setTotpCode] = useState("");
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
 
   const handleLogin = async () => {
+    setError(""); setLoading(true);
+    try {
+      // Pre-check: distinguish wrong password / unverified / needs 2FA
+      const check = await fetch("/api/auth/check-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email.trim().toLowerCase(), password: form.password }),
+      }).then(r => r.json()).catch(() => ({ valid: false }));
+
+      if (!check.valid) {
+        setError(check.unverified ? "UNVERIFIED" : "Email o contraseña incorrectos.");
+        return;
+      }
+      if (check.requires2fa) {
+        setTotpStep(true);
+        return;
+      }
+      // No 2FA — sign in directly
+      const res = await signIn("credentials", {
+        redirect: false,
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+        totp: "",
+      });
+      if (res?.error) { setError("Email o contraseña incorrectos."); return; }
+      onSuccess?.();
+      onClose();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoginWithTotp = async () => {
     setError(""); setLoading(true);
     try {
       const res = await signIn("credentials", {
         redirect: false,
         email: form.email.trim().toLowerCase(),
         password: form.password,
+        totp: totpCode,
       });
-      if (res?.error) {
-        // Check if failure is due to unverified email
-        const check = await fetch("/api/auth/check-verification", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: form.email.trim().toLowerCase() }),
-        }).then(r => r.json()).catch(() => ({ unverified: false }));
-        setError(check.unverified ? "UNVERIFIED" : "Email o contraseña incorrectos.");
-        return;
-      }
+      if (res?.error) { setError("Código incorrecto. Intentá de nuevo."); return; }
       onSuccess?.();
       onClose();
     } finally {
@@ -1001,7 +1028,45 @@ const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
     }
   };
 
-  const goBackToLogin = () => { setTab("login"); setError(""); setForgotSent(false); setForgotEmail(""); setVerifyPending(false); setResendSent(false); };
+  const goBackToLogin = () => { setTab("login"); setError(""); setForgotSent(false); setForgotEmail(""); setVerifyPending(false); setResendSent(false); setTotpStep(false); setTotpCode(""); };
+
+  // ── 2FA CODE STEP ──────────────────────────────────────────────────────────
+  if (totpStep) return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 40, marginBottom: 10 }}>🔐</div>
+        <div className="modal-title">Verificación en 2 pasos</div>
+        <div className="modal-sub">Ingresá el código de tu app autenticadora</div>
+        <div className="form-group" style={{ marginTop: 16 }}>
+          <label className="form-label">Código de 6 dígitos</label>
+          <input
+            className="form-input"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={6}
+            placeholder="000000"
+            value={totpCode}
+            onChange={e => setTotpCode(e.target.value.replace(/\D/g, ""))}
+            onKeyDown={e => e.key === "Enter" && totpCode.length === 6 && handleLoginWithTotp()}
+            autoFocus
+            style={{ fontSize: 22, letterSpacing: 6, textAlign: "center" }}
+          />
+        </div>
+        {error && (
+          <div style={{ fontSize: 13, padding: "9px 13px", borderRadius: 9, background: "#FEF2F2", color: "#B91C1C", border: "1px solid #FECACA", marginBottom: 8 }}>
+            ⚠️ {error}
+          </div>
+        )}
+        <button className="btn btn-primary btn-full" onClick={handleLoginWithTotp} disabled={loading || totpCode.length < 6}>
+          {loading ? "Verificando..." : "→ Verificar"}
+        </button>
+        <button className="btn btn-outline btn-full" style={{ marginTop: 8 }} onClick={() => { setTotpStep(false); setTotpCode(""); setError(""); }}>
+          ← Volver
+        </button>
+      </div>
+    </div>
+  );
 
   // ── VERIFY PENDING SCREEN (after register) ────────────────────────────────
   if (verifyPending) return (
@@ -2015,6 +2080,109 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
   const [pwLoading, setPwLoading] = useState(false);
   const setPw = k => e => setPwForm(p => ({ ...p, [k]: e.target.value }));
 
+  // ── Profile + preferences state ──
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [nameMsg, setNameMsg] = useState(null);
+  const [nameSaving, setNameSaving] = useState(false);
+  const [newsletter, setNewsletter] = useState(false);
+  const [stockUpdates, setStockUpdates] = useState(false);
+  const [prefSaving, setPrefSaving] = useState(false);
+  const [prefMsg, setPrefMsg] = useState(null);
+  // ── 2FA state ──
+  const [tfaEnabled, setTfaEnabled] = useState(false);
+  const [tfaStep, setTfaStep] = useState(null); // null | "setup" | "disable"
+  const [tfaQr, setTfaQr] = useState("");
+  const [tfaSecret, setTfaSecret] = useState("");
+  const [tfaCode, setTfaCode] = useState("");
+  const [tfaMsg, setTfaMsg] = useState(null);
+  const [tfaLoading, setTfaLoading] = useState(false);
+
+  useEffect(() => {
+    if (tab !== "settings" || profileLoaded) return;
+    fetch("/api/user/profile")
+      .then(r => r.json())
+      .then(d => {
+        setProfileName(d.name || "");
+        setNewsletter(!!d.newsletter);
+        setStockUpdates(!!d.stockUpdates);
+        setTfaEnabled(!!d.twoFactorEnabled);
+        setProfileLoaded(true);
+      })
+      .catch(() => {});
+  }, [tab, profileLoaded]);
+
+  const handleSaveName = async () => {
+    setNameMsg(null); setNameSaving(true);
+    try {
+      const res = await fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: profileName.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) setNameMsg({ text: "¡Nombre actualizado!", ok: true });
+      else setNameMsg({ text: data.error || "Error al guardar.", ok: false });
+    } catch { setNameMsg({ text: "Error de red.", ok: false }); }
+    finally { setNameSaving(false); }
+  };
+
+  const handleSavePrefs = async () => {
+    setPrefMsg(null); setPrefSaving(true);
+    try {
+      const res = await fetch("/api/user/preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newsletter, stockUpdates }),
+      });
+      const data = await res.json();
+      if (res.ok) setPrefMsg({ text: "¡Preferencias guardadas!", ok: true });
+      else setPrefMsg({ text: data.error || "Error al guardar.", ok: false });
+    } catch { setPrefMsg({ text: "Error de red.", ok: false }); }
+    finally { setPrefSaving(false); }
+  };
+
+  const handleSetupTfa = async () => {
+    setTfaMsg(null); setTfaLoading(true); setTfaCode("");
+    try {
+      const res = await fetch("/api/user/2fa/setup", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) { setTfaQr(data.qrImage); setTfaSecret(data.secret); setTfaStep("setup"); }
+      else setTfaMsg({ text: data.error || "Error al configurar.", ok: false });
+    } catch { setTfaMsg({ text: "Error de red.", ok: false }); }
+    finally { setTfaLoading(false); }
+  };
+
+  const handleEnableTfa = async () => {
+    setTfaMsg(null); setTfaLoading(true);
+    try {
+      const res = await fetch("/api/user/2fa/enable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: tfaCode }),
+      });
+      const data = await res.json();
+      if (res.ok) { setTfaEnabled(true); setTfaStep(null); setTfaCode(""); setTfaMsg({ text: "¡2FA activado con éxito!", ok: true }); }
+      else setTfaMsg({ text: data.error || "Código incorrecto.", ok: false });
+    } catch { setTfaMsg({ text: "Error de red.", ok: false }); }
+    finally { setTfaLoading(false); }
+  };
+
+  const handleDisableTfa = async () => {
+    setTfaMsg(null); setTfaLoading(true);
+    try {
+      const res = await fetch("/api/user/2fa/disable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: tfaCode }),
+      });
+      const data = await res.json();
+      if (res.ok) { setTfaEnabled(false); setTfaStep(null); setTfaCode(""); setTfaMsg({ text: "2FA desactivado.", ok: true }); }
+      else setTfaMsg({ text: data.error || "Código incorrecto.", ok: false });
+    } catch { setTfaMsg({ text: "Error de red.", ok: false }); }
+    finally { setTfaLoading(false); }
+  };
+
   const handleChangePassword = async () => {
     setPwMsg(null);
     if (!pwForm.current || !pwForm.newPw || !pwForm.confirm) return setPwMsg({ text: "Completá todos los campos.", ok: false });
@@ -2143,30 +2311,166 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
 
       {/* ── AJUSTES ── */}
       {tab === "settings" && (
-        <div className="card" style={{ maxWidth: 480 }}>
-          <div className="card-title">🔒 Cambiar contraseña</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 4 }}>
-            <div className="form-group">
-              <label className="form-label">Contraseña actual</label>
-              <input className="form-input" type="password" placeholder="••••••••" value={pwForm.current} onChange={setPw("current")} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 520 }}>
+
+          {/* ── Perfil ── */}
+          <div className="card">
+            <div className="card-title">👤 Perfil</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 4 }}>
+              <div className="form-group">
+                <label className="form-label">Nombre</label>
+                <input className="form-input" type="text" placeholder="Tu nombre" value={profileName} onChange={e => setProfileName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSaveName()} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Email</label>
+                <input className="form-input" type="email" value={user.email} disabled style={{ opacity: 0.6, cursor: "not-allowed" }} />
+              </div>
+              {nameMsg && (
+                <div style={{ fontSize: 13, padding: "9px 13px", borderRadius: 9, background: nameMsg.ok ? "#F0FDF4" : "#FEF2F2", color: nameMsg.ok ? "#15803D" : "#B91C1C", border: `1px solid ${nameMsg.ok ? "#BBF7D0" : "#FECACA"}` }}>
+                  {nameMsg.ok ? "✅ " : "⚠️ "}{nameMsg.text}
+                </div>
+              )}
+              <button className="btn btn-primary" style={{ alignSelf: "flex-start", minWidth: 180 }} onClick={handleSaveName} disabled={nameSaving}>
+                {nameSaving ? "Guardando..." : "Guardar nombre"}
+              </button>
             </div>
-            <div className="form-group">
-              <label className="form-label">Nueva contraseña</label>
-              <input className="form-input" type="password" placeholder="••••••••" value={pwForm.newPw} onChange={setPw("newPw")} />
+          </div>
+
+          {/* ── 2FA ── */}
+          <div className="card">
+            <div className="card-title">🔐 Verificación en dos pasos</div>
+            <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14, lineHeight: 1.6 }}>
+              Protegé tu cuenta con Google Authenticator u otra app compatible con TOTP.
+              {tfaEnabled && <span style={{ marginLeft: 8, background: "#F0FDF4", color: "#15803D", border: "1px solid #BBF7D0", borderRadius: 6, padding: "2px 8px", fontSize: 12, fontWeight: 600 }}>✅ Activado</span>}
+              {!tfaEnabled && <span style={{ marginLeft: 8, background: "#FEF2F2", color: "#B91C1C", border: "1px solid #FECACA", borderRadius: 6, padding: "2px 8px", fontSize: 12, fontWeight: 600 }}>Desactivado</span>}
             </div>
-            <div className="form-group">
-              <label className="form-label">Confirmar nueva contraseña</label>
-              <input className="form-input" type="password" placeholder="••••••••" value={pwForm.confirm} onChange={setPw("confirm")} onKeyDown={e => e.key === "Enter" && handleChangePassword()} />
-            </div>
-            {pwMsg && (
-              <div style={{ fontSize: 13, padding: "9px 13px", borderRadius: 9, background: pwMsg.ok ? "#F0FDF4" : "#FEF2F2", color: pwMsg.ok ? "#15803D" : "#B91C1C", border: `1px solid ${pwMsg.ok ? "#BBF7D0" : "#FECACA"}` }}>
-                {pwMsg.ok ? "✅ " : "⚠️ "}{pwMsg.text}
+
+            {tfaMsg && (
+              <div style={{ fontSize: 13, padding: "9px 13px", borderRadius: 9, background: tfaMsg.ok ? "#F0FDF4" : "#FEF2F2", color: tfaMsg.ok ? "#15803D" : "#B91C1C", border: `1px solid ${tfaMsg.ok ? "#BBF7D0" : "#FECACA"}`, marginBottom: 12 }}>
+                {tfaMsg.ok ? "✅ " : "⚠️ "}{tfaMsg.text}
               </div>
             )}
-            <button className="btn btn-primary" style={{ alignSelf: "flex-start", minWidth: 200 }} onClick={handleChangePassword} disabled={pwLoading}>
-              {pwLoading ? "Guardando..." : "Guardar contraseña"}
-            </button>
+
+            {/* Not yet in a step and 2FA is off — offer setup */}
+            {!tfaEnabled && tfaStep === null && (
+              <button className="btn btn-primary" style={{ minWidth: 200 }} onClick={handleSetupTfa} disabled={tfaLoading}>
+                {tfaLoading ? "Cargando..." : "Activar 2FA"}
+              </button>
+            )}
+
+            {/* Setup step: show QR + secret + code input */}
+            {tfaStep === "setup" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6 }}>
+                  1. Abrí <strong>Google Authenticator</strong> (o cualquier app TOTP).<br />
+                  2. Escaneá el código QR o ingresá la clave manualmente.<br />
+                  3. Ingresá el código de 6 dígitos para confirmar.
+                </div>
+                {tfaQr && (
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <img src={tfaQr} alt="QR Code 2FA" style={{ width: 180, height: 180, borderRadius: 10, border: "2px solid var(--border)" }} />
+                  </div>
+                )}
+                {tfaSecret && (
+                  <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 14px", fontSize: 12 }}>
+                    <div style={{ color: "var(--muted)", marginBottom: 4 }}>Clave manual:</div>
+                    <code style={{ fontFamily: "monospace", letterSpacing: 2, wordBreak: "break-all" }}>{tfaSecret}</code>
+                  </div>
+                )}
+                <div className="form-group">
+                  <label className="form-label">Código de verificación</label>
+                  <input className="form-input" type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6} placeholder="000000" value={tfaCode} onChange={e => setTfaCode(e.target.value.replace(/\D/g, ""))} onKeyDown={e => e.key === "Enter" && tfaCode.length === 6 && handleEnableTfa()} autoFocus />
+                </div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleEnableTfa} disabled={tfaLoading || tfaCode.length < 6}>
+                    {tfaLoading ? "Verificando..." : "✓ Confirmar y activar"}
+                  </button>
+                  <button className="btn btn-outline" onClick={() => { setTfaStep(null); setTfaCode(""); setTfaMsg(null); }}>Cancelar</button>
+                </div>
+              </div>
+            )}
+
+            {/* 2FA is on — offer disable */}
+            {tfaEnabled && tfaStep === null && (
+              <button className="btn btn-outline" style={{ minWidth: 200, color: "var(--red)", borderColor: "var(--red)" }} onClick={() => { setTfaStep("disable"); setTfaCode(""); setTfaMsg(null); }}>
+                Desactivar 2FA
+              </button>
+            )}
+
+            {/* Disable step: confirm with code */}
+            {tfaStep === "disable" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ fontSize: 13, color: "var(--muted)" }}>Ingresá el código de tu app autenticadora para confirmar la desactivación.</div>
+                <div className="form-group">
+                  <label className="form-label">Código de verificación</label>
+                  <input className="form-input" type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6} placeholder="000000" value={tfaCode} onChange={e => setTfaCode(e.target.value.replace(/\D/g, ""))} onKeyDown={e => e.key === "Enter" && tfaCode.length === 6 && handleDisableTfa()} autoFocus />
+                </div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button className="btn btn-primary" style={{ flex: 1, background: "var(--red)", borderColor: "var(--red)" }} onClick={handleDisableTfa} disabled={tfaLoading || tfaCode.length < 6}>
+                    {tfaLoading ? "Verificando..." : "Desactivar"}
+                  </button>
+                  <button className="btn btn-outline" onClick={() => { setTfaStep(null); setTfaCode(""); setTfaMsg(null); }}>Cancelar</button>
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* ── Cambiar contraseña ── */}
+          <div className="card">
+            <div className="card-title">🔒 Cambiar contraseña</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 4 }}>
+              <div className="form-group">
+                <label className="form-label">Contraseña actual</label>
+                <input className="form-input" type="password" placeholder="••••••••" value={pwForm.current} onChange={setPw("current")} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Nueva contraseña</label>
+                <input className="form-input" type="password" placeholder="••••••••" value={pwForm.newPw} onChange={setPw("newPw")} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Confirmar nueva contraseña</label>
+                <input className="form-input" type="password" placeholder="••••••••" value={pwForm.confirm} onChange={setPw("confirm")} onKeyDown={e => e.key === "Enter" && handleChangePassword()} />
+              </div>
+              {pwMsg && (
+                <div style={{ fontSize: 13, padding: "9px 13px", borderRadius: 9, background: pwMsg.ok ? "#F0FDF4" : "#FEF2F2", color: pwMsg.ok ? "#15803D" : "#B91C1C", border: `1px solid ${pwMsg.ok ? "#BBF7D0" : "#FECACA"}` }}>
+                  {pwMsg.ok ? "✅ " : "⚠️ "}{pwMsg.text}
+                </div>
+              )}
+              <button className="btn btn-primary" style={{ alignSelf: "flex-start", minWidth: 200 }} onClick={handleChangePassword} disabled={pwLoading}>
+                {pwLoading ? "Guardando..." : "Guardar contraseña"}
+              </button>
+            </div>
+          </div>
+
+          {/* ── Preferencias ── */}
+          <div className="card">
+            <div className="card-title">🔔 Preferencias de notificaciones</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 4 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+                <input type="checkbox" checked={newsletter} onChange={e => setNewsletter(e.target.checked)} style={{ width: 17, height: 17, accentColor: "var(--red)", cursor: "pointer" }} />
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>Newsletter</div>
+                  <div style={{ fontSize: 12, color: "var(--muted)" }}>Recibí novedades, ofertas y actualizaciones del marketplace.</div>
+                </div>
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+                <input type="checkbox" checked={stockUpdates} onChange={e => setStockUpdates(e.target.checked)} style={{ width: 17, height: 17, accentColor: "var(--red)", cursor: "pointer" }} />
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>Actualizaciones de stock</div>
+                  <div style={{ fontSize: 12, color: "var(--muted)" }}>Recibí alertas cuando haya nuevos productos disponibles.</div>
+                </div>
+              </label>
+              {prefMsg && (
+                <div style={{ fontSize: 13, padding: "9px 13px", borderRadius: 9, background: prefMsg.ok ? "#F0FDF4" : "#FEF2F2", color: prefMsg.ok ? "#15803D" : "#B91C1C", border: `1px solid ${prefMsg.ok ? "#BBF7D0" : "#FECACA"}` }}>
+                  {prefMsg.ok ? "✅ " : "⚠️ "}{prefMsg.text}
+                </div>
+              )}
+              <button className="btn btn-primary" style={{ alignSelf: "flex-start", minWidth: 200 }} onClick={handleSavePrefs} disabled={prefSaving}>
+                {prefSaving ? "Guardando..." : "Guardar preferencias"}
+              </button>
+            </div>
+          </div>
+
         </div>
       )}
     </div>

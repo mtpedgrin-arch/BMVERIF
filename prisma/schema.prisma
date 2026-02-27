@@ -17,11 +17,15 @@ model User {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
-  emailVerified    Boolean   @default(true)  // true for existing users; false for new until verified
-  verifyToken      String?
+  emailVerified     Boolean   @default(true)
+  verifyToken       String?
   verifyTokenExpiry DateTime?
-  resetToken       String?
-  resetTokenExpiry DateTime?
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  twoFactorEnabled  Boolean   @default(false)
+  twoFactorSecret   String?
+  newsletter        Boolean   @default(false)
+  stockUpdates      Boolean   @default(false)
 
   orders    Order[]
   favorites Favorite[]
