@@ -17,6 +17,7 @@ export async function PATCH(req, { params }) {
   if (body.details != null) data.details = body.details.trim() || null;
   if (body.price != null) data.price = parseFloat(body.price);
   if (body.cost != null) data.cost = parseFloat(body.cost) || 0;
+  if (body.tiers != null) data.tiers = Array.isArray(body.tiers) ? body.tiers : [];
   if (body.stock != null) data.stock = parseInt(body.stock);
   if (body.isActive != null) data.isActive = body.isActive;
 

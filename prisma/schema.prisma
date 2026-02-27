@@ -28,6 +28,7 @@ model Product {
   details   String?
   price     Float    @default(0)
   cost      Float    @default(0)
+  tiers     Json     @default("[]")
   stock     Int      @default(0)
   sales     Int      @default(0)
   rating    Float    @default(0)

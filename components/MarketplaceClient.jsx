@@ -457,6 +457,20 @@ const css = `
 // ─── UTILS ───────────────────────────────────────────────────────────────────
 const fmt = n => `$${Number(n).toFixed(2)}`;
 const fmtUSDT = n => `${Number(n).toFixed(2)} USDT`;
+
+// Returns the effective unit price given quantity-based tiers
+const getTierPrice = (basePrice, tiers, qty) => {
+  if (!tiers || tiers.length === 0) return basePrice;
+  const sorted = [...tiers].filter(t => t.qty > 0 && t.price > 0).sort((a, b) => b.qty - a.qty);
+  const match = sorted.find(t => qty >= t.qty);
+  return match ? match.price : basePrice;
+};
+// Returns the next tier not yet reached (cheapest above current qty), or null
+const getNextTier = (tiers, qty) => {
+  if (!tiers || tiers.length === 0) return null;
+  const sorted = [...tiers].filter(t => t.qty > 0 && t.price > 0).sort((a, b) => a.qty - b.qty);
+  return sorted.find(t => t.qty > qty) || null;
+};
 const nowTime = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 const today = () => new Date().toISOString().split("T")[0];
 const genOrderId = () => `ORD-${Date.now().toString().slice(-6)}`;
@@ -1084,7 +1098,23 @@ const CartDrawer = ({ cart, onClose, onQty, onRemove, onCheckout }) => {
               <div style={{ width: 40, height: 40, background: "#1877F2", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>👜</div>
               <div className="cart-item-info">
                 <div className="cart-item-name">{item.name}</div>
-                <div className="cart-item-price">{fmtUSDT(item.price)} × {item.qty} = <strong style={{ color: "var(--usdt)" }}>{fmtUSDT(item.price * item.qty)}</strong></div>
+                <div className="cart-item-price">
+                  {item.basePrice && item.price < item.basePrice
+                    ? <><span style={{ textDecoration: "line-through", color: "var(--muted)", marginRight: 5 }}>{fmtUSDT(item.basePrice)}</span><strong style={{ color: "var(--green)" }}>{fmtUSDT(item.price)}</strong></>
+                    : fmtUSDT(item.price)
+                  }
+                  {" × "}{item.qty} = <strong style={{ color: "var(--usdt)" }}>{fmtUSDT(item.price * item.qty)}</strong>
+                </div>
+                {item.basePrice && item.price < item.basePrice && (
+                  <div style={{ fontSize: 11, color: "var(--green)", fontWeight: 600, marginTop: 2 }}>
+                    🏷 Precio x{item.qty}: ahorrás {fmtUSDT((item.basePrice - item.price) * item.qty)}
+                  </div>
+                )}
+                {(() => { const nt = getNextTier(item.tiers, item.qty); return nt ? (
+                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
+                    ↗ Llevá {nt.qty - item.qty} más → {fmtUSDT(nt.price)} c/u
+                  </div>
+                ) : null; })()}
                 <div className="qty-ctrl" style={{ display: "inline-flex", marginTop: 6 }}>
                   <button className="qty-btn" onClick={() => onQty(item.id, item.qty - 1)}>−</button>
                   <span className="qty-num">{item.qty}</span>
@@ -1177,6 +1207,15 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
                 </div>
                 <div className="prod-right">
                   <div className="prod-price">{fmtUSDT(p.price)}</div>
+                  {Array.isArray(p.tiers) && p.tiers.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "flex-end", marginTop: 3 }}>
+                      {[...p.tiers].sort((a,b)=>a.qty-b.qty).map((t,i) => (
+                        <span key={i} style={{ fontSize: 10, fontWeight: 700, background: "var(--green-light)", color: "var(--green)", border: "1px solid var(--green-border)", borderRadius: 20, padding: "2px 7px" }}>
+                          x{t.qty}: {fmtUSDT(t.price)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div className="prod-actions">
                     {p.stock === 0
                       ? <button className="buy-btn" disabled>Sin stock</button>
@@ -1293,31 +1332,40 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
 const ProductManager = ({ products, setProducts }) => {
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
-  const [form, setForm] = useState({ name: "", details: "", price: "", cost: "", stock: "" });
+  const [form, setForm] = useState({ name: "", details: "", price: "", cost: "", stock: "", tiers: [] });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const setF = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
 
   const openNew = () => {
     setEditProduct(null);
-    setForm({ name: "", details: "", price: "", cost: "", stock: "" });
+    setForm({ name: "", details: "", price: "", cost: "", stock: "", tiers: [] });
     setError("");
     setShowForm(true);
   };
 
   const openEdit = (p) => {
     setEditProduct(p);
-    setForm({ name: p.name, details: p.details || "", price: p.price, cost: p.cost || "", stock: p.stock });
+    setForm({ name: p.name, details: p.details || "", price: p.price, cost: p.cost || "", stock: p.stock, tiers: Array.isArray(p.tiers) ? p.tiers.map(t => ({ qty: t.qty, price: t.price })) : [] });
     setError("");
     setShowForm(true);
   };
+
+  const addTier    = () => setForm(p => ({ ...p, tiers: [...p.tiers, { qty: "", price: "" }] }));
+  const removeTier = (i) => setForm(p => ({ ...p, tiers: p.tiers.filter((_, idx) => idx !== i) }));
+  const setTierField = (i, field, val) => setForm(p => ({ ...p, tiers: p.tiers.map((t, idx) => idx === i ? { ...t, [field]: val } : t) }));
 
   const save = async () => {
     if (!form.name.trim() || !form.price) { setError("Nombre y precio son obligatorios."); return; }
     setSaving(true); setError("");
     try {
       let res, data;
-      const body = { name: form.name, details: form.details, price: parseFloat(form.price), cost: parseFloat(form.cost) || 0, stock: parseInt(form.stock) || 0 };
+      const cleanTiers = form.tiers
+        .filter(t => t.qty !== "" && t.price !== "")
+        .map(t => ({ qty: parseInt(t.qty), price: parseFloat(t.price) }))
+        .filter(t => t.qty > 0 && t.price > 0)
+        .sort((a, b) => a.qty - b.qty);
+      const body = { name: form.name, details: form.details, price: parseFloat(form.price), cost: parseFloat(form.cost) || 0, tiers: cleanTiers, stock: parseInt(form.stock) || 0 };
       if (editProduct) {
         res = await fetch(`/api/products/${editProduct.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       } else {
@@ -1395,7 +1443,48 @@ const ProductManager = ({ products, setProducts }) => {
               <input className="form-input" type="number" min="0" value={form.stock} onChange={setF("stock")} placeholder="1" />
             </div>
           </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+
+          {/* ── Descuentos por cantidad ── */}
+          <div style={{ marginTop: 16, borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <label className="form-label" style={{ margin: 0 }}>📦 Descuentos por cantidad</label>
+              <button type="button" className="btn btn-outline btn-sm" onClick={addTier}>+ Agregar escalonado</button>
+            </div>
+            {form.tiers.length === 0 && (
+              <div style={{ fontSize: 12, color: "var(--muted)", padding: "8px 0" }}>Sin descuentos por cantidad. Hacé clic en "+ Agregar escalonado" para configurar.</div>
+            )}
+            {form.tiers.map((t, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap" }}>A partir de</span>
+                <input
+                  className="form-input"
+                  type="number" min="1" step="1"
+                  style={{ width: 80 }}
+                  placeholder="Cant."
+                  value={t.qty}
+                  onChange={e => setTierField(i, "qty", e.target.value)}
+                />
+                <span style={{ fontSize: 12, color: "var(--muted)" }}>unidades →</span>
+                <input
+                  className="form-input"
+                  type="number" min="0" step="0.01"
+                  style={{ width: 100 }}
+                  placeholder="Precio USDT"
+                  value={t.price}
+                  onChange={e => setTierField(i, "price", e.target.value)}
+                />
+                <span style={{ fontSize: 12, color: "var(--muted)" }}>USDT c/u</span>
+                <button type="button" onClick={() => removeTier(i)} style={{ background: "none", border: "none", color: "var(--red)", fontSize: 16, cursor: "pointer", padding: "0 4px" }}>✕</button>
+              </div>
+            ))}
+            {form.tiers.length > 0 && (
+              <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+                El precio baja automáticamente en el carrito cuando el cliente lleva la cantidad indicada.
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
             <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? "Guardando..." : editProduct ? "💾 Guardar cambios" : "✅ Crear producto"}</button>
             <button className="btn btn-outline" onClick={() => { setShowForm(false); setEditProduct(null); }}>Cancelar</button>
           </div>
@@ -2146,8 +2235,15 @@ export default function App() {
   const addToCart = p => {
     setCart(prev => {
       const idx = prev.findIndex(i => i.id === p.id);
-      if (idx === -1) return [...prev, { ...p, qty: 1 }];
-      return prev.map(i => i.id === p.id ? { ...i, qty: i.qty + 1 } : i);
+      if (idx === -1) {
+        const base = p.basePrice ?? p.price;
+        return [...prev, { ...p, basePrice: base, qty: 1, price: getTierPrice(base, p.tiers, 1) }];
+      }
+      return prev.map(i => {
+        if (i.id !== p.id) return i;
+        const qty = i.qty + 1;
+        return { ...i, qty, price: getTierPrice(i.basePrice, i.tiers, qty) };
+      });
     });
     setLastAdded(p);
     setShowMiniCart(true);
@@ -2155,13 +2251,26 @@ export default function App() {
     miniCartTimer.current = setTimeout(() => setShowMiniCart(false), 4000);
   };
   const removeFromCart = id => setCart(prev => prev.filter(i => i.id !== id));
-  const setQty = (id, qty) => qty <= 0 ? removeFromCart(id) : setCart(prev => prev.map(i => i.id === id ? { ...i, qty } : i));
+  const setQty = (id, qty) => {
+    if (qty <= 0) return removeFromCart(id);
+    setCart(prev => prev.map(i => {
+      if (i.id !== id) return i;
+      return { ...i, qty, price: getTierPrice(i.basePrice, i.tiers, qty) };
+    }));
+  };
 
   const handleBuyNow = p => {
     setCart(prev => {
       const idx = prev.findIndex(i => i.id === p.id);
-      if (idx === -1) return [...prev, { ...p, qty: 1 }];
-      return prev.map(i => i.id === p.id ? { ...i, qty: i.qty + 1 } : i);
+      if (idx === -1) {
+        const base = p.basePrice ?? p.price;
+        return [...prev, { ...p, basePrice: base, qty: 1, price: getTierPrice(base, p.tiers, 1) }];
+      }
+      return prev.map(i => {
+        if (i.id !== p.id) return i;
+        const qty = i.qty + 1;
+        return { ...i, qty, price: getTierPrice(i.basePrice, i.tiers, qty) };
+      });
     });
     setView("checkout");
   };
