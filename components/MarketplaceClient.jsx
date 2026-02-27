@@ -587,10 +587,11 @@ const css = `
   .info-faq-q { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
   .info-faq-a { font-size: 12px; color: var(--muted); line-height: 1.6; }
   .site-footer { border-top: 1px solid var(--border); padding: 28px 24px; margin-top: auto; }
-  .support-fab { position: fixed; top: 72px; right: 20px; z-index: 400; display: flex; align-items: center; gap: 8px; background: #E02020; color: #fff; border: none; border-radius: 50px; padding: 10px 18px 10px 13px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 18px rgba(224,32,32,0.45); transition: transform 0.15s, box-shadow 0.15s; text-decoration: none; letter-spacing: 0.01em; }
+  .side-btns-bar { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 20px; pointer-events: none; }
+  .support-fab { display: flex; align-items: center; gap: 8px; background: #E02020; color: #fff; border: none; border-radius: 50px; padding: 10px 18px 10px 13px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 18px rgba(224,32,32,0.45); transition: transform 0.15s, box-shadow 0.15s; text-decoration: none; letter-spacing: 0.01em; pointer-events: all; }
   .support-fab:hover { transform: translateY(-2px); box-shadow: 0 6px 26px rgba(224,32,32,0.55); }
   .support-fab svg { width: 18px; height: 18px; flex-shrink: 0; }
-  .left-panel { position: fixed; top: 72px; left: 20px; z-index: 400; display: flex; flex-direction: column; gap: 10px; }
+  .left-panel { display: flex; flex-direction: column; gap: 10px; pointer-events: all; }
   .left-panel-btn { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 50px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; border: none; transition: transform 0.15s, box-shadow 0.15s; white-space: nowrap; box-shadow: 0 3px 14px rgba(0,0,0,0.25); }
   .left-panel-btn:hover { transform: translateY(-2px); }
   .left-panel-btn.tg-support { background: #229ED9; color: #fff; }
@@ -5065,6 +5066,28 @@ export default function App() {
         </div>
       </div>
 
+      {/* Side buttons bar — scrolls with page, hides under sticky topbar */}
+      <div className="side-btns-bar">
+        <div className="left-panel">
+          <a href="https://t.me/bmverificada_soporte" target="_blank" rel="noopener noreferrer" className="left-panel-btn tg-support">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.88 13.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.268.942z"/></svg>
+            Support
+          </a>
+          <a href="https://t.me/bmverificadamarketplace" target="_blank" rel="noopener noreferrer" className="left-panel-btn tg-channel">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.88 13.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.268.942z"/></svg>
+            Telegram Channel
+          </a>
+        </div>
+        <a href="https://t.me/bmverificada_soporte" target="_blank" rel="noopener noreferrer" className="support-fab">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/>
+            <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+          </svg>
+          Support
+        </a>
+      </div>
+
       {view === "shop" && !selectedProduct && <ShopPage cart={cart} onAddToCart={addToCart} onBuyNow={handleBuyNow} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} onProductClick={p => setSelectedProduct(p)} />}
       {view === "shop" && selectedProduct && <ProductDetailPage product={selectedProduct} cart={cart} onBack={() => setSelectedProduct(null)} onAddToCartQty={addToCartQty} onBuyNowQty={handleBuyNowQty} liked={liked} onToggleLike={toggleLike} user={user} />}
       {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); }} onOrderPending={order => setGlobalPending(order)} wallets={wallets} />}
@@ -5175,27 +5198,6 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Left panel: Support + Telegram Channel */}
-      <div className="left-panel">
-        <a href="https://t.me/bmverificada_soporte" target="_blank" rel="noopener noreferrer" className="left-panel-btn tg-support">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.88 13.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.268.942z"/></svg>
-          Support
-        </a>
-        <a href="https://t.me/bmverificadamarketplace" target="_blank" rel="noopener noreferrer" className="left-panel-btn tg-channel">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.88 13.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.268.942z"/></svg>
-          Telegram Channel
-        </a>
-      </div>
-
-      {/* Right fixed Support button */}
-      <a href="https://t.me/bmverificada_soporte" target="_blank" rel="noopener noreferrer" className="support-fab">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
-          <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/>
-          <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
-        </svg>
-        Support
-      </a>
     </div>
   );
 }
