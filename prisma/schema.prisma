@@ -33,9 +33,10 @@ model Product {
   sales     Int      @default(0)
   rating    Float    @default(0)
   reviews   Int      @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isActive      Boolean  @default(true)
+  showTierBadge Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Order {

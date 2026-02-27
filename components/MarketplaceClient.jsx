@@ -1293,10 +1293,10 @@ const ProductDetailPage = ({ product: p, cart, onBack, onAddToCartQty, onBuyNowQ
   const attrs = parseAttributes(p.details);
   const hasTiers = Array.isArray(p.tiers) && p.tiers.length > 0;
   const sortedTiers = hasTiers ? [...p.tiers].filter(t => t.qty > 0 && t.price > 0).sort((a, b) => a.qty - b.qty) : [];
-  const effectivePrice = getTierPrice(p.price, p.tiers, qty + cartQty);
+  const effectivePrice = getTierPrice(p.price, p.tiers, qty);
   const hasDiscount = effectivePrice < p.price;
   const discPct = hasDiscount ? Math.round((1 - effectivePrice / p.price) * 100) : 0;
-  const nextTier = getNextTier(p.tiers || [], qty + cartQty);
+  const nextTier = getNextTier(p.tiers || [], qty);
 
   return (
     <div className="product-detail-page">
@@ -1364,7 +1364,7 @@ const ProductDetailPage = ({ product: p, cart, onBack, onAddToCartQty, onBuyNowQ
                 </div>
                 {sortedTiers.map((t, i) => {
                   const disc = Math.round((1 - t.price / p.price) * 100);
-                  const isActive = (qty + cartQty) >= t.qty;
+                  const isActive = qty >= t.qty;
                   return (
                     <div key={i} className={`pd-tier-row${isActive ? " active-tier" : ""}`}>
                       <span className="pd-tier-qty">x{t.qty}+</span>
@@ -1426,7 +1426,7 @@ const ProductDetailPage = ({ product: p, cart, onBack, onAddToCartQty, onBuyNowQ
 
           {nextTier && (
             <div className="pd-next-tier">
-              💡 Comprá {nextTier.qty - (qty + cartQty)} más y obtenés <strong>{fmtUSDT(nextTier.price)}</strong> c/u (−{Math.round((1 - nextTier.price / p.price) * 100)}%)
+              💡 Comprá {nextTier.qty - qty} más y obtenés <strong>{fmtUSDT(nextTier.price)}</strong> c/u (−{Math.round((1 - nextTier.price / p.price) * 100)}%)
             </div>
           )}
 
@@ -1491,7 +1491,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
                   </div>
                 </div>
                 <div className="prod-right">
-                  {Array.isArray(p.tiers) && p.tiers.length > 0 ? (() => {
+                  {p.showTierBadge && Array.isArray(p.tiers) && p.tiers.length > 0 ? (() => {
                     const sorted = [...p.tiers].filter(t => t.qty > 0 && t.price > 0).sort((a, b) => a.qty - b.qty);
                     const first = sorted[0];
                     const bestDisc = Math.round((1 - first.price / p.price) * 100);
@@ -1506,7 +1506,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
                       </div>
                     );
                   })() : <div className="prod-price">{fmtUSDT(p.price)}</div>}
-                  {Array.isArray(p.tiers) && p.tiers.length > 0 && (
+                  {p.showTierBadge && Array.isArray(p.tiers) && p.tiers.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "flex-end", marginTop: 3 }}>
                       {[...p.tiers].sort((a,b)=>a.qty-b.qty).map((t,i) => (
                         <span key={i} style={{ fontSize: 10, fontWeight: 700, background: "var(--green-light)", color: "var(--green)", border: "1px solid var(--green-border)", borderRadius: 20, padding: "2px 7px" }}>
@@ -1708,6 +1708,14 @@ const ProductManager = ({ products, setProducts }) => {
     } catch {}
   };
 
+  const toggleTierBadge = async (p) => {
+    try {
+      const res = await fetch(`/api/products/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ showTierBadge: !p.showTierBadge }) });
+      const data = await res.json();
+      if (res.ok) setProducts(prev => prev.map(x => x.id === p.id ? data : x));
+    } catch {}
+  };
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
@@ -1795,7 +1803,7 @@ const ProductManager = ({ products, setProducts }) => {
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>Nombre</th><th>Detalles</th><th>Venta</th><th>Costo</th><th>Margen</th><th>Stock</th><th>Ventas</th><th>Estado</th><th>Acciones</th></tr>
+              <tr><th>Nombre</th><th>Detalles</th><th>Venta</th><th>Costo</th><th>Margen</th><th>Stock</th><th>Ventas</th><th>Badge %</th><th>Estado</th><th>Acciones</th></tr>
             </thead>
             <tbody>
               {products.length === 0 && (
@@ -1821,6 +1829,17 @@ const ProductManager = ({ products, setProducts }) => {
                     </span>
                   </td>
                   <td><span className="chip chip-sales">{p.sales}</span></td>
+                  <td>
+                    {Array.isArray(p.tiers) && p.tiers.length > 0 ? (
+                      <button
+                        onClick={() => toggleTierBadge(p)}
+                        title={p.showTierBadge ? "Badge activo — clic para ocultar" : "Badge oculto — clic para mostrar"}
+                        style={{ padding: "4px 10px", borderRadius: 7, border: "1.5px solid", fontSize: 11, fontWeight: 700, cursor: "pointer", background: p.showTierBadge ? "var(--green-light)" : "var(--bg)", color: p.showTierBadge ? "var(--green)" : "var(--muted)", borderColor: p.showTierBadge ? "var(--green-border)" : "var(--border)" }}
+                      >
+                        {p.showTierBadge ? "🏷 ON" : "🏷 OFF"}
+                      </button>
+                    ) : <span style={{ color: "var(--muted)", fontSize: 11 }}>—</span>}
+                  </td>
                   <td>{p.isActive ? <span className="badge-active">✓ ACTIVO</span> : <span className="badge-used">⏸ OCULTO</span>}</td>
                   <td>
                     <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
