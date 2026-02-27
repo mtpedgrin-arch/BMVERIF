@@ -63,6 +63,11 @@ const css = `
   .shop-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .shop-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
   .shop-count { font-size: 13px; color: var(--muted); }
+  .cat-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .cat-chip { display: flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 50px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); transition: all 0.15s; }
+  .cat-chip:hover { border-color: #1877F2; color: #1877F2; }
+  .cat-chip.active { background: #1877F2; border-color: #1877F2; color: #fff; box-shadow: 0 2px 10px rgba(24,119,242,0.35); }
+  .cat-chip img { width: 16px; height: 16px; border-radius: 3px; }
   .product-list { display: flex; flex-direction: column; background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
   .product-row { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); transition: background 0.12s; }
   .product-row:last-child { border-bottom: none; }
@@ -2499,7 +2504,9 @@ const ProductDetailPage = ({ product: p, cart, onBack, onAddToCartQty, onBuyNowQ
 
 // ─── SHOP PAGE ────────────────────────────────────────────────────────────────
 const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike, products, onProductClick }) => {
+  const [activeCat, setActiveCat] = useState("all");
   const getQty = id => cart.find(i => i.id === id)?.qty || 0;
+  const filtered = activeCat === "all" ? products : products.filter(p => (p.category || "bm") === activeCat);
   return (
     <>
       <div className="hero">
@@ -2514,18 +2521,29 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
         </div>
       </div>
       <div className="shop-wrap">
+        <div className="cat-filter">
+          <button className={`cat-chip${activeCat === "all" ? " active" : ""}`} onClick={() => setActiveCat("all")}>
+            <img src="/facebook-verificado.png" alt="" /> Todo
+          </button>
+          <button className={`cat-chip${activeCat === "bm" ? " active" : ""}`} onClick={() => setActiveCat("bm")}>
+            <img src="/facebook-verificado.png" alt="" /> Business Managers
+          </button>
+          <button className={`cat-chip${activeCat === "ads-account" ? " active" : ""}`} onClick={() => setActiveCat("ads-account")}>
+            <img src="/facebook-verificado.png" alt="" /> Accounts for Advertising
+          </button>
+        </div>
         <div className="shop-header">
           <div className="shop-title">Productos disponibles</div>
-          <div className="shop-count">{products.length} productos</div>
+          <div className="shop-count">{filtered.length} productos</div>
         </div>
         <div className="product-list">
-          {products.length === 0 && (
+          {filtered.length === 0 && (
             <div style={{ textAlign: "center", padding: "50px 20px", color: "var(--muted)" }}>
               <div style={{ fontSize: 40, marginBottom: 10 }}>🛍</div>
               <div style={{ fontWeight: 600 }}>Cargando productos...</div>
             </div>
           )}
-          {[...products].sort((a, b) => {
+          {[...filtered].sort((a, b) => {
               const effA = a.badgeDiscount > 0 ? a.price * (1 - a.badgeDiscount / 100) : a.price;
               const effB = b.badgeDiscount > 0 ? b.price * (1 - b.badgeDiscount / 100) : b.price;
               return effA - effB;
@@ -3236,7 +3254,7 @@ const AdminReviewPanel = ({ product, onClose, onRatingChange }) => {
 const ProductManager = ({ products, setProducts }) => {
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
-  const [form, setForm] = useState({ name: "", details: "", price: "", cost: "", stock: "", tiers: [] });
+  const [form, setForm] = useState({ name: "", details: "", price: "", cost: "", stock: "", tiers: [], category: "bm" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [reviewProductId, setReviewProductId] = useState(null);
@@ -3244,14 +3262,14 @@ const ProductManager = ({ products, setProducts }) => {
 
   const openNew = () => {
     setEditProduct(null);
-    setForm({ name: "", details: "", price: "", cost: "", stock: "", tiers: [] });
+    setForm({ name: "", details: "", price: "", cost: "", stock: "", tiers: [], category: "bm" });
     setError("");
     setShowForm(true);
   };
 
   const openEdit = (p) => {
     setEditProduct(p);
-    setForm({ name: p.name, details: p.details || "", price: p.price, cost: p.cost || "", stock: p.stock, tiers: Array.isArray(p.tiers) ? p.tiers.map(t => ({ qty: t.qty, price: t.price })) : [] });
+    setForm({ name: p.name, details: p.details || "", price: p.price, cost: p.cost || "", stock: p.stock, tiers: Array.isArray(p.tiers) ? p.tiers.map(t => ({ qty: t.qty, price: t.price })) : [], category: p.category || "bm" });
     setError("");
     setShowForm(true);
   };
@@ -3270,7 +3288,7 @@ const ProductManager = ({ products, setProducts }) => {
         .map(t => ({ qty: parseInt(t.qty), price: parseFloat(t.price) }))
         .filter(t => t.qty > 0 && t.price > 0)
         .sort((a, b) => a.qty - b.qty);
-      const body = { name: form.name, details: form.details, price: parseFloat(form.price), cost: parseFloat(form.cost) || 0, tiers: cleanTiers, stock: parseInt(form.stock) || 0 };
+      const body = { name: form.name, details: form.details, price: parseFloat(form.price), cost: parseFloat(form.cost) || 0, tiers: cleanTiers, stock: parseInt(form.stock) || 0, category: form.category || "bm" };
       if (editProduct) {
         res = await fetch(`/api/products/${editProduct.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       } else {
@@ -3356,6 +3374,13 @@ const ProductManager = ({ products, setProducts }) => {
             <div className="form-group">
               <label className="form-label">Stock (unidades)</label>
               <input className="form-input" type="number" min="0" value={form.stock} onChange={setF("stock")} placeholder="1" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Categoría</label>
+              <select className="form-input" value={form.category} onChange={setF("category")}>
+                <option value="bm">Business Manager Verificado</option>
+                <option value="ads-account">Account for Advertising</option>
+              </select>
             </div>
           </div>
 
