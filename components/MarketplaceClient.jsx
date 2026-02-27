@@ -4276,6 +4276,71 @@ const LegalPlaceholder = ({ title }) => (
   <p style={{ color: "var(--muted)" }}>El contenido de <strong>{title}</strong> estará disponible próximamente.</p>
 );
 
+const LegalUserAgreement = () => (
+  <div>
+    <p>Este Acuerdo de Usuario (el "Acuerdo") rige la relación entre el titular de la plataforma online <strong>BM Verificada</strong> (la "Plataforma" o el "Marketplace") y cualquier persona física o jurídica (el "Usuario") que se registre y/o utilice las funcionalidades de la Plataforma.</p>
+    <p style={{ marginTop: 8 }}>El Acuerdo forma parte integral del paquete de documentación legal de la Plataforma (Oferta Pública, Política de Privacidad, Reglas Generales). En caso de discrepancias, se aplica la siguiente prioridad: Oferta Pública → Reglas Generales → este Acuerdo.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>1. Definiciones</p>
+    <p>1.1. <strong>BM Verificada</strong> — la Plataforma de marketplace digital de Business Managers verificados.</p>
+    <p>1.2. <strong>Plataforma / Marketplace</strong> — entorno online que permite la publicación e intercambio de información sobre bienes digitales, así como transacciones entre vendedores y compradores.</p>
+    <p>1.3. <strong>Cuenta Personal</strong> — interfaz del Usuario dentro de la Plataforma, accesible tras autorización, con datos personales, estadísticas e información de saldo.</p>
+    <p>1.4. <strong>Usuario</strong> — toda persona física capaz legalmente registrada en la Plataforma que utilice sus funcionalidades.</p>
+    <p>1.5. <strong>Vendedor</strong> — persona física o jurídica que publica ofertas de bienes digitales en la Plataforma.</p>
+    <p>1.6. <strong>Comprador</strong> — Usuario que adquiere bienes digitales de un Vendedor a través de la interfaz de la Plataforma.</p>
+    <p>1.7. <strong>Transacción</strong> — acuerdo entre Vendedor y Comprador para la venta de un bien digital.</p>
+    <p>1.8. <strong>Saldo</strong> — registro de los fondos del Usuario dentro de la Plataforma, incluyendo entradas y salidas.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>2. Derechos de Propiedad Intelectual</p>
+    <p>2.1. Los derechos exclusivos sobre la Plataforma —incluyendo software, bases de datos, diseño, logotipo, marcas y demás elementos— pertenecen a BM Verificada.</p>
+    <p>2.2. Sin consentimiento previo por escrito, ninguna parte de la Plataforma podrá ser reproducida, modificada, distribuida, exhibida públicamente ni usada de ninguna otra forma.</p>
+    <p>2.3. Al aceptar este Acuerdo, BM Verificada otorga al Usuario un derecho no exclusivo de usar las funcionalidades de la Plataforma. El incumplimiento del Acuerdo puede resultar en la suspensión de la cuenta.</p>
+    <p>2.4. Está estrictamente prohibido cualquier tipo de spam, manipulación de enlaces de afiliados o copia de la Plataforma con intención de engañar a terceros.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>3. Registro y Acceso</p>
+    <p>3.1. Para registrarse, el Usuario debe completar todos los campos obligatorios del formulario de registro. Se requiere un email válido para la confirmación.</p>
+    <p>3.2. La aceptación de este Acuerdo se confirma marcando la casilla "Acepto" durante el registro.</p>
+    <p>3.3. Cualquier acción realizada con las credenciales del Usuario se considera realizada por el Usuario y tiene el mismo efecto legal que una firma electrónica simple.</p>
+    <p>3.4. El Usuario debe mantener sus credenciales confidenciales. BM Verificada puede restablecer una contraseña si sospecha de una vulneración.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>4. Ejecución de Transacciones</p>
+    <p>4.1. Los pagos entre Compradores y Vendedores se procesan mediante escrow en la Plataforma (ver Oferta Pública, sección 4.2).</p>
+    <p>4.2. El Usuario acepta que cualquier cambio en su saldo mostrado en la Cuenta Personal es legalmente vinculante y queda registrado en el sistema contable automatizado de BM Verificada.</p>
+    <p>4.3. Todas las liquidaciones se realizan según los tipos de cambio, comisiones y condiciones vigentes al momento de la transacción.</p>
+    <p>4.4. La Plataforma no es parte de las transacciones entre Usuarios, salvo lo indicado expresamente en la Oferta Pública.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>5. Responsabilidad</p>
+    <p>5.1. Las violaciones de este Acuerdo pueden resultar en suspensión temporal, restricción de funcionalidades o cancelación permanente del acceso a la Plataforma.</p>
+    <p>5.2. El Usuario es plenamente responsable de la información que publique, las acciones que realice y las consecuencias derivadas del uso de la Plataforma.</p>
+    <p>5.3. BM Verificada no se responsabiliza por:</p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>Pérdidas sufridas por el Usuario por el uso o la imposibilidad de usar la Plataforma.</li>
+      <li>Acciones de terceros, incluidos otros Usuarios.</li>
+      <li>Errores técnicos, fallos o interrupciones de comunicación, incluyendo interrupciones del servicio de internet.</li>
+    </ul>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>6. Eliminación de Cuenta</p>
+    <p>6.1. El Usuario puede eliminar su cuenta a través de la interfaz de la Cuenta Personal, siempre que no haya obligaciones pendientes, deudas o transacciones activas.</p>
+    <p>6.2. La Plataforma puede eliminar la cuenta de un Usuario:</p>
+    <ul style={{ paddingLeft: 18 }}>
+      <li>En caso de violaciones legales.</li>
+      <li>En caso de incumplimiento de este Acuerdo u otros documentos de la Plataforma.</li>
+      <li>Tras inactividad prolongada (más de 12 meses).</li>
+    </ul>
+    <p>6.3. La eliminación de la cuenta conlleva la supresión de los datos personales, salvo que la ley exija su conservación.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>7. Tratamiento de Datos Personales</p>
+    <p>7.1. Todo lo relacionado con el tratamiento de datos personales se rige por la Política de Privacidad publicada en la Plataforma.</p>
+    <p>7.2. Al registrarse y usar la Plataforma, el Usuario consiente el tratamiento de sus datos personales para: cumplir las obligaciones del Acuerdo, habilitar la Cuenta Personal, cumplir las leyes aplicables (incluidos los requisitos AML/CFT) y prevenir fraude y abuso.</p>
+    <p>7.3. El Usuario puede revocar su consentimiento mediante notificación escrita, lo que resulta en la eliminación de la cuenta y la terminación del acceso a la Plataforma.</p>
+
+    <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>8. Disposiciones Finales</p>
+    <p>8.1. Este Acuerdo constituye una oferta pública y entra en vigencia al ser aceptado por el Usuario durante el registro.</p>
+    <p>8.2. BM Verificada puede modificar este Acuerdo unilateralmente. La versión actual siempre estará disponible en la Plataforma.</p>
+    <p>8.3. Si el Usuario no está de acuerdo con las modificaciones, deberá dejar de usar la Plataforma. El uso continuado constituye la aceptación del Acuerdo revisado.</p>
+  </div>
+);
+
 const LegalPrivacy = () => (
   <div>
     <p>Esta Política de Privacidad es parte integral del Acuerdo de Usuario y los Términos Generales de la plataforma <strong>BM Verificada</strong> (en adelante "la Plataforma" o el "Marketplace"). En caso de inconsistencia, esta Política prevalecerá.</p>
@@ -4776,7 +4841,7 @@ export default function App() {
             </div>
             <div style={{ fontSize: 13, lineHeight: 1.8, color: "var(--muted)", maxHeight: "70vh", overflowY: "auto" }}>
               {legalModal === "privacy" && <LegalPrivacy />}
-              {legalModal === "user-agreement" && <LegalPlaceholder title="Acuerdo de Usuario" />}
+              {legalModal === "user-agreement" && <LegalUserAgreement />}
               {legalModal === "public-offer" && <LegalPlaceholder title="Oferta Pública" />}
               {legalModal === "replacement" && <LegalPlaceholder title="Política de Reemplazo de Bienes Digitales" />}
               {legalModal === "rules" && <LegalPlaceholder title="Reglas de la Plataforma" />}
