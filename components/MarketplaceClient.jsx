@@ -37,9 +37,9 @@ const css = `
   input, textarea, select { font-family: 'DM Sans', sans-serif; }
   .app { min-height: 100vh; display: flex; flex-direction: column; }
 
-  .topbar { background: var(--surface); border-bottom: 1.5px solid var(--border); padding: 0 24px; height: 90px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-  .logo { cursor: pointer; display: flex; align-items: center; }
-  .logo img { height: 80px; width: auto; max-width: 320px; object-fit: contain; border-radius: 0; display: block; }
+  .topbar { background: var(--surface); border-bottom: 1.5px solid var(--border); padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+  .logo { cursor: pointer; align-self: stretch; display: flex; align-items: center; padding: 0; }
+  .logo img { height: 100%; width: auto; max-width: 320px; object-fit: contain; border-radius: 0; display: block; }
   .logo span { color: var(--text); }
   .topbar-right { display: flex; align-items: center; gap: 8px; }
   .nav-tab { background: none; border: none; padding: 6px 13px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--muted); transition: all 0.15s; }
