@@ -2085,8 +2085,8 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
   const [profileName, setProfileName] = useState("");
   const [nameMsg, setNameMsg] = useState(null);
   const [nameSaving, setNameSaving] = useState(false);
-  const [newsletter, setNewsletter] = useState(false);
-  const [stockUpdates, setStockUpdates] = useState(false);
+  const [newsletter, setNewsletter] = useState(true);
+  const [stockUpdates, setStockUpdates] = useState(true);
   const [prefSaving, setPrefSaving] = useState(false);
   const [prefMsg, setPrefMsg] = useState(null);
   // ── 2FA state ──
@@ -2311,7 +2311,7 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
 
       {/* ── AJUSTES ── */}
       {tab === "settings" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 520 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, alignItems: "start" }}>
 
           {/* ── Perfil ── */}
           <div className="card">
@@ -2332,6 +2332,33 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
               )}
               <button className="btn btn-primary" style={{ alignSelf: "flex-start", minWidth: 180 }} onClick={handleSaveName} disabled={nameSaving}>
                 {nameSaving ? "Guardando..." : "Guardar nombre"}
+              </button>
+            </div>
+          </div>
+
+          {/* ── Cambiar contraseña ── */}
+          <div className="card">
+            <div className="card-title">🔒 Cambiar contraseña</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 4 }}>
+              <div className="form-group">
+                <label className="form-label">Contraseña actual</label>
+                <input className="form-input" type="password" placeholder="••••••••" value={pwForm.current} onChange={setPw("current")} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Nueva contraseña</label>
+                <input className="form-input" type="password" placeholder="••••••••" value={pwForm.newPw} onChange={setPw("newPw")} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Confirmar nueva contraseña</label>
+                <input className="form-input" type="password" placeholder="••••••••" value={pwForm.confirm} onChange={setPw("confirm")} onKeyDown={e => e.key === "Enter" && handleChangePassword()} />
+              </div>
+              {pwMsg && (
+                <div style={{ fontSize: 13, padding: "9px 13px", borderRadius: 9, background: pwMsg.ok ? "#F0FDF4" : "#FEF2F2", color: pwMsg.ok ? "#15803D" : "#B91C1C", border: `1px solid ${pwMsg.ok ? "#BBF7D0" : "#FECACA"}` }}>
+                  {pwMsg.ok ? "✅ " : "⚠️ "}{pwMsg.text}
+                </div>
+              )}
+              <button className="btn btn-primary" style={{ alignSelf: "flex-start", minWidth: 200 }} onClick={handleChangePassword} disabled={pwLoading}>
+                {pwLoading ? "Guardando..." : "Guardar contraseña"}
               </button>
             </div>
           </div>
@@ -2413,33 +2440,6 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
                 </div>
               </div>
             )}
-          </div>
-
-          {/* ── Cambiar contraseña ── */}
-          <div className="card">
-            <div className="card-title">🔒 Cambiar contraseña</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 4 }}>
-              <div className="form-group">
-                <label className="form-label">Contraseña actual</label>
-                <input className="form-input" type="password" placeholder="••••••••" value={pwForm.current} onChange={setPw("current")} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Nueva contraseña</label>
-                <input className="form-input" type="password" placeholder="••••••••" value={pwForm.newPw} onChange={setPw("newPw")} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Confirmar nueva contraseña</label>
-                <input className="form-input" type="password" placeholder="••••••••" value={pwForm.confirm} onChange={setPw("confirm")} onKeyDown={e => e.key === "Enter" && handleChangePassword()} />
-              </div>
-              {pwMsg && (
-                <div style={{ fontSize: 13, padding: "9px 13px", borderRadius: 9, background: pwMsg.ok ? "#F0FDF4" : "#FEF2F2", color: pwMsg.ok ? "#15803D" : "#B91C1C", border: `1px solid ${pwMsg.ok ? "#BBF7D0" : "#FECACA"}` }}>
-                  {pwMsg.ok ? "✅ " : "⚠️ "}{pwMsg.text}
-                </div>
-              )}
-              <button className="btn btn-primary" style={{ alignSelf: "flex-start", minWidth: 200 }} onClick={handleChangePassword} disabled={pwLoading}>
-                {pwLoading ? "Guardando..." : "Guardar contraseña"}
-              </button>
-            </div>
           </div>
 
           {/* ── Preferencias ── */}
