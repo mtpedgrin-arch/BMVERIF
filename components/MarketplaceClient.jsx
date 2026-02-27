@@ -1474,7 +1474,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
               <div style={{ fontWeight: 600 }}>Cargando productos...</div>
             </div>
           )}
-          {products.map(p => {
+          {[...products].sort((a, b) => a.price - b.price).map(p => {
             const qty = getQty(p.id);
             return (
               <div key={p.id} className="product-row" onClick={() => onProductClick && onProductClick(p)}>
@@ -1492,30 +1492,18 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
                   </div>
                 </div>
                 <div className="prod-right">
-                  {p.showTierBadge && Array.isArray(p.tiers) && p.tiers.length > 0 ? (() => {
-                    const sorted = [...p.tiers].filter(t => t.qty > 0 && t.price > 0).sort((a, b) => a.qty - b.qty);
-                    const first = sorted[0];
-                    const bestDisc = Math.round((1 - first.price / p.price) * 100);
+                  {p.badgeDiscount > 0 ? (() => {
+                    const origPrice = p.price / (1 - p.badgeDiscount / 100);
                     return (
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ fontSize: 11, fontWeight: 800, background: "var(--red)", color: "#fff", borderRadius: 6, padding: "2px 8px" }}>-{bestDisc}%</span>
-                          <span style={{ fontSize: 12, color: "var(--muted)", textDecoration: "line-through" }}>{fmtUSDT(p.price)}</span>
+                          <span style={{ fontSize: 11, fontWeight: 800, background: "var(--red)", color: "#fff", borderRadius: 6, padding: "2px 8px" }}>-{p.badgeDiscount}%</span>
+                          <span style={{ fontSize: 12, color: "var(--muted)", textDecoration: "line-through" }}>{fmtUSDT(origPrice)}</span>
                         </div>
-                        <div className="prod-price" style={{ marginTop: 0 }}>{fmtUSDT(first.price)}</div>
-                        <div style={{ fontSize: 10, color: "var(--muted)" }}>comprando x{first.qty}+</div>
+                        <div className="prod-price" style={{ marginTop: 0 }}>{fmtUSDT(p.price)}</div>
                       </div>
                     );
                   })() : <div className="prod-price">{fmtUSDT(p.price)}</div>}
-                  {p.showTierBadge && Array.isArray(p.tiers) && p.tiers.length > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "flex-end", marginTop: 3 }}>
-                      {[...p.tiers].sort((a,b)=>a.qty-b.qty).map((t,i) => (
-                        <span key={i} style={{ fontSize: 10, fontWeight: 700, background: "var(--green-light)", color: "var(--green)", border: "1px solid var(--green-border)", borderRadius: 20, padding: "2px 7px" }}>
-                          x{t.qty}: {fmtUSDT(t.price)}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                   <div className="prod-actions">
                     {p.stock === 0
                       ? <button className="buy-btn" disabled>Sin stock</button>
@@ -1709,9 +1697,11 @@ const ProductManager = ({ products, setProducts }) => {
     } catch {}
   };
 
-  const toggleTierBadge = async (p) => {
+  const saveBadgeDiscount = async (p, value) => {
+    const num = Math.min(99, Math.max(0, parseFloat(value) || 0));
+    if (num === (p.badgeDiscount || 0)) return;
     try {
-      const res = await fetch(`/api/products/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ showTierBadge: !p.showTierBadge }) });
+      const res = await fetch(`/api/products/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ badgeDiscount: num }) });
       const data = await res.json();
       if (res.ok) setProducts(prev => prev.map(x => x.id === p.id ? data : x));
     } catch {}
@@ -1831,15 +1821,24 @@ const ProductManager = ({ products, setProducts }) => {
                   </td>
                   <td><span className="chip chip-sales">{p.sales}</span></td>
                   <td>
-                    {Array.isArray(p.tiers) && p.tiers.length > 0 ? (
-                      <button
-                        onClick={() => toggleTierBadge(p)}
-                        title={p.showTierBadge ? "Badge activo — clic para ocultar" : "Badge oculto — clic para mostrar"}
-                        style={{ padding: "4px 10px", borderRadius: 7, border: "1.5px solid", fontSize: 11, fontWeight: 700, cursor: "pointer", background: p.showTierBadge ? "var(--green-light)" : "var(--bg)", color: p.showTierBadge ? "var(--green)" : "var(--muted)", borderColor: p.showTierBadge ? "var(--green-border)" : "var(--border)" }}
-                      >
-                        {p.showTierBadge ? "🏷 ON" : "🏷 OFF"}
-                      </button>
-                    ) : <span style={{ color: "var(--muted)", fontSize: 11 }}>—</span>}
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <input
+                        key={p.id + "-badge"}
+                        type="number"
+                        min="0"
+                        max="99"
+                        step="1"
+                        defaultValue={p.badgeDiscount || 0}
+                        onBlur={e => saveBadgeDiscount(p, e.target.value)}
+                        onKeyDown={e => e.key === "Enter" && e.target.blur()}
+                        style={{ width: 52, padding: "4px 6px", borderRadius: 7, border: "1.5px solid var(--border)", fontSize: 12, textAlign: "center", background: "var(--bg)", color: "var(--text)" }}
+                        title="Escribe el % del badge (0 = sin badge)"
+                      />
+                      <span style={{ fontSize: 11, color: "var(--muted)" }}>%</span>
+                      {(p.badgeDiscount || 0) > 0 && (
+                        <span style={{ fontSize: 10, fontWeight: 800, background: "var(--red)", color: "#fff", borderRadius: 5, padding: "1px 5px" }}>-{p.badgeDiscount}%</span>
+                      )}
+                    </div>
                   </td>
                   <td>{p.isActive ? <span className="badge-active">✓ ACTIVO</span> : <span className="badge-used">⏸ OCULTO</span>}</td>
                   <td>
