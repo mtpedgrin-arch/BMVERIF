@@ -128,8 +128,8 @@ export async function GET(req, { params }) {
         } catch {}
       }
 
-      // Search last ~1000 blocks (~50 min at 3s/block)
-      const fromBlock = Math.max(0, currentBlock - 1000);
+      // Search last ~1500 blocks (~75 min at 3s/block) — covers full 1h order + buffer
+      const fromBlock = Math.max(0, currentBlock - 1500);
       const paddedWallet = "0x000000000000000000000000" + wallet.replace("0x", "").toLowerCase();
 
       console.log(`[check-payment] BEP20 RPC=${workingRpc} currentBlock=${currentBlock} fromBlock=${fromBlock}`);
