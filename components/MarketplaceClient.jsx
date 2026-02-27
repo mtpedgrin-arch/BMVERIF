@@ -706,7 +706,7 @@ const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
 };
 
 // ─── PAYMENT MODAL ────────────────────────────────────────────────────────────
-const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess }) => {
+const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, wallets: W = WALLETS }) => {
   const [network, setNetwork] = useState(null);
   const [txHash, setTxHash] = useState("");
   const [copied, setCopied] = useState(false);
@@ -716,7 +716,7 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess }) =>
 
   const selectNetwork = (n) => { setNetwork(n); setStep(2); };
   const copy = () => {
-    navigator.clipboard.writeText(WALLETS[network].addr).catch(() => {});
+    navigator.clipboard.writeText(W[network].addr).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -740,7 +740,7 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess }) =>
           <>
             <div style={{ fontFamily: "Syne", fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Selecciona la red:</div>
             <div className="network-selector">
-              {Object.entries(WALLETS).map(([key, w]) => (
+              {Object.entries(W).map(([key, w]) => (
                 <div key={key} className={`network-card ${network === key ? "selected" : ""}`} onClick={() => selectNetwork(key)}>
                   <div className="network-logo">{w.logo}</div>
                   <div className="network-name">{key}</div>
@@ -765,8 +765,15 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess }) =>
               </div>
             </div>
             <div className="wallet-box">
-              <div className="wallet-box-label">{WALLETS[network].logo} Wallet USDT {network} — {WALLETS[network].network}</div>
-              <div className="wallet-address">{WALLETS[network].addr}</div>
+              <div className="wallet-box-label">{W[network].logo} Wallet USDT {network} — {W[network].network}</div>
+              <div style={{ textAlign: "center", margin: "10px 0 8px" }}>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(W[network].addr)}&margin=10`}
+                  alt={`QR ${network}`}
+                  style={{ width: 180, height: 180, border: `3px solid ${W[network].color}`, borderRadius: 10, padding: 4, background: "#fff" }}
+                />
+              </div>
+              <div className="wallet-address">{W[network].addr}</div>
               <button className="wallet-copy-btn" onClick={copy}>{copied ? "✓ Copiado!" : "📋 Copiar dirección"}</button>
             </div>
             <div className="tx-input-wrap">
@@ -805,7 +812,7 @@ const SuccessModal = ({ order, onClose }) => (
 );
 
 // ─── CHECKOUT PAGE ────────────────────────────────────────────────────────────
-const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShowAuth }) => {
+const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShowAuth, wallets: W = WALLETS }) => {
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponState, setCouponState] = useState("idle");
@@ -821,7 +828,7 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const discountAmt = appliedCoupon ? subtotal * (appliedCoupon.discount / 100) : 0;
   const total = subtotal - discountAmt;
-  const wallet = WALLETS[network];
+  const wallet = W[network];
 
   const applyCoupon = async () => {
     setCouponError(""); if (!couponInput.trim()) return;
@@ -966,7 +973,7 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
 
             {/* Selector de red */}
             <div className="co-method-grid">
-              {Object.entries(WALLETS).map(([key, w]) => (
+              {Object.entries(W).map(([key, w]) => (
                 <div key={key} className={`co-method-card ${network === key ? "sel" : ""}`} onClick={() => setNetwork(key)}>
                   <div style={{ fontSize: 22, marginBottom: 5 }}>{w.logo}</div>
                   <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 2 }}>{key}</div>
@@ -988,9 +995,16 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
               <div style={{ fontSize: 30 }}>₮</div>
             </div>
 
-            {/* Wallet */}
+            {/* Wallet + QR */}
             <div className="co-wallet-box">
               <div className="co-wallet-label">Dirección {network}</div>
+              <div style={{ textAlign: "center", margin: "10px 0 8px" }}>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(wallet.addr)}&margin=10`}
+                  alt={`QR ${network}`}
+                  style={{ width: 180, height: 180, border: `3px solid ${wallet.color}`, borderRadius: 10, padding: 4, background: "#fff" }}
+                />
+              </div>
               <div className="co-wallet-addr">{wallet.addr}</div>
               <button className="co-copy-btn" onClick={() => { navigator.clipboard.writeText(wallet.addr).catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
                 {copied ? "✓ Copiado!" : "📋 Copiar dirección"}
@@ -2000,6 +2014,95 @@ const AdminOverview = ({ orders, products, onGoOrders }) => {
   );
 };
 
+// ─── WALLET MANAGER ───────────────────────────────────────────────────────────
+const WalletManager = () => {
+  const [addrs, setAddrs] = useState({ wallet_trc20: "", wallet_bep20: "" });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then(r => r.json())
+      .then(data => setAddrs({ wallet_trc20: data.wallet_trc20 || "", wallet_bep20: data.wallet_bep20 || "" }))
+      .catch(() => {});
+  }, []);
+
+  const save = async () => {
+    setError("");
+    if (!addrs.wallet_trc20.trim() || !addrs.wallet_bep20.trim()) {
+      setError("Ambas direcciones son obligatorias."); return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet_trc20: addrs.wallet_trc20.trim(), wallet_bep20: addrs.wallet_bep20.trim() }),
+      });
+      if (!res.ok) { setError("Error al guardar."); return; }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch { setError("Error de conexión."); }
+    finally { setSaving(false); }
+  };
+
+  const qrUrl = addr => addr
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(addr)}&margin=10`
+    : null;
+
+  const walletInfo = {
+    wallet_trc20: { label: "🔴 TRC20", network: "TRON Network", color: "#E84142", placeholder: "TN3W4T6ATGBY9y..." },
+    wallet_bep20: { label: "🟡 BEP20", network: "BNB Smart Chain", color: "#F0B90B", placeholder: "0x71C7656EC7ab8..." },
+  };
+
+  return (
+    <div>
+      <div className="page-title">💳 Wallets de pago</div>
+      <div style={{ color: "var(--muted)", fontSize: 13, marginBottom: 20 }}>
+        Las direcciones se usan en el checkout. El QR se genera automáticamente a partir de la dirección.
+      </div>
+      {error && <div className="error-msg" style={{ marginBottom: 16 }}>{error}</div>}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
+        {Object.entries(walletInfo).map(([key, info]) => (
+          <div key={key} className="card">
+            <div className="card-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {info.label}
+              <span style={{ fontSize: 11, fontWeight: 400, color: "var(--muted)" }}>{info.network}</span>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Dirección de billetera</label>
+              <input
+                className="form-input"
+                style={{ fontFamily: "monospace", fontSize: 12 }}
+                value={addrs[key]}
+                onChange={e => setAddrs(p => ({ ...p, [key]: e.target.value }))}
+                placeholder={info.placeholder}
+              />
+            </div>
+            {qrUrl(addrs[key]) && (
+              <div style={{ textAlign: "center", marginTop: 14, padding: "12px 0", borderTop: "1px solid var(--border)" }}>
+                <img
+                  src={qrUrl(addrs[key])}
+                  alt={`QR ${key}`}
+                  style={{ width: 180, height: 180, border: `3px solid ${info.color}`, borderRadius: 12, padding: 6, background: "#fff" }}
+                />
+                <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>QR generado automáticamente</div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <button className="btn btn-primary" onClick={save} disabled={saving}>
+        {saving ? "Guardando..." : saved ? "✓ Guardado correctamente" : "💾 Guardar wallets"}
+      </button>
+      {saved && <span style={{ marginLeft: 12, color: "var(--green)", fontSize: 13, fontWeight: 600 }}>
+        ¡Los cambios se aplican de inmediato en el checkout!
+      </span>}
+    </div>
+  );
+};
+
 // ─── ADMIN PANEL ──────────────────────────────────────────────────────────────
 const AdminPanel = ({ orders, onConfirmOrder, coupons, setCoupons, products, setProducts }) => {
   const [section, setSection] = useState("overview");
@@ -2100,6 +2203,7 @@ const AdminPanel = ({ orders, onConfirmOrder, coupons, setCoupons, products, set
     { id: "coupons", icon: "🏷", label: "Cupones", badge: activeCoupons, badgeColor: "var(--purple)" },
     { id: "chat", icon: "💬", label: "Chat en vivo", badge: chatUnread, badgeColor: "var(--red)" },
     { id: "products", icon: "🛍", label: "Productos" },
+    { id: "wallets", icon: "💳", label: "Wallets" },
   ];
 
   return (
@@ -2183,6 +2287,7 @@ const AdminPanel = ({ orders, onConfirmOrder, coupons, setCoupons, products, set
           </>
         )}
         {section === "products" && <ProductManager products={products} setProducts={setProducts} />}
+        {section === "wallets" && <WalletManager />}
       </div>
     </div>
   );
@@ -2259,6 +2364,21 @@ export default function App() {
       .then(data => { if (Array.isArray(data)) setProducts(data); })
       .catch(() => {});
   }, [isAdmin]);
+
+  // ── WALLETS (dynamic from DB) ──
+  const [wallets, setWallets] = useState(WALLETS);
+  useEffect(() => {
+    fetch("/api/settings")
+      .then(r => r.json())
+      .then(data => {
+        setWallets(prev => ({
+          ...prev,
+          TRC20: { ...prev.TRC20, addr: data.wallet_trc20 || prev.TRC20.addr },
+          BEP20: { ...prev.BEP20, addr: data.wallet_bep20 || prev.BEP20.addr },
+        }));
+      })
+      .catch(() => {});
+  }, []);
   // When products load (or update), sync cart items with the latest
   // tiers/cost/basePrice so localStorage-loaded items are always fresh
   useEffect(() => {
@@ -2454,13 +2574,13 @@ export default function App() {
       </div>
 
       {view === "shop" && <ShopPage cart={cart} onAddToCart={addToCart} onBuyNow={handleBuyNow} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} />}
-      {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); }} />}
+      {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); }} wallets={wallets} />}
       {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} />}
 
       {showMiniCart && cart.length > 0 && <MiniCart cart={cart} lastAdded={lastAdded} onClose={() => setShowMiniCart(false)} onOpenCart={() => setCartOpen(true)} />}
       {cartOpen && <CartDrawer cart={cart} onClose={() => setCartOpen(false)} onQty={setQty} onRemove={removeFromCart} onCheckout={handleCheckout} />}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} onSuccess={() => setShowPayment(pendingTotal > 0)} initialTab={authTab} />}
-      {showPayment && user && <PaymentModal cart={cart} user={user} coupon={pendingCoupon} finalTotal={pendingTotal} onClose={() => setShowPayment(false)} onSuccess={handlePaySuccess} />}
+      {showPayment && user && <PaymentModal cart={cart} user={user} coupon={pendingCoupon} finalTotal={pendingTotal} onClose={() => setShowPayment(false)} onSuccess={handlePaySuccess} wallets={wallets} />}
       {showSuccess && lastOrder && <SuccessModal order={lastOrder} onClose={() => { setShowSuccess(false); setView("account"); }} />}
 
       <ChatWidget user={user} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} />

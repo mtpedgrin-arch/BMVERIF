@@ -101,3 +101,8 @@ model Coupon {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 }
+
+model Settings {
+  key   String @id
+  value String
+}
