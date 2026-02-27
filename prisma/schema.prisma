@@ -60,12 +60,13 @@ model Order {
 }
 
 model OrderItem {
-  id      String @id @default(cuid())
-  name    String
-  price   Float
-  cost    Float  @default(0)
-  qty     Int    @default(1)
-  orderId String
+  id        String  @id @default(cuid())
+  name      String
+  price     Float
+  cost      Float   @default(0)
+  qty       Int     @default(1)
+  orderId   String
+  productId String?
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }

@@ -933,7 +933,7 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: cart.map(i => ({ name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty })),
+          items: cart.map(i => ({ name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty, productId: i.id || null })),
           subtotal, discount: discountAmt,
           coupon: appliedCoupon?.code || null,
           total, network, txHash,
@@ -3031,7 +3031,7 @@ export default function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: cart.map(i => ({ name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty })),
+          items: cart.map(i => ({ name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty, productId: i.id || null })),
           subtotal,
           discount,
           coupon: pendingCoupon?.code || null,
