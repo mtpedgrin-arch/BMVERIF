@@ -2,6 +2,15 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../../lib/authOptions";
 import { prisma } from "../../../../../lib/prisma";
+import { sendPaymentConfirmedEmail } from "../../../../../lib/mailer";
+
+// Parse USDT BEP20 value safely (18 decimals, avoids JS float precision loss)
+function parseUsdt18(valueStr) {
+  const s = String(valueStr).padStart(19, "0");
+  const intPart = s.slice(0, -18) || "0";
+  const fracPart = s.slice(-18, -12); // 6 decimal places is enough
+  return parseFloat(intPart + "." + fracPart);
+}
 
 function nid() { return "n" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
@@ -102,7 +111,7 @@ export async function GET(req, { params }) {
 
       if (Array.isArray(txs)) {
         for (const tx of txs) {
-          const amount = parseInt(tx.value) / 1e18;
+          const amount = parseUsdt18(tx.value); // safe 18-decimal parse
           const txTime = parseInt(tx.timeStamp) * 1000;
           const toMatch = tx.to?.toLowerCase() === wallet.toLowerCase();
           const amountMatch = Math.abs(amount - order.uniqueAmount) < 0.005;
@@ -133,6 +142,14 @@ export async function GET(req, { params }) {
       orderId: order.id,
     });
     console.log(`[check-payment] ✅ PAID! Order ${id} txHash=${foundTx.txHash}`);
+    // Send payment confirmed email (non-blocking)
+    sendPaymentConfirmedEmail({
+      to: order.userEmail,
+      orderId: order.id,
+      amount: order.uniqueAmount.toFixed(2),
+      network: order.network,
+      txHash: foundTx.txHash,
+    }).catch(() => {});
     return NextResponse.json({ paid: true, txHash: foundTx.txHash });
   }
 

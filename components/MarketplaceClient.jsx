@@ -1229,10 +1229,10 @@ const PaymentPendingModal = ({ order, walletAddr, walletColor, onSuccess, onCanc
     return () => clearInterval(id);
   }, [order?.expiresAt]);
 
-  // Auto-forward after paid
+  // Auto-close 1s after paid (notification + email handled by backend)
   useEffect(() => {
     if (payStatus !== "paid" || !order) return;
-    const t = setTimeout(() => onSuccess({ ...order, status: "paid" }), 2500);
+    const t = setTimeout(() => onSuccess({ ...order, status: "paid" }), 1000);
     return () => clearTimeout(t);
   }, [payStatus]);
 
@@ -1315,15 +1315,11 @@ const PaymentPendingModal = ({ order, walletAddr, walletColor, onSuccess, onCanc
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "#070d14", overflowY: "auto", padding: "22px 16px 40px" }}>
       {/* Top bar */}
-      <div style={{ display: "flex", justifyContent: "space-between", maxWidth: 1100, margin: "0 auto 20px" }}>
+      <div style={{ display: "flex", justifyContent: "flex-start", maxWidth: 1100, margin: "0 auto 20px" }}>
         <button onClick={() => setMinimized(true)} style={{
           background: "#1e3a5f", color: "#94a3b8", padding: "8px 18px",
           borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 14,
         }}>− Minimizar</button>
-        <button onClick={onCancel} style={{
-          background: "#6d28d9", color: "#fff", padding: "8px 22px",
-          borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 14,
-        }}>← Volver</button>
       </div>
 
       {/* 3-column grid */}
