@@ -5393,13 +5393,16 @@ export default function App() {
   const [legalModal, setLegalModal] = useState(null); // null | "privacy" | "user-agreement" | "public-offer" | "replacement" | "rules" | "appendix1" | "appendix2"
   const [resetToken, setResetToken] = useState(null);
   const [verifyResult, setVerifyResult] = useState(null); // null | "success" | "error" | string(error msg)
-  // Detect ?reset=TOKEN and ?verify=TOKEN in URL
+  // Detect ?reset=TOKEN, ?verify=TOKEN and ?view=account in URL
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const reset = params.get("reset");
       const verify = params.get("verify");
-      if (reset || verify) window.history.replaceState({}, "", "/"); // clean URL
+      const viewParam = params.get("view");
+      if (reset || verify || viewParam) window.history.replaceState({}, "", "/"); // clean URL
+      // Cryptomus return: redirect to orders view automatically
+      if (viewParam === "account") setView("account");
       if (reset) setResetToken(reset);
       if (verify) {
         // Auto-verify the email
