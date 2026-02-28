@@ -1676,7 +1676,6 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOr
       });
       const newOrder = await orderRes.json();
       if (!newOrder.id) throw new Error("No se pudo crear la orden");
-      onOrderPending?.(newOrder);
 
       const payRes = await fetch("/api/cryptomus/create-payment", {
         method: "POST",
@@ -1685,6 +1684,7 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOr
       });
       const payData = await payRes.json();
       if (!payData.url) throw new Error(payData.error || "Error al generar pago");
+      onOrderPending?.(newOrder); // only after confirmed URL
       window.location.href = payData.url;
     } catch (err) {
       alert(err.message || "Error al procesar pago con Cryptomus. Intentá de nuevo.");
@@ -1898,10 +1898,10 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
       const orderRes = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(buildOrderBody("CRYPTOMUS")) });
       const order = await orderRes.json();
       if (!order.id) throw new Error("No se pudo crear la orden");
-      onOrderPending?.(order);
       const payRes = await fetch("/api/cryptomus/create-payment", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId: order.id }) });
       const payData = await payRes.json();
       if (!payData.url) throw new Error(payData.error || "Error al generar pago");
+      onOrderPending?.(order); // only after confirmed URL
       window.location.href = payData.url;
     } catch (err) {
       alert(err.message || "Error al procesar pago con Cryptomus.");
