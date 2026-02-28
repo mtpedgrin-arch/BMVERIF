@@ -1626,10 +1626,18 @@ const GlobalPendingWidget = ({ order, wallets, onExpand, onClear }) => {
 const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOrderUpdate, onOrderPending, wallets: W = WALLETS }) => {
   const [network, setNetwork] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [cryptomusLoading, setCryptomusLoading] = useState(false);
   const [order, setOrder] = useState(null);
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const discountAmt = coupon ? subtotal * (coupon.discount / 100) : 0;
+
+  const buildOrderBody = () => ({
+    items: cart.map(i => ({ name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty, productId: i.id || null })),
+    subtotal, discount: discountAmt,
+    coupon: coupon?.code || null,
+    total: finalTotal,
+  });
 
   const proceed = async () => {
     if (!network) return;
@@ -1644,13 +1652,7 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOr
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: cart.map(i => ({ name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty, productId: i.id || null })),
-          subtotal, discount: discountAmt,
-          coupon: coupon?.code || null,
-          total: finalTotal,
-          network,
-        }),
+        body: JSON.stringify({ ...buildOrderBody(), network }),
       });
       const newOrder = await res.json();
       setOrder(newOrder);
@@ -1659,6 +1661,41 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOr
       alert("Error al crear la orden. Intentá de nuevo.");
     } finally {
       setCreating(false);
+    }
+  };
+
+  const proceedCryptomus = async () => {
+    setCryptomusLoading(true);
+    try {
+      if (coupon) {
+        await fetch("/api/coupons/use", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: coupon.code }),
+        }).catch(() => {});
+      }
+      // Create the order with network=CRYPTOMUS
+      const orderRes = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...buildOrderBody(), network: "CRYPTOMUS" }),
+      });
+      const newOrder = await orderRes.json();
+      if (!newOrder.id) throw new Error("No se pudo crear la orden");
+      onOrderPending?.(newOrder);
+
+      // Request Cryptomus payment URL
+      const payRes = await fetch("/api/cryptomus/create-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: newOrder.id }),
+      });
+      const payData = await payRes.json();
+      if (!payData.url) throw new Error(payData.error || "Error al generar pago");
+
+      window.location.href = payData.url;
+    } catch (err) {
+      alert(err.message || "Error al procesar pago con Cryptomus. Intentá de nuevo.");
+      setCryptomusLoading(false);
     }
   };
 
@@ -1719,6 +1756,31 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOr
             {creating ? "⏳ Generando orden..." : "✓ Proceder al pago →"}
           </button>
           <button className="btn btn-outline" onClick={onClose}>Cancelar</button>
+        </div>
+
+        {/* ── Cryptomus alternative payment ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "14px 0 10px" }}>
+          <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+          <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 700, letterSpacing: "0.05em" }}>O PAGAR CON</span>
+          <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+        </div>
+        <button
+          onClick={proceedCryptomus}
+          disabled={cryptomusLoading}
+          style={{
+            width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+            gap: 8, padding: "11px 0", borderRadius: 10, border: "none", cursor: "pointer",
+            background: "linear-gradient(135deg,#6C4DFF 0%,#9B7BFF 100%)",
+            color: "#fff", fontSize: 14, fontWeight: 700, fontFamily: "Syne",
+            opacity: cryptomusLoading ? 0.6 : 1, transition: "opacity .15s",
+          }}
+        >
+          {cryptomusLoading
+            ? "⏳ Redirigiendo a Cryptomus..."
+            : <><span style={{ fontSize: 18 }}>💳</span> Pagar con Cryptomus</>}
+        </button>
+        <div style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", marginTop: 5 }}>
+          Acepta tarjetas, crypto y más · Pago seguro
         </div>
       </div>
     </div>

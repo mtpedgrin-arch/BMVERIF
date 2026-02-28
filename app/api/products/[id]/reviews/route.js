@@ -31,11 +31,15 @@ async function recalcProduct(productId) {
 // GET /api/products/[id]/reviews — public
 export async function GET(req, { params }) {
   const { id } = params;
-  const rows = await prisma.$queryRawUnsafe(
-    `SELECT id, "productId", rating, comment, "userName", "createdAt"
-     FROM "Review" WHERE "productId" = $1 ORDER BY "createdAt" DESC`, id
-  );
-  return NextResponse.json(rows);
+  try {
+    const rows = await prisma.$queryRawUnsafe(
+      `SELECT id, "productId", rating, comment, "userName", "createdAt"
+       FROM "Review" WHERE "productId" = $1 ORDER BY "createdAt" DESC`, id
+    );
+    return NextResponse.json(rows);
+  } catch {
+    return NextResponse.json([]);
+  }
 }
 
 // POST /api/products/[id]/reviews — logged-in user OR admin (with custom name)
@@ -59,16 +63,20 @@ export async function POST(req, { params }) {
     : anonymize(session.user.name || session.user.email);
 
   const reviewId = createId();
-  await prisma.$executeRawUnsafe(
-    `INSERT INTO "Review" (id, "productId", rating, comment, "userName", "createdAt", "userId")
-     VALUES ($1, $2, $3, $4, $5, NOW(), $6)`,
-    reviewId, id, rating, body.comment?.trim() || null, userName, session.user.id || null
-  );
+  try {
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "Review" (id, "productId", rating, comment, "userName", "createdAt", "userId")
+       VALUES ($1, $2, $3, $4, $5, NOW(), $6)`,
+      reviewId, id, rating, body.comment?.trim() || null, userName, session.user.id || null
+    );
 
-  await recalcProduct(id);
+    await recalcProduct(id);
 
-  const [review] = await prisma.$queryRawUnsafe(
-    `SELECT id, "productId", rating, comment, "userName", "createdAt" FROM "Review" WHERE id = $1`, reviewId
-  );
-  return NextResponse.json({ review });
+    const [review] = await prisma.$queryRawUnsafe(
+      `SELECT id, "productId", rating, comment, "userName", "createdAt" FROM "Review" WHERE id = $1`, reviewId
+    );
+    return NextResponse.json({ review });
+  } catch {
+    return NextResponse.json({ error: "Error al guardar reseña" }, { status: 500 });
+  }
 }

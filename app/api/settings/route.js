@@ -20,17 +20,21 @@ export async function PATCH(req) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
-  const updates = Object.entries(body).map(([key, value]) =>
-    prisma.settings.upsert({
-      where: { key },
-      update: { value: String(value) },
-      create: { key, value: String(value) },
-    })
-  );
-  await Promise.all(updates);
+  try {
+    const updates = Object.entries(body).map(([key, value]) =>
+      prisma.settings.upsert({
+        where: { key },
+        update: { value: String(value) },
+        create: { key, value: String(value) },
+      })
+    );
+    await Promise.all(updates);
 
-  const rows = await prisma.settings.findMany();
-  const result = {};
-  rows.forEach(r => { result[r.key] = r.value; });
-  return NextResponse.json(result);
+    const rows = await prisma.settings.findMany();
+    const result = {};
+    rows.forEach(r => { result[r.key] = r.value; });
+    return NextResponse.json(result);
+  } catch (e) {
+    return NextResponse.json({ error: "Error al guardar configuración" }, { status: 500 });
+  }
 }
