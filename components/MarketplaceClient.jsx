@@ -5629,7 +5629,21 @@ export default function App() {
             <button className="site-footer-link" onClick={() => setLegalModal("appendix1")}>Productos Prohibidos</button>
             <button className="site-footer-link" onClick={() => setLegalModal("appendix2")}>Solicitudes Gubernamentales</button>
           </div>
-          <div className="site-footer-copy">© {new Date().getFullYear()} BM Verificada</div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <a href="mailto:soporte@bmverificada.com" style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--muted)", textDecoration: "none" }}
+                onMouseEnter={e => e.currentTarget.style.color = "var(--text)"} onMouseLeave={e => e.currentTarget.style.color = "var(--muted)"}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                soporte@bmverificada.com
+              </a>
+              <a href="https://t.me/bmverificada_support" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--muted)", textDecoration: "none" }}
+                onMouseEnter={e => e.currentTarget.style.color = "#29B6F6"} onMouseLeave={e => e.currentTarget.style.color = "var(--muted)"}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.48 14.717l-2.95-.924c-.64-.203-.654-.64.136-.95l11.521-4.444c.537-.194 1.006.131.375.849z"/></svg>
+                @bmverificada_support
+              </a>
+            </div>
+            <div className="site-footer-copy">© {new Date().getFullYear()} BM Verificada · Todos los derechos reservados</div>
+          </div>
         </div>
       </footer>
 
