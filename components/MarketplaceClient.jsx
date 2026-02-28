@@ -1622,8 +1622,8 @@ const GlobalPendingWidget = ({ order, wallets, onExpand, onClear }) => {
   );
 };
 
-// ─── PAYMENT MODAL (step 1: select network + proceed) ────────────────────────
-const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOrderUpdate, onOrderPending, wallets: W = WALLETS }) => {
+// ─── PAYMENT MODAL (step 1: select method + proceed) ─────────────────────────
+const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOrderUpdate, onOrderPending, wallets: W = WALLETS, paymentMethods = { usdt: true, cryptomus: true } }) => {
   const [network, setNetwork] = useState(null);
   const [creating, setCreating] = useState(false);
   const [cryptomusLoading, setCryptomusLoading] = useState(false);
@@ -1639,16 +1639,16 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOr
     total: finalTotal,
   });
 
+  const useCoupon = () => coupon
+    ? fetch("/api/coupons/use", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: coupon.code }) }).catch(() => {})
+    : Promise.resolve();
+
+  // ── USDT manual proceed ──
   const proceed = async () => {
     if (!network) return;
     setCreating(true);
     try {
-      if (coupon) {
-        await fetch("/api/coupons/use", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: coupon.code }),
-        }).catch(() => {});
-      }
+      await useCoupon();
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1664,16 +1664,11 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOr
     }
   };
 
+  // ── Cryptomus proceed ──
   const proceedCryptomus = async () => {
     setCryptomusLoading(true);
     try {
-      if (coupon) {
-        await fetch("/api/coupons/use", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: coupon.code }),
-        }).catch(() => {});
-      }
-      // Create the order with network=CRYPTOMUS
+      await useCoupon();
       const orderRes = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1683,7 +1678,6 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOr
       if (!newOrder.id) throw new Error("No se pudo crear la orden");
       onOrderPending?.(newOrder);
 
-      // Request Cryptomus payment URL
       const payRes = await fetch("/api/cryptomus/create-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1691,7 +1685,6 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOr
       });
       const payData = await payRes.json();
       if (!payData.url) throw new Error(payData.error || "Error al generar pago");
-
       window.location.href = payData.url;
     } catch (err) {
       alert(err.message || "Error al procesar pago con Cryptomus. Intentá de nuevo.");
@@ -1699,7 +1692,7 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOr
     }
   };
 
-  // Once order is created, show PaymentPendingModal full-screen
+  // Once USDT order is created, show PaymentPendingModal full-screen
   if (order) return (
     <PaymentPendingModal
       order={order}
@@ -1715,14 +1708,19 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOr
     />
   );
 
+  const showCryptomus = paymentMethods.cryptomus;
+  const showUsdt = paymentMethods.usdt;
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
+
+        {/* ── Order summary ── */}
         <div className="usdt-header">
           <div className="usdt-logo">₮</div>
           <div>
-            <div className="usdt-title">Pago en USDT</div>
-            <div className="usdt-sub">Stablecoin · 1 USDT = 1 USD · Sin volatilidad</div>
+            <div className="usdt-title">Confirmar pago</div>
+            <div className="usdt-sub">1 USDT = 1 USD · Sin volatilidad</div>
           </div>
         </div>
         <div className="order-summary-mini">
@@ -1731,57 +1729,79 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOr
           <div className="order-row bold"><span>Total a pagar</span><span style={{ color: "var(--usdt)" }}>{fmtUSDT(finalTotal)}</span></div>
         </div>
 
-        <div style={{ fontFamily: "Syne", fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Selecciona la red:</div>
-        <div className="network-selector">
-          {Object.entries(W).map(([key, w]) => (
-            <div key={key} className={`network-card ${network === key ? "selected" : ""}`} onClick={() => setNetwork(key)}>
-              <div className="network-logo">{w.logo}</div>
-              <div className="network-name">{key}</div>
-              <div className="network-chain">{w.network}</div>
-              <div className="network-meta">
-                <span className="network-tag">Fee: {w.fee}</span>
-                <span className="network-tag">{w.time}</span>
+        {/* ── Cryptomus (primary) ── */}
+        {showCryptomus && (
+          <div style={{ marginBottom: showUsdt ? 0 : 4 }}>
+            {showUsdt && (
+              <div style={{ fontFamily: "Syne", fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+                Pago automático
               </div>
+            )}
+            <button
+              onClick={proceedCryptomus}
+              disabled={cryptomusLoading}
+              style={{
+                width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+                gap: 8, padding: "13px 0", borderRadius: 10, border: "none", cursor: "pointer",
+                background: "linear-gradient(135deg,#6C4DFF 0%,#9B7BFF 100%)",
+                color: "#fff", fontSize: 14, fontWeight: 700, fontFamily: "Syne",
+                opacity: cryptomusLoading ? 0.6 : 1, transition: "opacity .15s",
+              }}
+            >
+              {cryptomusLoading
+                ? "⏳ Redirigiendo a Cryptomus..."
+                : <><span style={{ fontSize: 18 }}>💳</span> Pagar con Cryptomus</>}
+            </button>
+            <div style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", marginTop: 5, marginBottom: showUsdt ? 14 : 0 }}>
+              Acepta tarjetas, USDT, BTC y más · Pago seguro y automático
             </div>
-          ))}
-        </div>
+          </div>
+        )}
 
-        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-          <button
-            className="btn btn-usdt"
-            style={{ flex: 1, justifyContent: "center", opacity: (!network || creating) ? 0.5 : 1 }}
-            disabled={!network || creating}
-            onClick={proceed}
-          >
-            {creating ? "⏳ Generando orden..." : "✓ Proceder al pago →"}
-          </button>
-          <button className="btn btn-outline" onClick={onClose}>Cancelar</button>
-        </div>
+        {/* ── Separator ── */}
+        {showCryptomus && showUsdt && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+            <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 700, letterSpacing: "0.05em" }}>O PAGAR MANUAL EN USDT</span>
+            <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+          </div>
+        )}
 
-        {/* ── Cryptomus alternative payment ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "14px 0 10px" }}>
-          <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-          <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 700, letterSpacing: "0.05em" }}>O PAGAR CON</span>
-          <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-        </div>
-        <button
-          onClick={proceedCryptomus}
-          disabled={cryptomusLoading}
-          style={{
-            width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
-            gap: 8, padding: "11px 0", borderRadius: 10, border: "none", cursor: "pointer",
-            background: "linear-gradient(135deg,#6C4DFF 0%,#9B7BFF 100%)",
-            color: "#fff", fontSize: 14, fontWeight: 700, fontFamily: "Syne",
-            opacity: cryptomusLoading ? 0.6 : 1, transition: "opacity .15s",
-          }}
-        >
-          {cryptomusLoading
-            ? "⏳ Redirigiendo a Cryptomus..."
-            : <><span style={{ fontSize: 18 }}>💳</span> Pagar con Cryptomus</>}
+        {/* ── USDT manual (secondary) ── */}
+        {showUsdt && (
+          <>
+            {!showCryptomus && (
+              <div style={{ fontFamily: "Syne", fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Selecciona la red:</div>
+            )}
+            <div className="network-selector">
+              {Object.entries(W).map(([key, w]) => (
+                <div key={key} className={`network-card ${network === key ? "selected" : ""}`} onClick={() => setNetwork(key)}>
+                  <div className="network-logo">{w.logo}</div>
+                  <div className="network-name">{key}</div>
+                  <div className="network-chain">{w.network}</div>
+                  <div className="network-meta">
+                    <span className="network-tag">Fee: {w.fee}</span>
+                    <span className="network-tag">{w.time}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+              <button
+                className="btn btn-usdt"
+                style={{ flex: 1, justifyContent: "center", opacity: (!network || creating) ? 0.5 : 1 }}
+                disabled={!network || creating}
+                onClick={proceed}
+              >
+                {creating ? "⏳ Generando orden..." : "✓ Pagar con USDT →"}
+              </button>
+            </div>
+          </>
+        )}
+
+        <button className="btn btn-outline" style={{ width: "100%", marginTop: 10, justifyContent: "center" }} onClick={onClose}>
+          Cancelar
         </button>
-        <div style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", marginTop: 5 }}>
-          Acepta tarjetas, crypto y más · Pago seguro
-        </div>
       </div>
     </div>
   );
@@ -4053,6 +4073,7 @@ const AdminOverview = ({ orders, products, onGoOrders }) => {
 // ─── WALLET MANAGER ───────────────────────────────────────────────────────────
 const WalletManager = () => {
   const [addrs, setAddrs] = useState({ wallet_trc20: "", wallet_bep20: "" });
+  const [methods, setMethods] = useState({ payment_usdt_enabled: true, payment_cryptomus_enabled: true });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
@@ -4060,21 +4081,37 @@ const WalletManager = () => {
   useEffect(() => {
     fetch("/api/settings")
       .then(r => r.json())
-      .then(data => setAddrs({ wallet_trc20: data.wallet_trc20 || "", wallet_bep20: data.wallet_bep20 || "" }))
+      .then(data => {
+        setAddrs({ wallet_trc20: data.wallet_trc20 || "", wallet_bep20: data.wallet_bep20 || "" });
+        setMethods({
+          payment_usdt_enabled: data.payment_usdt_enabled !== "false",
+          payment_cryptomus_enabled: data.payment_cryptomus_enabled !== "false",
+        });
+      })
       .catch(() => {});
   }, []);
 
+  const toggleMethod = key => setMethods(p => ({ ...p, [key]: !p[key] }));
+
   const save = async () => {
     setError("");
-    if (!addrs.wallet_trc20.trim() || !addrs.wallet_bep20.trim()) {
-      setError("Ambas direcciones son obligatorias."); return;
+    if (methods.payment_usdt_enabled && (!addrs.wallet_trc20.trim() || !addrs.wallet_bep20.trim())) {
+      setError("Si USDT manual está activo, ambas direcciones de billetera son obligatorias."); return;
+    }
+    if (!methods.payment_usdt_enabled && !methods.payment_cryptomus_enabled) {
+      setError("Debe haber al menos un método de pago activo."); return;
     }
     setSaving(true);
     try {
       const res = await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wallet_trc20: addrs.wallet_trc20.trim(), wallet_bep20: addrs.wallet_bep20.trim() }),
+        body: JSON.stringify({
+          wallet_trc20: addrs.wallet_trc20.trim(),
+          wallet_bep20: addrs.wallet_bep20.trim(),
+          payment_usdt_enabled: String(methods.payment_usdt_enabled),
+          payment_cryptomus_enabled: String(methods.payment_cryptomus_enabled),
+        }),
       });
       if (!res.ok) { setError("Error al guardar."); return; }
       setSaved(true);
@@ -4092,45 +4129,83 @@ const WalletManager = () => {
     wallet_bep20: { label: "🟡 BEP20", network: "BNB Smart Chain", color: "#F0B90B", placeholder: "0x71C7656EC7ab8..." },
   };
 
+  const ToggleSwitch = ({ on, onToggle, label, desc }) => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 10, border: `1px solid ${on ? "var(--blue)" : "var(--border)"}`, background: on ? "rgba(59,130,246,.06)" : "var(--surface)", marginBottom: 10, transition: "all .15s" }}>
+      <div>
+        <div style={{ fontWeight: 700, fontSize: 14 }}>{label}</div>
+        <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{desc}</div>
+      </div>
+      <div onClick={onToggle} style={{ width: 44, height: 24, borderRadius: 12, background: on ? "var(--blue)" : "var(--border)", position: "relative", cursor: "pointer", transition: "background .2s", flexShrink: 0 }}>
+        <div style={{ position: "absolute", top: 3, left: on ? 23 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .2s", boxShadow: "0 1px 3px rgba(0,0,0,.3)" }} />
+      </div>
+    </div>
+  );
+
   return (
     <div>
-      <div className="page-title">💳 Wallets de pago</div>
+      <div className="page-title">💳 Métodos de pago</div>
       <div style={{ color: "var(--muted)", fontSize: 13, marginBottom: 20 }}>
-        Las direcciones se usan en el checkout. El QR se genera automáticamente a partir de la dirección.
+        Activá o desactivá cada método. Los cambios se aplican de inmediato en el checkout.
       </div>
       {error && <div className="error-msg" style={{ marginBottom: 16 }}>{error}</div>}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
-        {Object.entries(walletInfo).map(([key, info]) => (
-          <div key={key} className="card">
-            <div className="card-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {info.label}
-              <span style={{ fontSize: 11, fontWeight: 400, color: "var(--muted)" }}>{info.network}</span>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Dirección de billetera</label>
-              <input
-                className="form-input"
-                style={{ fontFamily: "monospace", fontSize: 12 }}
-                value={addrs[key]}
-                onChange={e => setAddrs(p => ({ ...p, [key]: e.target.value }))}
-                placeholder={info.placeholder}
-              />
-            </div>
-            {qrUrl(addrs[key]) && (
-              <div style={{ textAlign: "center", marginTop: 14, padding: "12px 0", borderTop: "1px solid var(--border)" }}>
-                <img
-                  src={qrUrl(addrs[key])}
-                  alt={`QR ${key}`}
-                  style={{ width: 180, height: 180, border: `3px solid ${info.color}`, borderRadius: 12, padding: 6, background: "#fff" }}
-                />
-                <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>QR generado automáticamente</div>
-              </div>
-            )}
-          </div>
-        ))}
+
+      {/* ── Payment method toggles ── */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontFamily: "Syne", fontWeight: 700, fontSize: 13, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Métodos activos</div>
+        <ToggleSwitch
+          on={methods.payment_cryptomus_enabled}
+          onToggle={() => toggleMethod("payment_cryptomus_enabled")}
+          label="💳 Cryptomus"
+          desc="Acepta tarjetas, USDT, BTC y más · Pago automático"
+        />
+        <ToggleSwitch
+          on={methods.payment_usdt_enabled}
+          onToggle={() => toggleMethod("payment_usdt_enabled")}
+          label="₮ USDT Manual (TRC20 / BEP20)"
+          desc="El cliente te manda USDT directo · Requiere wallets configuradas"
+        />
       </div>
+
+      {/* ── Wallet addresses (only relevant if USDT manual is on) ── */}
+      <div style={{ opacity: methods.payment_usdt_enabled ? 1 : 0.4, pointerEvents: methods.payment_usdt_enabled ? "auto" : "none", transition: "opacity .2s" }}>
+        <div style={{ fontFamily: "Syne", fontWeight: 700, fontSize: 13, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Wallets USDT</div>
+        <div style={{ color: "var(--muted)", fontSize: 12, marginBottom: 16 }}>
+          El QR se genera automáticamente a partir de la dirección.
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
+          {Object.entries(walletInfo).map(([key, info]) => (
+            <div key={key} className="card">
+              <div className="card-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {info.label}
+                <span style={{ fontSize: 11, fontWeight: 400, color: "var(--muted)" }}>{info.network}</span>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Dirección de billetera</label>
+                <input
+                  className="form-input"
+                  style={{ fontFamily: "monospace", fontSize: 12 }}
+                  value={addrs[key]}
+                  onChange={e => setAddrs(p => ({ ...p, [key]: e.target.value }))}
+                  placeholder={info.placeholder}
+                />
+              </div>
+              {qrUrl(addrs[key]) && (
+                <div style={{ textAlign: "center", marginTop: 14, padding: "12px 0", borderTop: "1px solid var(--border)" }}>
+                  <img
+                    src={qrUrl(addrs[key])}
+                    alt={`QR ${key}`}
+                    style={{ width: 180, height: 180, border: `3px solid ${info.color}`, borderRadius: 12, padding: 6, background: "#fff" }}
+                  />
+                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>QR generado automáticamente</div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
       <button className="btn btn-primary" onClick={save} disabled={saving}>
-        {saving ? "Guardando..." : saved ? "✓ Guardado correctamente" : "💾 Guardar wallets"}
+        {saving ? "Guardando..." : saved ? "✓ Guardado correctamente" : "💾 Guardar configuración"}
       </button>
       {saved && <span style={{ marginLeft: 12, color: "var(--green)", fontSize: 13, fontWeight: 600 }}>
         ¡Los cambios se aplican de inmediato en el checkout!
@@ -5320,9 +5395,10 @@ export default function App() {
       .catch(() => {});
   }, [isStaff]);
 
-  // ── WALLETS + THUMBS (dynamic from DB) ──
+  // ── WALLETS + THUMBS + PAYMENT METHODS (dynamic from DB) ──
   const [wallets, setWallets] = useState(WALLETS);
   const [thumbs, setThumbs] = useState({ bm: null, ads: null });
+  const [paymentMethods, setPaymentMethods] = useState({ usdt: true, cryptomus: true });
   useEffect(() => {
     fetch("/api/settings")
       .then(r => r.json())
@@ -5333,6 +5409,10 @@ export default function App() {
           BEP20: { ...prev.BEP20, addr: data.wallet_bep20 || prev.BEP20.addr },
         }));
         setThumbs({ bm: data.thumb_bm || null, ads: data.thumb_ads || null, balloon: data.thumb_balloon || null });
+        setPaymentMethods({
+          usdt: data.payment_usdt_enabled !== "false",
+          cryptomus: data.payment_cryptomus_enabled !== "false",
+        });
       })
       .catch(() => {});
   }, []);
@@ -5601,7 +5681,7 @@ export default function App() {
         />
       )}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} onSuccess={() => setShowPayment(pendingTotal > 0)} initialTab={authTab} />}
-      {showPayment && user && <PaymentModal cart={cart} user={user} coupon={pendingCoupon} finalTotal={pendingTotal} onClose={() => setShowPayment(false)} onSuccess={handlePaySuccess} onOrderUpdate={o => setOrders(prev => { const ex = prev.find(x => x.id === o.id); return ex ? prev.map(x => x.id === o.id ? o : x) : [o, ...prev]; })} onOrderPending={order => setGlobalPending(order)} wallets={wallets} />}
+      {showPayment && user && <PaymentModal cart={cart} user={user} coupon={pendingCoupon} finalTotal={pendingTotal} onClose={() => setShowPayment(false)} onSuccess={handlePaySuccess} onOrderUpdate={o => setOrders(prev => { const ex = prev.find(x => x.id === o.id); return ex ? prev.map(x => x.id === o.id ? o : x) : [o, ...prev]; })} onOrderPending={order => setGlobalPending(order)} wallets={wallets} paymentMethods={paymentMethods} />}
       {showSuccess && lastOrder && <SuccessModal order={lastOrder} onClose={() => { setShowSuccess(false); setView("account"); }} />}
       {resetToken && <ResetPasswordModal token={resetToken} onClose={() => { setResetToken(null); setAuthTab("login"); setShowAuth(true); }} />}
       {verifyResult && (
