@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
 import { sendPaymentConfirmedEmail } from "../../../../lib/mailer";
+import { sendCapiEvent } from "../../../../lib/metaCapi";
 import crypto from "crypto";
 
 const API_KEY = process.env.CRYPTOMUS_API_KEY;
@@ -65,6 +66,15 @@ export async function POST(req) {
       amount: (order.uniqueAmount ?? order.total).toFixed(2),
       network: "Cryptomus",
       txHash: txRef,
+    }).catch(() => {});
+
+    // CAPI Purchase event (no browser data available in webhook, but email match is enough)
+    sendCapiEvent({
+      eventName: "Purchase",
+      eventId:   `purchase_${order.id}`,
+      email:     order.userEmail,
+      orderId:   order.id,
+      value:     order.uniqueAmount ?? order.total,
     }).catch(() => {});
 
     return NextResponse.json({ ok: true });

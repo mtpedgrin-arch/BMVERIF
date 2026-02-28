@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
+import { trackEvent, trackCustom, initPixelWithUser } from "../lib/pixel";
 
 // ─── WALLETS ──────────────────────────────────────────────────────────────────
 const WALLETS = {
@@ -1278,9 +1279,16 @@ const PaymentPendingModal = ({ order, walletAddr, walletColor, onSuccess, onCanc
     return () => clearInterval(id);
   }, [order?.expiresAt]);
 
-  // Auto-close 1s after paid (notification + email handled by backend)
+  // Auto-close 1s after paid + fire Purchase pixel event
   useEffect(() => {
     if (payStatus !== "paid" || !order) return;
+    // Client-side Purchase — deduplicated with CAPI via eventID = "purchase_{orderId}"
+    trackEvent("Purchase", {
+      value:       order.uniqueAmount ?? order.total,
+      currency:    "USD",
+      content_ids: (order.items || []).map(i => i.productId).filter(Boolean),
+      num_items:   (order.items || []).reduce((s, i) => s + (i.qty || 1), 0),
+    }, { eventID: `purchase_${order.id}` });
     const t = setTimeout(() => onSuccess({ ...order, status: "paid" }), 1000);
     return () => clearTimeout(t);
   }, [payStatus]);
@@ -1630,6 +1638,17 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOr
   const [order, setOrder] = useState(null);
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+
+  // ── Track InitiateCheckout on open ──
+  useEffect(() => {
+    trackEvent("InitiateCheckout", {
+      num_items:   cart.reduce((s, i) => s + i.qty, 0),
+      value:       finalTotal,
+      currency:    "USD",
+      content_ids: cart.map(i => i.id).filter(Boolean),
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const discountAmt = coupon ? subtotal * (coupon.discount / 100) : 0;
 
   const buildOrderBody = () => ({
@@ -1847,6 +1866,18 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
   const [payStatus, setPayStatus] = useState("polling");
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+
+  // ── Track InitiateCheckout on open ──
+  useEffect(() => {
+    if (cart.length === 0) return;
+    trackEvent("InitiateCheckout", {
+      num_items:   cart.reduce((s, i) => s + i.qty, 0),
+      value:       subtotal,
+      currency:    "USD",
+      content_ids: cart.map(i => i.id).filter(Boolean),
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const discountAmt = appliedCoupon ? subtotal * (appliedCoupon.discount / 100) : 0;
   const total = subtotal - discountAmt;
   const wallet = W[network];
@@ -5361,6 +5392,11 @@ export default function App() {
   const isSupport = user?.role === "support";
   const isStaff = isAdmin || isSupport;
 
+  // ── Meta Pixel: Advanced Matching — reinit with user data on login ──
+  useEffect(() => {
+    initPixelWithUser(user);
+  }, [user?.email]);
+
   // ── DARK MODE ──
   const [darkMode, setDarkMode] = useState(true);
   useEffect(() => {
@@ -5573,6 +5609,15 @@ export default function App() {
     setShowMiniCart(true);
     if (miniCartTimer.current) clearTimeout(miniCartTimer.current);
     miniCartTimer.current = setTimeout(() => setShowMiniCart(false), 4000);
+    // ── Meta Pixel: AddToCart ──
+    trackEvent("AddToCart", {
+      content_ids:      [p.id].filter(Boolean),
+      content_name:     p.name,
+      content_type:     "product",
+      content_category: p.category || undefined,
+      value:            p.price,
+      currency:         "USD",
+    });
   };
   const removeFromCart = id => setCart(prev => rebalanceTiers(prev.filter(i => i.id !== id)));
   const addToCartQty = (p, qty) => {
@@ -5588,6 +5633,16 @@ export default function App() {
     setShowMiniCart(true);
     if (miniCartTimer.current) clearTimeout(miniCartTimer.current);
     miniCartTimer.current = setTimeout(() => setShowMiniCart(false), 4000);
+    // ── Meta Pixel: AddToCart ──
+    trackEvent("AddToCart", {
+      content_ids:      [p.id].filter(Boolean),
+      content_name:     p.name,
+      content_type:     "product",
+      content_category: p.category || undefined,
+      value:            p.price * qty,
+      currency:         "USD",
+      num_items:        qty,
+    });
   };
   const handleBuyNowQty = (p, qty) => {
     setCart(prev => {
@@ -5621,6 +5676,19 @@ export default function App() {
       return rebalanceTiers(next);
     });
     setView("checkout");
+  };
+
+  // ── Meta Pixel: ViewContent when a product card is clicked ──
+  const handleProductClick = p => {
+    setSelectedProduct(p);
+    trackEvent("ViewContent", {
+      content_ids:      [p.id].filter(Boolean),
+      content_name:     p.name,
+      content_type:     "product",
+      content_category: p.category || undefined,
+      value:            p.price,
+      currency:         "USD",
+    });
   };
 
   const handleCheckout = (coupon, total) => {
@@ -5751,7 +5819,7 @@ export default function App() {
         </a>
       </div>
 
-      {view === "shop" && !selectedProduct && <ShopPage cart={cart} onAddToCart={addToCart} onBuyNow={handleBuyNow} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} onProductClick={p => setSelectedProduct(p)} thumbs={thumbs} />}
+      {view === "shop" && !selectedProduct && <ShopPage cart={cart} onAddToCart={addToCart} onBuyNow={handleBuyNow} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} onProductClick={handleProductClick} thumbs={thumbs} />}
       {view === "shop" && selectedProduct && <ProductDetailPage product={selectedProduct} cart={cart} onBack={() => setSelectedProduct(null)} onAddToCartQty={addToCartQty} onBuyNowQty={handleBuyNowQty} liked={liked} onToggleLike={toggleLike} user={user} />}
       {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); }} onOrderPending={order => setGlobalPending(order)} wallets={wallets} paymentMethods={paymentMethods} />}
       {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} wallets={wallets} onOrderUpdate={updatedOrder => setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o))} />}

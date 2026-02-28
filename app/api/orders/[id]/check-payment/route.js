@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../../lib/authOptions";
 import { prisma } from "../../../../../lib/prisma";
 import { sendPaymentConfirmedEmail } from "../../../../../lib/mailer";
+import { sendCapiEvent } from "../../../../../lib/metaCapi";
 
 // Parse USDT BEP20 value safely (18 decimals, avoids JS float precision loss)
 function parseUsdt18(valueStr) {
@@ -163,6 +164,18 @@ export async function GET(req, { params }) {
       amount: order.uniqueAmount.toFixed(2),
       network: order.network,
       txHash: foundTx.txHash,
+    }).catch(() => {});
+    // CAPI Purchase event — deduplicates with client-side fbq via eventID
+    const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || undefined;
+    const ua = req.headers.get("user-agent") || undefined;
+    sendCapiEvent({
+      eventName: "Purchase",
+      eventId:   `purchase_${order.id}`,
+      email:     order.userEmail,
+      ip,
+      userAgent: ua,
+      orderId:   order.id,
+      value:     order.uniqueAmount ?? order.total,
     }).catch(() => {});
     return NextResponse.json({ paid: true, txHash: foundTx.txHash });
   }
