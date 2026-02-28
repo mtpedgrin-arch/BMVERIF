@@ -3533,8 +3533,9 @@ const ProductManager = ({ products, setProducts }) => {
 };
 
 // ─── ADMIN COUPON MANAGER ─────────────────────────────────────────────────────
-const CouponManager = ({ coupons, setCoupons }) => {
-  const PRESET = [5, 10, 15, 20, 25, 30, 40, 50, 60, 75];
+const CouponManager = ({ coupons, setCoupons, isSupport = false, maxDiscount = 100, maxUsesLimit = 10 }) => {
+  const ALL_PRESET = [5, 10, 15, 20, 25, 30, 40, 50, 60, 75];
+  const PRESET = isSupport ? ALL_PRESET.filter(p => p <= maxDiscount) : ALL_PRESET;
   const [sel, setSel] = useState(null);
   const [custom, setCustom] = useState("");
   const [maxUses, setMaxUses] = useState(1);
@@ -3595,10 +3596,15 @@ const CouponManager = ({ coupons, setCoupons }) => {
           <input className="custom-percent" type="number" min="1" max="100" placeholder="35" value={custom} onChange={e => { setCustom(e.target.value); setSel(null); }} />
           <span style={{ fontSize: 14, color: "#6D28D9", fontWeight: 700 }}>%</span>
         </div>
+        {isSupport && (
+          <div style={{ fontSize: 12, background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: "8px 12px", marginBottom: 12, color: "#1D4ED8" }}>
+            ℹ️ Tu cuenta puede crear cupones de hasta <strong>{maxDiscount}%</strong> con máximo <strong>{maxUsesLimit} uso{maxUsesLimit > 1 ? "s" : ""}</strong>.
+          </div>
+        )}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
           <span style={{ fontSize: 13, color: "#6D28D9", fontWeight: 600 }}>Usos permitidos:</span>
-          <div style={{ display: "flex", gap: 6 }}>
-            {[1,2,3,4,5,6,7,8,9,10].map(n => (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {Array.from({ length: Math.min(maxUsesLimit, 10) }, (_, i) => i + 1).map(n => (
               <button key={n} onClick={() => setMaxUses(n)} style={{ width: 34, height: 34, borderRadius: 8, border: `1.5px solid ${maxUses === n ? "var(--purple)" : "#C4B5FD"}`, background: maxUses === n ? "var(--purple)" : "#fff", color: maxUses === n ? "#fff" : "var(--purple)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{n}</button>
             ))}
           </div>
@@ -3663,7 +3669,7 @@ const CouponManager = ({ coupons, setCoupons }) => {
 };
 
 // ─── ADMIN ORDERS ─────────────────────────────────────────────────────────────
-const AdminOrders = ({ orders, onConfirm, onDeliver }) => {
+const AdminOrders = ({ orders, onConfirm, onDeliver, readOnly = false }) => {
   const pending = orders.filter(o => o.status === "pending");
   const fileInputRef = useRef(null);
   const [targetId, setTargetId] = useState(null);
@@ -3700,7 +3706,7 @@ const AdminOrders = ({ orders, onConfirm, onDeliver }) => {
       <div className="card">
         <div className="table-wrap">
           <table>
-            <thead><tr><th>ID</th><th>Cliente</th><th>Productos</th><th>Red</th><th>Total</th><th>TX Hash</th><th>Estado</th><th>Acción</th><th>Entrega</th></tr></thead>
+            <thead><tr><th>ID</th><th>Cliente</th><th>Productos</th><th>Red</th><th>Total</th><th>TX Hash</th><th>Estado</th>{!readOnly && <><th>Acción</th><th>Entrega</th></>}</tr></thead>
             <tbody>
               {orders.slice().reverse().map(o => (
                 <tr key={o.id} style={{ background: o.status === "pending" ? "var(--amber-light)" : "transparent" }}>
@@ -3711,18 +3717,20 @@ const AdminOrders = ({ orders, onConfirm, onDeliver }) => {
                   <td><strong style={{ color: "var(--usdt)" }}>{fmtUSDT(o.total)}</strong>{o.coupon && <div style={{ fontSize: 10, color: "var(--purple)" }}>🏷 {o.coupon}</div>}</td>
                   <td>{o.txHash ? <code style={{ fontSize: 10, color: "var(--blue)" }}>{o.txHash.slice(0, 14)}...</code> : <span style={{ fontSize: 11, color: "var(--muted)" }}>—</span>}</td>
                   <td><StatusPill status={o.status} /></td>
-                  <td>{o.status === "pending" ? <button className="confirm-btn" onClick={() => onConfirm(o.id)}>✓ Confirmar pago</button> : <span className="confirmed-label">✓ Confirmado</span>}</td>
-                  <td>
-                    {uploading === o.id
-                      ? <span style={{ fontSize: 12, color: "var(--muted)" }}>Subiendo…</span>
-                      : o.deliveryContent
-                        ? <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                            <span style={{ fontSize: 11, color: "#15803D", fontWeight: 700 }}>✅ Entregado</span>
-                            <button className="deliver-btn" onClick={() => triggerUpload(o.id)}>↑ Reemplazar</button>
-                          </div>
-                        : <button className="deliver-btn" onClick={() => triggerUpload(o.id)}>📁 Subir .txt</button>
-                    }
-                  </td>
+                  {!readOnly && <>
+                    <td>{o.status === "pending" ? <button className="confirm-btn" onClick={() => onConfirm(o.id)}>✓ Confirmar pago</button> : <span className="confirmed-label">✓ Confirmado</span>}</td>
+                    <td>
+                      {uploading === o.id
+                        ? <span style={{ fontSize: 12, color: "var(--muted)" }}>Subiendo…</span>
+                        : o.deliveryContent
+                          ? <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                              <span style={{ fontSize: 11, color: "#15803D", fontWeight: 700 }}>✅ Entregado</span>
+                              <button className="deliver-btn" onClick={() => triggerUpload(o.id)}>↑ Reemplazar</button>
+                            </div>
+                          : <button className="deliver-btn" onClick={() => triggerUpload(o.id)}>📁 Subir .txt</button>
+                      }
+                    </td>
+                  </>}
                 </tr>
               ))}
             </tbody>
@@ -4146,8 +4154,264 @@ const ThumbnailManager = ({ onThumbsChange }) => {
   );
 };
 
+// ─── TEAM MANAGER ─────────────────────────────────────────────────────────────
+const TEAM_SECTIONS = [
+  { id: "overview",   label: "📊 Overview" },
+  { id: "orders",     label: "📦 Órdenes" },
+  { id: "coupons",    label: "🏷 Cupones" },
+  { id: "chat",       label: "💬 Chat en vivo" },
+  { id: "products",   label: "🛍 Productos" },
+  { id: "wallets",    label: "💳 Wallets" },
+  { id: "thumbnails", label: "🖼 Miniaturas" },
+];
+
+const TeamManager = () => {
+  const [users, setUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [editPerms, setEditPerms] = useState(null);
+  const [msg, setMsg] = useState(null);
+  const [form, setForm] = useState({
+    name: "", email: "", password: "",
+    sections: ["orders", "chat"],
+    couponMaxDiscount: 5,
+    couponMaxUses: 1,
+  });
+
+  useEffect(() => {
+    fetch("/api/admin/team")
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setUsers(data); })
+      .catch(() => {})
+      .finally(() => setLoadingUsers(false));
+  }, []);
+
+  const toggleFormSection = (id) => {
+    setForm(p => ({
+      ...p,
+      sections: p.sections.includes(id) ? p.sections.filter(s => s !== id) : [...p.sections, id],
+    }));
+  };
+
+  const toggleEditSection = (id) => {
+    setEditPerms(p => ({
+      ...p,
+      sections: p.sections.includes(id) ? p.sections.filter(s => s !== id) : [...p.sections, id],
+    }));
+  };
+
+  const createUser = async () => {
+    if (!form.name.trim() || !form.email.trim() || !form.password.trim()) {
+      setMsg({ text: "Nombre, email y contraseña son obligatorios.", ok: false });
+      return;
+    }
+    setCreating(true);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/admin/team", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          permissions: {
+            sections: form.sections,
+            couponMaxDiscount: parseInt(form.couponMaxDiscount) || 5,
+            couponMaxUses: parseInt(form.couponMaxUses) || 1,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUsers(p => [data, ...p]);
+        setForm({ name: "", email: "", password: "", sections: ["orders", "chat"], couponMaxDiscount: 5, couponMaxUses: 1 });
+        setMsg({ text: "✅ Usuario creado exitosamente.", ok: true });
+        setTimeout(() => setMsg(null), 4000);
+      } else {
+        setMsg({ text: data.error || "Error al crear usuario.", ok: false });
+      }
+    } catch {
+      setMsg({ text: "Error de conexión.", ok: false });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const deleteUser = async (id) => {
+    if (!confirm("¿Eliminar este usuario de soporte?")) return;
+    try {
+      const res = await fetch(`/api/admin/team/${id}`, { method: "DELETE" });
+      if (res.ok) setUsers(p => p.filter(u => u.id !== id));
+    } catch {}
+  };
+
+  const startEdit = (u) => {
+    setEditId(u.id);
+    setEditPerms({
+      sections: u.permissions?.sections || [],
+      couponMaxDiscount: u.permissions?.couponMaxDiscount ?? 5,
+      couponMaxUses: u.permissions?.couponMaxUses ?? 1,
+    });
+  };
+
+  const saveEdit = async (id) => {
+    try {
+      const res = await fetch(`/api/admin/team/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          permissions: {
+            ...editPerms,
+            couponMaxDiscount: parseInt(editPerms.couponMaxDiscount) || 5,
+            couponMaxUses: parseInt(editPerms.couponMaxUses) || 1,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) { setUsers(p => p.map(u => u.id === id ? data : u)); setEditId(null); }
+    } catch {}
+  };
+
+  return (
+    <div>
+      <div className="page-title">👥 Equipo de soporte</div>
+
+      {/* ── CREATE FORM ── */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="card-title">➕ Crear usuario de soporte</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Nombre</label>
+            <input className="form-input" placeholder="Ej: María García" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
+          </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Email</label>
+            <input className="form-input" type="email" placeholder="soporte@empresa.com" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} />
+          </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Contraseña</label>
+            <input className="form-input" type="password" placeholder="••••••••" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} />
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <label className="form-label">Secciones con acceso</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
+            {TEAM_SECTIONS.map(s => (
+              <label key={s.id} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", padding: "6px 12px", borderRadius: 8, border: `1.5px solid ${form.sections.includes(s.id) ? "var(--blue)" : "var(--border)"}`, background: form.sections.includes(s.id) ? "var(--blue-light)" : "var(--surface)", fontSize: 13, userSelect: "none" }}>
+                <input type="checkbox" checked={form.sections.includes(s.id)} onChange={() => toggleFormSection(s.id)} style={{ accentColor: "var(--blue)" }} />
+                {s.label}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {form.sections.includes("coupons") && (
+          <div style={{ display: "flex", gap: 20, marginBottom: 14, alignItems: "flex-end" }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Descuento máximo de cupón (%)</label>
+              <input className="form-input" type="number" min="1" max="100" value={form.couponMaxDiscount} onChange={e => setForm(p => ({ ...p, couponMaxDiscount: e.target.value }))} style={{ width: 100 }} />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Usos máximos por cupón</label>
+              <input className="form-input" type="number" min="1" max="100" value={form.couponMaxUses} onChange={e => setForm(p => ({ ...p, couponMaxUses: e.target.value }))} style={{ width: 100 }} />
+            </div>
+          </div>
+        )}
+
+        {msg && (
+          <div style={{ fontSize: 13, padding: "9px 13px", borderRadius: 9, marginBottom: 10, background: msg.ok ? "#F0FDF4" : "#FEF2F2", color: msg.ok ? "#15803D" : "#B91C1C", border: `1px solid ${msg.ok ? "#BBF7D0" : "#FECACA"}` }}>
+            {msg.text}
+          </div>
+        )}
+        <button className="btn btn-primary" onClick={createUser} disabled={creating}>
+          {creating ? "Creando..." : "➕ Crear usuario"}
+        </button>
+      </div>
+
+      {/* ── USER LIST ── */}
+      <div className="card">
+        <div className="card-title">Usuarios de soporte ({users.length})</div>
+        {loadingUsers ? (
+          <div style={{ padding: 20, color: "var(--muted)", fontSize: 13 }}>Cargando...</div>
+        ) : users.length === 0 ? (
+          <div style={{ padding: 20, color: "var(--muted)", fontSize: 13 }}>No hay usuarios de soporte aún.</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {users.map(u => (
+              <div key={u.id} style={{ border: "1px solid var(--border)", borderRadius: 12, padding: "14px 16px", background: "var(--surface)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: editId === u.id ? 12 : 0 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontFamily: "Syne", fontSize: 15 }}>{u.name}</div>
+                    <div style={{ fontSize: 12, color: "var(--muted)" }}>{u.email}</div>
+                    {editId !== u.id && (
+                      <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 4 }}>
+                        {(u.permissions?.sections || []).map(s => (
+                          <span key={s} style={{ fontSize: 11, background: "var(--blue-light)", color: "var(--blue)", borderRadius: 6, padding: "2px 8px", fontWeight: 600 }}>
+                            {TEAM_SECTIONS.find(ts => ts.id === s)?.label || s}
+                          </span>
+                        ))}
+                        {(u.permissions?.sections || []).includes("coupons") && (
+                          <span style={{ fontSize: 11, background: "#F3E8FF", color: "#7C3AED", borderRadius: 6, padding: "2px 8px", fontWeight: 600 }}>
+                            Cupón máx {u.permissions?.couponMaxDiscount ?? 5}% · {u.permissions?.couponMaxUses ?? 1} uso{(u.permissions?.couponMaxUses ?? 1) > 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {editId === u.id ? (
+                      <>
+                        <button className="btn btn-primary btn-sm" onClick={() => saveEdit(u.id)}>💾 Guardar</button>
+                        <button className="btn btn-outline btn-sm" onClick={() => setEditId(null)}>✕ Cancelar</button>
+                      </>
+                    ) : (
+                      <>
+                        <button className="btn btn-outline btn-sm" onClick={() => startEdit(u)}>✏️ Editar</button>
+                        <button className="btn btn-outline btn-sm" style={{ color: "var(--red)", borderColor: "var(--red)" }} onClick={() => deleteUser(u.id)}>🗑</button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {editId === u.id && editPerms && (
+                  <div>
+                    <label className="form-label">Secciones con acceso</label>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6, marginBottom: 12 }}>
+                      {TEAM_SECTIONS.map(s => (
+                        <label key={s.id} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", padding: "6px 12px", borderRadius: 8, border: `1.5px solid ${editPerms.sections.includes(s.id) ? "var(--blue)" : "var(--border)"}`, background: editPerms.sections.includes(s.id) ? "var(--blue-light)" : "var(--surface)", fontSize: 13, userSelect: "none" }}>
+                          <input type="checkbox" checked={editPerms.sections.includes(s.id)} onChange={() => toggleEditSection(s.id)} style={{ accentColor: "var(--blue)" }} />
+                          {s.label}
+                        </label>
+                      ))}
+                    </div>
+                    {editPerms.sections.includes("coupons") && (
+                      <div style={{ display: "flex", gap: 20, marginBottom: 4 }}>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label className="form-label">Descuento máximo (%)</label>
+                          <input className="form-input" type="number" min="1" max="100" value={editPerms.couponMaxDiscount} onChange={e => setEditPerms(p => ({ ...p, couponMaxDiscount: e.target.value }))} style={{ width: 100 }} />
+                        </div>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label className="form-label">Usos máximos</label>
+                          <input className="form-input" type="number" min="1" max="100" value={editPerms.couponMaxUses} onChange={e => setEditPerms(p => ({ ...p, couponMaxUses: e.target.value }))} style={{ width: 100 }} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ─── ADMIN PANEL ──────────────────────────────────────────────────────────────
-const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, coupons, setCoupons, products, setProducts, onThumbsChange }) => {
+const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, coupons, setCoupons, products, setProducts, onThumbsChange, isSupport = false, userPermissions = {} }) => {
   const [section, setSection] = useState(() => {
     try { return sessionStorage.getItem("admin_section") || "overview"; } catch { return "overview"; }
   });
@@ -4244,16 +4508,24 @@ const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, coupons, setCoupon
   const pendingCount = orders.filter(o => o.status === "pending").length;
   const activeCoupons = coupons.filter(c => c.active && c.uses < c.maxUses).length;
   const chatUnread = convos.reduce((s, c) => s + (c.unread || 0), 0);
+  const supportSections = userPermissions.sections || [];
+  const couponMaxDiscount = parseInt(userPermissions.couponMaxDiscount) || 5;
+  const couponMaxUses = parseInt(userPermissions.couponMaxUses) || 1;
 
-  const sideItems = [
-    { id: "overview", icon: "📊", label: "Overview" },
-    { id: "orders", icon: "📦", label: "Órdenes", badge: pendingCount, badgeColor: "var(--amber)" },
-    { id: "coupons", icon: "🏷", label: "Cupones", badge: activeCoupons, badgeColor: "var(--purple)" },
-    { id: "chat", icon: "💬", label: "Chat en vivo", badge: chatUnread, badgeColor: "var(--red)" },
-    { id: "products", icon: "🛍", label: "Productos" },
-    { id: "wallets", icon: "💳", label: "Wallets" },
+  const allSideItems = [
+    { id: "overview",   icon: "📊", label: "Overview" },
+    { id: "orders",     icon: "📦", label: "Órdenes",     badge: pendingCount,   badgeColor: "var(--amber)" },
+    { id: "coupons",    icon: "🏷", label: "Cupones",     badge: activeCoupons,  badgeColor: "var(--purple)" },
+    { id: "chat",       icon: "💬", label: "Chat en vivo", badge: chatUnread,    badgeColor: "var(--red)" },
+    { id: "products",   icon: "🛍", label: "Productos" },
+    { id: "wallets",    icon: "💳", label: "Wallets" },
     { id: "thumbnails", icon: "🖼", label: "Miniaturas" },
+    { id: "team",       icon: "👥", label: "Equipo", adminOnly: true },
   ];
+
+  const sideItems = isSupport
+    ? allSideItems.filter(s => !s.adminOnly && supportSections.includes(s.id))
+    : allSideItems;
 
   return (
     <div className="admin-layout">
@@ -4268,8 +4540,8 @@ const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, coupons, setCoupon
       </div>
       <div className="admin-content">
         {section === "overview" && <AdminOverview orders={orders} products={products} onGoOrders={() => setSection("orders")} />}
-        {section === "orders" && <AdminOrders orders={orders} onConfirm={onConfirmOrder} onDeliver={onDeliverOrder} />}
-        {section === "coupons" && <CouponManager coupons={coupons} setCoupons={setCoupons} />}
+        {section === "orders" && <AdminOrders orders={orders} onConfirm={onConfirmOrder} onDeliver={onDeliverOrder} readOnly={isSupport} />}
+        {section === "coupons" && <CouponManager coupons={coupons} setCoupons={setCoupons} isSupport={isSupport} maxDiscount={couponMaxDiscount} maxUsesLimit={couponMaxUses} />}
         {section === "chat" && (
           <>
             <div className="page-title">💬 Chat en vivo</div>
@@ -4338,6 +4610,7 @@ const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, coupons, setCoupon
         {section === "products" && <ProductManager products={products} setProducts={setProducts} />}
         {section === "wallets" && <WalletManager />}
         {section === "thumbnails" && <ThumbnailManager onThumbsChange={onThumbsChange} />}
+        {section === "team" && !isSupport && <TeamManager />}
       </div>
     </div>
   );
@@ -4850,6 +5123,8 @@ export default function App() {
   const session = sessionResult?.data ?? null;
   const user = session?.user ?? null;
   const isAdmin = user?.role === "admin";
+  const isSupport = user?.role === "support";
+  const isStaff = isAdmin || isSupport;
 
   // ── DARK MODE ──
   const [darkMode, setDarkMode] = useState(true);
@@ -4947,26 +5222,26 @@ export default function App() {
   useEffect(() => { refreshOrders(); }, [user?.email]);
   useEffect(() => { if (view === "account") refreshOrders(); }, [view]);
 
-  // ── COUPONS (admin) ──
+  // ── COUPONS (admin + support) ──
   const [coupons, setCoupons] = useState([]);
   useEffect(() => {
-    if (isAdmin) {
+    if (isStaff) {
       fetch("/api/coupons")
         .then(r => r.json())
         .then(data => { if (Array.isArray(data)) setCoupons(data); })
         .catch(() => {});
     }
-  }, [isAdmin]);
+  }, [isStaff]);
 
   // ── PRODUCTS ──
   const [products, setProducts] = useState([]);
   useEffect(() => {
-    const url = isAdmin ? "/api/products?all=true" : "/api/products";
+    const url = isStaff ? "/api/products?all=true" : "/api/products";
     fetch(url)
       .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setProducts(data); })
       .catch(() => {});
-  }, [isAdmin]);
+  }, [isStaff]);
 
   // ── WALLETS + THUMBS (dynamic from DB) ──
   const [wallets, setWallets] = useState(WALLETS);
@@ -5146,22 +5421,33 @@ export default function App() {
     } catch {}
   };
 
-  if (isAdmin) {
+  if (isStaff) {
     return (
       <div className={`app${darkMode ? " dark" : ""}`}>
         <style>{css}</style>
         <div className="topbar">
           <div className="logo" style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <img src="/logo.png" alt="Logo" style={{ height: 36, width: 36, objectFit: "contain" }} />
-            <span style={{ fontSize: 11, background: "var(--red)", color: "#fff", padding: "2px 8px", borderRadius: 6 }}>ADMIN</span>
+            <span style={{ fontSize: 11, background: isSupport ? "var(--blue)" : "var(--red)", color: "#fff", padding: "2px 8px", borderRadius: 6 }}>{isSupport ? "SOPORTE" : "ADMIN"}</span>
           </div>
-          <div style={{ fontSize: 13, color: "var(--muted)" }}>Panel de administración · {user.email}</div>
+          <div style={{ fontSize: 13, color: "var(--muted)" }}>{isSupport ? "Panel de soporte" : "Panel de administración"} · {user.email}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button className="dark-toggle" onClick={toggleDark} title={darkMode ? "Modo claro" : "Modo oscuro"}>{darkMode ? "☀️" : "🌙"}</button>
             <button className="btn btn-outline btn-sm" onClick={() => signOut()}>← Cerrar sesión</button>
           </div>
         </div>
-        <AdminPanel orders={orders} onConfirmOrder={handleConfirmOrder} onDeliverOrder={handleDeliverOrder} coupons={coupons} setCoupons={setCoupons} products={products} setProducts={setProducts} onThumbsChange={(key, val) => setThumbs(p => ({ ...p, [key === "thumb_bm" ? "bm" : "ads"]: val }))} />
+        <AdminPanel
+          orders={orders}
+          onConfirmOrder={handleConfirmOrder}
+          onDeliverOrder={handleDeliverOrder}
+          coupons={coupons}
+          setCoupons={setCoupons}
+          products={products}
+          setProducts={setProducts}
+          onThumbsChange={(key, val) => setThumbs(p => ({ ...p, [key === "thumb_bm" ? "bm" : "ads"]: val }))}
+          isSupport={isSupport}
+          userPermissions={user?.permissions || {}}
+        />
       </div>
     );
   }

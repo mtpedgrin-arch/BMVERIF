@@ -12,7 +12,7 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const targetEmail = searchParams.get("userEmail");
 
-  if (session.user.role === "admin") {
+  if (session.user.role === "admin" || session.user.role === "support") {
     if (targetEmail) {
       // mensajes de una conversación específica
       const msgs = await prisma.chatMessage.findMany({

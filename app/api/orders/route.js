@@ -19,7 +19,7 @@ export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  if (session.user.role === "admin") {
+  if (session.user.role === "admin" || session.user.role === "support") {
     const orders = await prisma.order.findMany({
       include: { items: true },
       orderBy: { createdAt: "desc" },

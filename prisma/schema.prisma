@@ -26,6 +26,7 @@ model User {
   twoFactorSecret   String?
   newsletter        Boolean   @default(true)
   stockUpdates      Boolean   @default(true)
+  permissions       Json      @default("{}")
 
   orders    Order[]
   favorites Favorite[]
