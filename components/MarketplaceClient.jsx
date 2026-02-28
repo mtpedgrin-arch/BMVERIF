@@ -4695,7 +4695,7 @@ const LegalPlaceholder = ({ title }) => (
   <p style={{ color: "var(--muted)" }}>El contenido de <strong>{title}</strong> estará disponible próximamente.</p>
 );
 
-const LegalPublicOffer = () => (
+const LegalPublicOffer = ({ onOpenModal }) => (
   <div>
     <p><strong>IMPORTANTE:</strong> Antes de aceptar esta Oferta, el Vendedor debe leer cuidadosamente sus términos, así como el Acuerdo de Usuario, la Política de Privacidad, las Reglas Generales de BM Verificada y las Reglas de Reemplazo de Productos Inválidos (colectivamente, los "Documentos de la Plataforma"). La aceptación de esta Oferta constituye un acuerdo pleno e incondicional del Vendedor con todos los términos.</p>
 
@@ -4771,7 +4771,7 @@ const LegalPublicOffer = () => (
 
     <p style={{ marginTop: 16, fontWeight: 700, color: "var(--text)" }}>12. Disposiciones Finales</p>
     <p>12.1. La Plataforma puede modificar esta Oferta y los Documentos de la Plataforma de forma unilateral publicando actualizaciones. El uso continuado de la Plataforma tras las actualizaciones constituye la aceptación por parte del Vendedor.</p>
-    <p>12.2. Los siguientes Apéndices forman parte integral de este Acuerdo: Apéndice 1 — Lista de Bienes y Servicios Prohibidos; Apéndice 2 — Procedimiento para Solicitudes de Autoridades Gubernamentales.</p>
+    <p>12.2. Los siguientes Apéndices forman parte integral de este Acuerdo: <button onClick={() => onOpenModal?.("appendix1")} style={{ background: "none", border: "none", padding: 0, color: "var(--blue)", textDecoration: "underline", cursor: "pointer", fontSize: "inherit", fontFamily: "inherit" }}>Apéndice 1 — Lista de Bienes y Servicios Prohibidos</button>; <button onClick={() => onOpenModal?.("appendix2")} style={{ background: "none", border: "none", padding: 0, color: "var(--blue)", textDecoration: "underline", cursor: "pointer", fontSize: "inherit", fontFamily: "inherit" }}>Apéndice 2 — Procedimiento para Solicitudes de Autoridades Gubernamentales</button>.</p>
   </div>
 );
 
@@ -5599,7 +5599,7 @@ export default function App() {
             <div style={{ fontSize: 13, lineHeight: 1.8, color: "var(--muted)", maxHeight: "70vh", overflowY: "auto" }}>
               {legalModal === "privacy" && <LegalPrivacy />}
               {legalModal === "user-agreement" && <LegalUserAgreement />}
-              {legalModal === "public-offer" && <LegalPublicOffer />}
+              {legalModal === "public-offer" && <LegalPublicOffer onOpenModal={setLegalModal} />}
               {legalModal === "replacement" && <LegalReplacement />}
               {legalModal === "rules" && <LegalRules />}
               {legalModal === "appendix1" && <LegalAppendix1 />}
