@@ -1833,7 +1833,7 @@ const SuccessModal = ({ order, onClose }) => {
 };
 
 // ─── CHECKOUT PAGE ────────────────────────────────────────────────────────────
-const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShowAuth, onOrderPending, wallets: W = WALLETS }) => {
+const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShowAuth, onOrderPending, wallets: W = WALLETS, paymentMethods = { usdt: true, cryptomus: true } }) => {
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponState, setCouponState] = useState("idle");
@@ -1841,14 +1841,22 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
   const [network, setNetwork] = useState("TRC20");
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [createdOrder, setCreatedOrder] = useState(null); // order after creation
-  const [showPendingModal, setShowPendingModal] = useState(false); // show full-screen pending
-  const [payStatus, setPayStatus] = useState("polling"); // polling | paid | expired
+  const [cryptomusSubmitting, setCryptomusSubmitting] = useState(false);
+  const [createdOrder, setCreatedOrder] = useState(null);
+  const [showPendingModal, setShowPendingModal] = useState(false);
+  const [payStatus, setPayStatus] = useState("polling");
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const discountAmt = appliedCoupon ? subtotal * (appliedCoupon.discount / 100) : 0;
   const total = subtotal - discountAmt;
   const wallet = W[network];
+
+  const buildOrderBody = (net) => ({
+    items: cart.map(i => ({ name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty, productId: i.id || null })),
+    subtotal, discount: discountAmt,
+    coupon: appliedCoupon?.code || null,
+    total, network: net,
+  });
 
   const applyCoupon = async () => {
     setCouponError(""); if (!couponInput.trim()) return;
@@ -1860,6 +1868,7 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
     } catch { setCouponState("invalid"); setCouponError("Error de conexión."); setTimeout(() => setCouponState("idle"), 600); }
   };
 
+  // ── USDT manual submit ──
   const handleSubmit = async () => {
     if (!user) { onShowAuth(); return; }
     if (!agreed) return;
@@ -1868,16 +1877,7 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
       if (appliedCoupon) {
         await fetch("/api/coupons/use", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: appliedCoupon.code }) }).catch(() => {});
       }
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: cart.map(i => ({ name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty, productId: i.id || null })),
-          subtotal, discount: discountAmt,
-          coupon: appliedCoupon?.code || null,
-          total, network,
-        }),
-      });
+      const res = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(buildOrderBody(network)) });
       const order = await res.json();
       setCreatedOrder(order);
       setShowPendingModal(true);
@@ -1885,6 +1885,28 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
       onOrderPending?.(order);
     } catch { alert("Error al procesar. Intentá de nuevo."); }
     finally { setSubmitting(false); }
+  };
+
+  // ── Cryptomus submit ──
+  const handleCryptomus = async () => {
+    if (!user) { onShowAuth(); return; }
+    setCryptomusSubmitting(true);
+    try {
+      if (appliedCoupon) {
+        await fetch("/api/coupons/use", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: appliedCoupon.code }) }).catch(() => {});
+      }
+      const orderRes = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(buildOrderBody("CRYPTOMUS")) });
+      const order = await orderRes.json();
+      if (!order.id) throw new Error("No se pudo crear la orden");
+      onOrderPending?.(order);
+      const payRes = await fetch("/api/cryptomus/create-payment", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId: order.id }) });
+      const payData = await payRes.json();
+      if (!payData.url) throw new Error(payData.error || "Error al generar pago");
+      window.location.href = payData.url;
+    } catch (err) {
+      alert(err.message || "Error al procesar pago con Cryptomus.");
+      setCryptomusSubmitting(false);
+    }
   };
 
   // Background polling when modal is closed
@@ -2064,47 +2086,87 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
               </div>
             )}
 
-            {/* Selector de red */}
-            <div className="co-method-grid">
-              {Object.entries(W).map(([key, w]) => (
-                <div key={key} className={`co-method-card ${network === key ? "sel" : ""}`} onClick={() => setNetwork(key)}>
-                  <div style={{ fontSize: 22, marginBottom: 5 }}>{w.logo}</div>
-                  <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 2 }}>{key}</div>
-                  <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 6 }}>{w.network.split("(")[0].trim()}</div>
-                  <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                    <span className="network-tag">Fee {w.fee}</span>
-                    <span className="network-tag">{w.time}</span>
-                  </div>
+            {/* ── Cryptomus (primary) ── */}
+            {paymentMethods.cryptomus && (
+              <div style={{ padding: "16px 20px", borderBottom: paymentMethods.usdt ? "1px solid var(--border)" : "none" }}>
+                {!user ? (
+                  <button className="co-submit" onClick={onShowAuth}>🔐 Iniciá sesión para continuar</button>
+                ) : (
+                  <button
+                    onClick={handleCryptomus}
+                    disabled={cryptomusSubmitting}
+                    style={{
+                      width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+                      gap: 8, padding: "13px 0", borderRadius: 10, border: "none", cursor: "pointer",
+                      background: "linear-gradient(135deg,#6C4DFF 0%,#9B7BFF 100%)",
+                      color: "#fff", fontSize: 14, fontWeight: 700, fontFamily: "Syne",
+                      opacity: cryptomusSubmitting ? 0.6 : 1,
+                    }}
+                  >
+                    {cryptomusSubmitting ? "⏳ Redirigiendo..." : <><span style={{ fontSize: 18 }}>💳</span> Pagar con Cryptomus</>}
+                  </button>
+                )}
+                <div style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", marginTop: 6 }}>
+                  Acepta tarjetas, USDT, BTC y más · Pago seguro y automático
                 </div>
-              ))}
-            </div>
-
-            {/* Monto a enviar */}
-            <div className="co-amount-box">
-              <div>
-                <div style={{ fontSize: 11, color: "var(--usdt)", fontWeight: 600, marginBottom: 2 }}>Monto exacto a enviar</div>
-                <div style={{ fontFamily: "Syne", fontSize: 26, fontWeight: 800, color: "var(--usdt)" }}>{total.toFixed(2)} <span style={{ fontSize: 14 }}>USDT</span></div>
               </div>
-              <div style={{ fontSize: 30 }}>₮</div>
-            </div>
+            )}
 
-            {/* Agree + Proceder */}
-            <div className="co-agree">
-              <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
-              <span>Entiendo que el pago en USDT es <strong>irreversible</strong> y que el acceso al producto se entrega una vez que se confirme el pago en la blockchain.</span>
-            </div>
+            {/* ── Separator ── */}
+            {paymentMethods.cryptomus && paymentMethods.usdt && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 20px" }}>
+                <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+                <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 700, letterSpacing: "0.05em" }}>O PAGAR EN USDT</span>
+                <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+              </div>
+            )}
 
-            {!user ? (
-              <button className="co-submit" onClick={onShowAuth}>🔐 Iniciá sesión para continuar</button>
-            ) : (
-              <button
-                className="btn btn-usdt btn-full"
-                style={{ justifyContent: "center", fontSize: 15, fontWeight: 700, padding: "13px 0", margin: "0 20px 20px", width: "calc(100% - 40px)" }}
-                disabled={!agreed || submitting}
-                onClick={handleSubmit}
-              >
-                {submitting ? "Creando orden..." : "Proceder al pago →"}
-              </button>
+            {/* ── USDT manual (secondary) ── */}
+            {paymentMethods.usdt && (
+              <>
+                {/* Selector de red */}
+                <div className="co-method-grid" style={{ padding: "0 20px 12px" }}>
+                  {Object.entries(W).map(([key, w]) => (
+                    <div key={key} className={`co-method-card ${network === key ? "sel" : ""}`} onClick={() => setNetwork(key)}>
+                      <div style={{ fontSize: 22, marginBottom: 5 }}>{w.logo}</div>
+                      <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 2 }}>{key}</div>
+                      <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 6 }}>{w.network.split("(")[0].trim()}</div>
+                      <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                        <span className="network-tag">Fee {w.fee}</span>
+                        <span className="network-tag">{w.time}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Monto a enviar */}
+                <div className="co-amount-box">
+                  <div>
+                    <div style={{ fontSize: 11, color: "var(--usdt)", fontWeight: 600, marginBottom: 2 }}>Monto exacto a enviar</div>
+                    <div style={{ fontFamily: "Syne", fontSize: 26, fontWeight: 800, color: "var(--usdt)" }}>{total.toFixed(2)} <span style={{ fontSize: 14 }}>USDT</span></div>
+                  </div>
+                  <div style={{ fontSize: 30 }}>₮</div>
+                </div>
+
+                {/* Agree + Proceder */}
+                <div className="co-agree">
+                  <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
+                  <span>Entiendo que el pago en USDT es <strong>irreversible</strong> y que el acceso al producto se entrega una vez que se confirme el pago en la blockchain.</span>
+                </div>
+
+                {!user ? (
+                  !paymentMethods.cryptomus && <button className="co-submit" onClick={onShowAuth}>🔐 Iniciá sesión para continuar</button>
+                ) : (
+                  <button
+                    className="btn btn-usdt btn-full"
+                    style={{ justifyContent: "center", fontSize: 15, fontWeight: 700, padding: "13px 0", margin: "0 20px 20px", width: "calc(100% - 40px)" }}
+                    disabled={!agreed || submitting}
+                    onClick={handleSubmit}
+                  >
+                    {submitting ? "Creando orden..." : "Pagar con USDT →"}
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -5667,7 +5729,7 @@ export default function App() {
 
       {view === "shop" && !selectedProduct && <ShopPage cart={cart} onAddToCart={addToCart} onBuyNow={handleBuyNow} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} onProductClick={p => setSelectedProduct(p)} thumbs={thumbs} />}
       {view === "shop" && selectedProduct && <ProductDetailPage product={selectedProduct} cart={cart} onBack={() => setSelectedProduct(null)} onAddToCartQty={addToCartQty} onBuyNowQty={handleBuyNowQty} liked={liked} onToggleLike={toggleLike} user={user} />}
-      {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); }} onOrderPending={order => setGlobalPending(order)} wallets={wallets} />}
+      {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); }} onOrderPending={order => setGlobalPending(order)} wallets={wallets} paymentMethods={paymentMethods} />}
       {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} wallets={wallets} onOrderUpdate={updatedOrder => setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o))} />}
 
       {showMiniCart && cart.length > 0 && (
