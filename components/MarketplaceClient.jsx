@@ -5596,7 +5596,15 @@ export default function App() {
               </h2>
               <button onClick={() => setLegalModal(null)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "var(--muted)", lineHeight: 1 }}>×</button>
             </div>
-            <div style={{ fontSize: 13, lineHeight: 1.8, color: "var(--muted)", maxHeight: "70vh", overflowY: "auto" }}>
+            <div key={legalModal} style={{ fontSize: 13, lineHeight: 1.8, color: "var(--muted)", maxHeight: "70vh", overflowY: "auto" }}>
+              {(legalModal === "appendix1" || legalModal === "appendix2") && (
+                <button
+                  onClick={() => setLegalModal("public-offer")}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 5, marginBottom: 16, background: "none", border: "1px solid var(--border)", borderRadius: 8, padding: "5px 12px", fontSize: 12, color: "var(--blue)", cursor: "pointer", fontWeight: 600 }}
+                >
+                  ← Volver a Oferta Pública
+                </button>
+              )}
               {legalModal === "privacy" && <LegalPrivacy />}
               {legalModal === "user-agreement" && <LegalUserAgreement />}
               {legalModal === "public-offer" && <LegalPublicOffer onOpenModal={setLegalModal} />}
