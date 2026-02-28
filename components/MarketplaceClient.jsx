@@ -2506,7 +2506,7 @@ const ProductDetailPage = ({ product: p, cart, onBack, onAddToCartQty, onBuyNowQ
 const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike, products, onProductClick, thumbs }) => {
   const [activeCat, setActiveCat] = useState("all");
   const getQty = id => cart.find(i => i.id === id)?.qty || 0;
-  const getThumb = (cat) => cat === "ads-account" ? (thumbs?.ads || "/facebook-verificado.png") : (thumbs?.bm || "/facebook-verificado.png");
+  const getThumb = (cat) => cat === "ads-account" ? (thumbs?.ads || "/facebook-verificado.png") : cat === "bm-balloon" ? (thumbs?.balloon || "/facebook-verificado.png") : (thumbs?.bm || "/facebook-verificado.png");
   const CATS = [
     { key: "ads-account", label: "Cuentas para Publicidad" },
     { key: "bm-balloon", label: "BM Balloon" },
@@ -4079,14 +4079,14 @@ const WalletManager = () => {
 
 // ─── THUMBNAIL MANAGER ────────────────────────────────────────────────────────
 const ThumbnailManager = ({ onThumbsChange }) => {
-  const [thumbs, setThumbs] = useState({ thumb_bm: null, thumb_ads: null });
-  const [saving, setSaving] = useState({ thumb_bm: false, thumb_ads: false });
-  const [saved, setSaved]   = useState({ thumb_bm: false, thumb_ads: false });
+  const [thumbs, setThumbs] = useState({ thumb_bm: null, thumb_ads: null, thumb_balloon: null });
+  const [saving, setSaving] = useState({ thumb_bm: false, thumb_ads: false, thumb_balloon: false });
+  const [saved, setSaved]   = useState({ thumb_bm: false, thumb_ads: false, thumb_balloon: false });
 
   useEffect(() => {
     fetch("/api/settings")
       .then(r => r.json())
-      .then(data => setThumbs({ thumb_bm: data.thumb_bm || null, thumb_ads: data.thumb_ads || null }))
+      .then(data => setThumbs({ thumb_bm: data.thumb_bm || null, thumb_ads: data.thumb_ads || null, thumb_balloon: data.thumb_balloon || null }))
       .catch(() => {});
   }, []);
 
@@ -4116,8 +4116,9 @@ const ThumbnailManager = ({ onThumbsChange }) => {
   };
 
   const cards = [
-    { imgKey: "thumb_bm",   emoji: "🏢", label: "BMs Verificadas",         desc: "Miniatura para productos de Business Manager" },
-    { imgKey: "thumb_ads",  emoji: "📢", label: "Cuentas para Publicidad",  desc: "Miniatura para productos de cuentas de ads" },
+    { imgKey: "thumb_ads",     emoji: "📢", label: "Cuentas para Publicidad", desc: "Miniatura para productos de cuentas de ads" },
+    { imgKey: "thumb_balloon", emoji: "🎈", label: "BM Balloon",              desc: "Miniatura para productos BM Balloon" },
+    { imgKey: "thumb_bm",      emoji: "🏢", label: "BMs Verificadas",         desc: "Miniatura para productos de Business Manager" },
   ];
 
   return (
@@ -5269,7 +5270,7 @@ export default function App() {
           TRC20: { ...prev.TRC20, addr: data.wallet_trc20 || prev.TRC20.addr },
           BEP20: { ...prev.BEP20, addr: data.wallet_bep20 || prev.BEP20.addr },
         }));
-        setThumbs({ bm: data.thumb_bm || null, ads: data.thumb_ads || null });
+        setThumbs({ bm: data.thumb_bm || null, ads: data.thumb_ads || null, balloon: data.thumb_balloon || null });
       })
       .catch(() => {});
   }, []);
@@ -5458,7 +5459,7 @@ export default function App() {
           setCoupons={setCoupons}
           products={products}
           setProducts={setProducts}
-          onThumbsChange={(key, val) => setThumbs(p => ({ ...p, [key === "thumb_bm" ? "bm" : "ads"]: val }))}
+          onThumbsChange={(key, val) => setThumbs(p => ({ ...p, [key === "thumb_bm" ? "bm" : key === "thumb_balloon" ? "balloon" : "ads"]: val }))}
           isSupport={isSupport}
           userPermissions={user?.permissions || {}}
         />
