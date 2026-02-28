@@ -1,5 +1,5 @@
 import Providers from "./providers";
-
+<meta name="cryptomus" content="3c4bc7a4" />
 export const metadata = {
   title: "BM Verificada · Business Manager Premium",
   description: "Business Manager verificados · Entrega inmediata · Pago USDT TRC20 / BEP20",
