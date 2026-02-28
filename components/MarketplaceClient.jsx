@@ -4413,7 +4413,14 @@ const TeamManager = () => {
 // ─── ADMIN PANEL ──────────────────────────────────────────────────────────────
 const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, coupons, setCoupons, products, setProducts, onThumbsChange, isSupport = false, userPermissions = {} }) => {
   const [section, setSection] = useState(() => {
-    try { return sessionStorage.getItem("admin_section") || "overview"; } catch { return "overview"; }
+    const allowed = isSupport ? (userPermissions.sections || []) : null;
+    try {
+      const saved = sessionStorage.getItem("admin_section");
+      if (allowed) return (saved && allowed.includes(saved)) ? saved : (allowed[0] || "orders");
+      return saved || "overview";
+    } catch {
+      return allowed ? (allowed[0] || "orders") : "overview";
+    }
   });
   useEffect(() => {
     try { sessionStorage.setItem("admin_section", section); } catch {}
