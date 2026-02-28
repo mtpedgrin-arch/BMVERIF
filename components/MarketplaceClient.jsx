@@ -2509,6 +2509,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
   const getThumb = (cat) => cat === "ads-account" ? (thumbs?.ads || "/facebook-verificado.png") : (thumbs?.bm || "/facebook-verificado.png");
   const CATS = [
     { key: "ads-account", label: "Cuentas para Publicidad" },
+    { key: "bm-balloon", label: "BM Balloon" },
     { key: "bm", label: "BMs Verificadas" },
   ];
   const visibleCats = activeCat === "all" ? CATS : CATS.filter(c => c.key === activeCat);
@@ -3391,8 +3392,9 @@ const ProductManager = ({ products, setProducts }) => {
             <div className="form-group">
               <label className="form-label">Categoría</label>
               <select className="form-input" value={form.category} onChange={setF("category")}>
-                <option value="bm">BM Verificada</option>
                 <option value="ads-account">Cuenta para Publicidad</option>
+                <option value="bm-balloon">BM Balloon</option>
+                <option value="bm">BM Verificada</option>
               </select>
             </div>
           </div>
@@ -3462,8 +3464,13 @@ const ProductManager = ({ products, setProducts }) => {
                   <td style={{ maxWidth: 200, fontSize: 12, fontWeight: 600 }}>{p.name}</td>
                   <td style={{ maxWidth: 180, fontSize: 11, color: "var(--muted)" }}>{p.details || "—"}</td>
                   <td>
-                    <span className="chip" style={{ background: (p.category || "bm") === "ads-account" ? "#EFF6FF" : "#F0FDF4", color: (p.category || "bm") === "ads-account" ? "#1D4ED8" : "#15803D", border: `1px solid ${(p.category || "bm") === "ads-account" ? "#BFDBFE" : "#BBF7D0"}`, whiteSpace: "nowrap", fontSize: 10 }}>
-                      {(p.category || "bm") === "ads-account" ? "Cuentas Ads" : "BM Verificada"}
+                    <span className="chip" style={{
+                      background: (p.category || "bm") === "ads-account" ? "#EFF6FF" : (p.category === "bm-balloon" ? "#FFF7ED" : "#F0FDF4"),
+                      color: (p.category || "bm") === "ads-account" ? "#1D4ED8" : (p.category === "bm-balloon" ? "#C2410C" : "#15803D"),
+                      border: `1px solid ${(p.category || "bm") === "ads-account" ? "#BFDBFE" : (p.category === "bm-balloon" ? "#FED7AA" : "#BBF7D0")}`,
+                      whiteSpace: "nowrap", fontSize: 10
+                    }}>
+                      {(p.category || "bm") === "ads-account" ? "Cuentas Ads" : (p.category === "bm-balloon" ? "BM Balloon" : "BM Verificada")}
                     </span>
                   </td>
                   <td><strong style={{ color: "var(--usdt)" }}>{fmtUSDT(p.price)}</strong></td>
