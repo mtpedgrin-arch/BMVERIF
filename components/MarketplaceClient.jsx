@@ -2676,6 +2676,27 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
           <span className="hero-badge">🏷 Descuentos por cantidad</span>
         </div>
       </div>
+
+      {/* ── SEO intro block ── */}
+      <div style={{ maxWidth: 1200, margin: "0 auto", width: "100%", padding: "20px 20px 0" }}>
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "22px 28px" }}>
+          <h2 style={{ fontFamily: "Syne", fontSize: 18, fontWeight: 800, marginBottom: 12, color: "var(--text)" }}>
+            Comprá Business Managers Verificados de Facebook
+          </h2>
+          <p style={{ fontSize: 13.5, lineHeight: 1.75, color: "var(--muted)", margin: 0 }}>
+            <strong style={{ color: "var(--text)" }}>Business Managers Verificados (BM) — Comprá cuentas Meta premium de nuestro catálogo.</strong>{" "}
+            Esta categoría está diseñada para afiliados y agencias que requieren máxima confianza y estabilidad al trabajar con verticales de alto riesgo.
+            La verificación garantiza el mayor nivel de fiabilidad y minimiza el riesgo de baneos.
+            En <strong style={{ color: "var(--text)" }}>BM Verificada</strong> podés comprar BMs listos para lanzar —
+            ideales tanto para operaciones diarias estables como para recuperar activos publicitarios.
+            Explorá nuestro catálogo de <strong style={{ color: "var(--text)" }}>BMs Verificados</strong> y{" "}
+            <strong style={{ color: "var(--text)" }}>BMs Balloon</strong> para campañas de alto presupuesto.
+            Precios transparentes, <strong style={{ color: "var(--text)" }}>entrega inmediata</strong> y garantía de confianza.
+            Comprá Business Managers Verificados — una inversión a largo plazo para una publicidad estable y segura.
+          </p>
+        </div>
+      </div>
+
       <div className="shop-wrap">
         <div className="shop-header">
           <div className="shop-title">Productos disponibles</div>
