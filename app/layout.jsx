@@ -7,6 +7,9 @@ export const metadata = {
     icon: "/favicon.png",
     apple: "/favicon.png",
   },
+  other: {
+    cryptomus: "3c4bc7a4",
+  },
 };
 
 export default function RootLayout({ children }) {
