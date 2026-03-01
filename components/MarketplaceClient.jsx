@@ -1885,7 +1885,7 @@ const SuccessModal = ({ order, onClose }) => {
 };
 
 // ─── CHECKOUT PAGE ────────────────────────────────────────────────────────────
-const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShowAuth, onOrderPending, wallets: W = WALLETS, paymentMethods = { usdt: true, cryptomus: true }, userCredit = 0, onCreditUsed }) => {
+const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShowAuth, onOrderPending, wallets: W = WALLETS, paymentMethods = { usdt: true, cryptomus: true }, userCredit = 0, onCreditUsed, products = [], onAddToCart }) => {
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponState, setCouponState] = useState("idle");
@@ -2250,6 +2250,77 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
           </div>
         </div>
       </div>
+
+      {/* ── Productos recomendados ── */}
+      {(() => {
+        const CATS = [
+          { key: "ads-account", label: "Cuentas Ads",       icon: "📢", color: "#1877F2" },
+          { key: "bm",          label: "Business Manager",  icon: "🏢", color: "#D4AF37" },
+          { key: "bm-balloon",  label: "BM Balloon",        icon: "🎈", color: "#9B7BFF" },
+        ];
+        const cartIds = new Set(cart.map(i => i.id));
+        const recs = CATS.flatMap(cat => {
+          const pool = products.filter(p => (p.category || "bm") === cat.key && !cartIds.has(p.id));
+          if (!pool.length) return [];
+          const p = pool[Math.floor(Math.random() * pool.length)];
+          const sortedTiers = (p.tiers || []).filter(t => t.qty > 0 && t.price > 0).sort((a, b) => a.qty - b.qty);
+          const bestTier = sortedTiers[0];
+          const pct = bestTier ? Math.round((1 - bestTier.price / p.price) * 100) : 0;
+          return [{ ...p, cat, bestTier, pct }];
+        });
+        if (!recs.length) return null;
+        return (
+          <div style={{ marginTop: 32 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, fontFamily: "Syne", marginBottom: 16, color: "var(--text)" }}>
+              También te puede interesar
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: `repeat(${recs.length}, 1fr)`, gap: 14 }}>
+              {recs.map(p => (
+                <div key={p.id} style={{ background: "var(--surface)", border: "1.5px solid var(--border)", borderRadius: 14, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                  {/* Color bar */}
+                  <div style={{ height: 4, background: p.cat.color, opacity: 0.7 }} />
+                  <div style={{ padding: "14px 16px", flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
+                    {/* Icon + category */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 9, background: p.cat.color + "22", border: `1px solid ${p.cat.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
+                        {p.cat.icon}
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: p.cat.color, textTransform: "uppercase", letterSpacing: "0.04em" }}>{p.cat.label}</span>
+                    </div>
+                    {/* Name */}
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                      {p.name}
+                    </div>
+                    {/* Price + tier */}
+                    <div style={{ marginTop: "auto" }}>
+                      <div style={{ fontSize: 20, fontWeight: 800, fontFamily: "Syne", color: "var(--usdt)" }}>
+                        ${p.price.toFixed(2)} <span style={{ fontSize: 12, fontWeight: 400, color: "var(--muted)" }}>USDT</span>
+                      </div>
+                      {p.bestTier && p.pct > 0 && (
+                        <div style={{ fontSize: 11, color: "#4ade80", marginTop: 3 }}>
+                          ×{p.bestTier.qty} unidades → ${p.bestTier.price.toFixed(2)}/u (−{p.pct}%)
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {/* CTA */}
+                  <div style={{ padding: "0 16px 14px" }}>
+                    <button
+                      onClick={() => onAddToCart?.(p)}
+                      style={{ width: "100%", padding: "9px 0", borderRadius: 9, border: "1.5px solid var(--border)", background: "transparent", color: "var(--text)", fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "var(--red)"; e.currentTarget.style.borderColor = "var(--red)"; e.currentTarget.style.color = "#fff"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text)"; }}
+                    >
+                      + Agregar al carrito
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
     </div>
   );
 };
@@ -6171,7 +6242,7 @@ export default function App() {
 
       {view === "shop" && !selectedProduct && <ShopPage cart={cart} onAddToCart={addToCart} onBuyNow={handleBuyNow} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} onProductClick={handleProductClick} thumbs={thumbs} />}
       {view === "shop" && selectedProduct && <ProductDetailPage product={selectedProduct} cart={cart} onBack={() => setSelectedProduct(null)} onAddToCartQty={addToCartQty} onBuyNowQty={handleBuyNowQty} liked={liked} onToggleLike={toggleLike} user={user} />}
-      {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); if (user?.email) { fetch("/api/cart/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: [], total: 0 }) }).catch(() => {}); } }} onOrderPending={order => setGlobalPending(order)} wallets={wallets} paymentMethods={paymentMethods} userCredit={referralCredit} onCreditUsed={amt => setReferralCredit(prev => Math.max(0, prev - amt))} />}
+      {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); if (user?.email) { fetch("/api/cart/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: [], total: 0 }) }).catch(() => {}); } }} onOrderPending={order => setGlobalPending(order)} wallets={wallets} paymentMethods={paymentMethods} userCredit={referralCredit} onCreditUsed={amt => setReferralCredit(prev => Math.max(0, prev - amt))} products={products} onAddToCart={p => { addToCart(p); }} />}
       {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} wallets={wallets} onOrderUpdate={updatedOrder => setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o))} />}
 
       {showMiniCart && cart.length > 0 && (
