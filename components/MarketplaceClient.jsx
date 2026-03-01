@@ -5901,7 +5901,27 @@ const BlogManager = () => {
           <input className="form-input" value={form.excerpt} onChange={e => setForm(f => ({ ...f, excerpt: e.target.value }))} placeholder="Resumen opcional para SEO y listado" style={{ width: "100%", boxSizing: "border-box" }} />
         </div>
         <div>
-          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", display: "block", marginBottom: 6 }}>URL de imagen <span style={{ fontWeight: 400, color: "var(--muted)" }}>(opcional · se muestra como portada del post)</span></label>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>URL de imagen <span style={{ fontWeight: 400, color: "var(--muted)" }}>(opcional · portada del post)</span></label>
+            <a
+              href="https://unsplash.com/es/s/fotos/marketing-digital"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                background: "linear-gradient(135deg, #111 0%, #333 100%)",
+                color: "#fff", fontSize: 12, fontWeight: 700,
+                padding: "5px 12px", borderRadius: 20,
+                textDecoration: "none", letterSpacing: 0.3,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
+                transition: "opacity 0.15s",
+              }}
+              onMouseEnter={e => e.currentTarget.style.opacity = "0.82"}
+              onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+            >
+              <span style={{ fontSize: 14 }}>🖼</span> Buscar en Unsplash
+            </a>
+          </div>
           <input className="form-input" value={form.imageUrl} onChange={e => setForm(f => ({ ...f, imageUrl: e.target.value }))} placeholder="https://images.unsplash.com/photo-..." style={{ width: "100%", boxSizing: "border-box" }} />
           {form.imageUrl && (
             <div style={{ marginTop: 8, borderRadius: 8, overflow: "hidden", maxHeight: 120, border: "1px solid var(--border)" }}>
