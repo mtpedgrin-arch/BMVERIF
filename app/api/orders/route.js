@@ -95,14 +95,15 @@ export async function POST(req) {
   const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
   const itemLines = order.items.map(i => `  • ${i.name} ×${i.qty} — $${(i.price * i.qty).toFixed(2)}`).join("\n");
   await sendTelegramOrderNotification(
-    `🛒 <b>Nueva compra en BMVERIF</b>\n\n` +
+    `🛒 <b>Compra iniciada — esperando pago</b>\n\n` +
     `👤 <b>${order.userName}</b>\n` +
     `📧 ${order.userEmail}\n\n` +
     `📦 <b>Productos:</b>\n${itemLines}\n\n` +
     (order.discount > 0 ? `🏷️ Descuento: -$${order.discount.toFixed(2)}${order.coupon ? ` (${order.coupon})` : ""}\n` : "") +
     `💰 <b>Total: ${order.uniqueAmount.toFixed(2)} USDT · ${order.network}</b>\n` +
     `🆔 Orden: #${order.id.slice(-8)}\n` +
-    `⏰ ${hora}`
+    `⏰ ${hora}\n\n` +
+    `⏳ <i>Aguardando confirmación de pago…</i>`
   ).catch(() => {});
 
   return NextResponse.json(order);
