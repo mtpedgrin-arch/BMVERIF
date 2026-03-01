@@ -6031,6 +6031,30 @@ export default function App() {
     try { localStorage.setItem("bmveri_cart", JSON.stringify(cart)); } catch {}
   }, [cart]);
 
+  // ── Limpiar carrito y volver a tienda cuando la sesión cierra (manual o por expiración) ──
+  const prevUserRef = useRef(user);
+  useEffect(() => {
+    const wasLoggedIn = prevUserRef.current;
+    const isLoggedOut = !user;
+    if (wasLoggedIn && isLoggedOut) {
+      setCart([]);
+      try { localStorage.removeItem("bmveri_cart"); } catch {}
+      setView("shop");
+      setSelectedProduct(null);
+      setCartOpen(false);
+    }
+    prevUserRef.current = user;
+  }, [user]);
+
+  const handleSignOut = () => {
+    setCart([]);
+    try { localStorage.removeItem("bmveri_cart"); } catch {}
+    setView("shop");
+    setSelectedProduct(null);
+    setCartOpen(false);
+    signOut({ callbackUrl: "/" });
+  };
+
   // ── Auto-save cart for logged-in users (debounced 3s) → abandoned-cart emails ──
   const cartSaveTimer = useRef(null);
   useEffect(() => {
@@ -6387,7 +6411,7 @@ export default function App() {
           <div style={{ fontSize: 13, color: "var(--muted)" }}>{isSupport ? "Panel de soporte" : "Panel de administración"} · {user.email}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button className="dark-toggle" onClick={toggleDark} title={darkMode ? "Modo claro" : "Modo oscuro"}>{darkMode ? "☀️" : "🌙"}</button>
-            <button className="btn btn-outline btn-sm" onClick={() => signOut()}>← Cerrar sesión</button>
+            <button className="btn btn-outline btn-sm" onClick={handleSignOut}>← Cerrar sesión</button>
           </div>
         </div>
         <AdminPanel
@@ -6423,7 +6447,7 @@ export default function App() {
               <button className={`nav-tab ${view === "shop" ? "active" : ""}`} onClick={() => { setView("shop"); setSelectedProduct(null); }}>🛍 Tienda</button>
               <button className={`nav-tab ${view === "account" ? "active" : ""}`} onClick={() => setView("account")}>👤 Mi cuenta</button>
               <NotificationBell user={user} onGoAccount={() => setView("account")} />
-              <button className="btn btn-outline btn-sm" onClick={() => signOut()}>Salir</button>
+              <button className="btn btn-outline btn-sm" onClick={handleSignOut}>Salir</button>
             </>
           ) : (
             <>
