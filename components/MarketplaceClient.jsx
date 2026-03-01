@@ -6380,9 +6380,11 @@ export default function App() {
         <div className="logo" onClick={() => { setView("shop"); setSelectedProduct(null); }}>
           <img src="/logoR.png" alt="BM Verificada" />
         </div>
-        <button className={`nav-tab ${view === "faq" ? "active" : ""}`} onClick={() => setView("faq")} style={{ marginLeft: 8 }}>❓ FAQ</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: 8 }}>
+          <button className={`nav-tab ${view === "faq" ? "active" : ""}`} onClick={() => setView("faq")}>❓ FAQ</button>
+          <a href="/blog" className="nav-tab">📝 Blog</a>
+        </div>
         <div className="topbar-right">
-          <a href="/blog" style={{ color: "var(--text)", fontWeight: 600, fontSize: 13, textDecoration: "none", padding: "6px 12px", borderRadius: 8, transition: "background 0.15s" }} onMouseOver={e => e.currentTarget.style.background="var(--border)"} onMouseOut={e => e.currentTarget.style.background="transparent"}>📝 Blog</a>
           {user ? (
             <>
               <button className={`nav-tab ${view === "shop" ? "active" : ""}`} onClick={() => { setView("shop"); setSelectedProduct(null); }}>🛍 Tienda</button>
