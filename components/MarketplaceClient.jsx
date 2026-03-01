@@ -2950,12 +2950,12 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
       <div style={{ maxWidth: 1200, margin: "0 auto", width: "100%", padding: "20px 20px 0" }}>
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "22px 28px" }}>
           <h2 style={{ fontFamily: "Syne", fontSize: 18, fontWeight: 800, marginBottom: 12, color: "var(--text)" }}>
-            Comprá Business Managers Verificados de Facebook con API de Publicidad
+            Comprá Business Managers Verificados de Facebook con API de WhatsApp
           </h2>
           <p style={{ fontSize: 13.5, lineHeight: 1.75, color: "var(--muted)", margin: "0 0 14px" }}>
             <strong style={{ color: "var(--text)" }}>BM Verificada</strong> es tu fuente confiable de{" "}
             <strong style={{ color: "var(--text)" }}>Business Managers Verificados de Facebook</strong> con{" "}
-            <strong style={{ color: "var(--text)" }}>API de Publicidad habilitada</strong> desde el primer día.
+            <strong style={{ color: "var(--text)" }}>API de WhatsApp habilitada</strong> desde el primer día.
             Diseñado para afiliados, agencias y medios compradores que necesitan cuentas publicitarias de Meta estables,
             con el mayor nivel de confianza y mínimo riesgo de baneos.
             Todos nuestros <strong style={{ color: "var(--text)" }}>Business Managers</strong> pasan por verificación oficial de Meta
@@ -2963,7 +2963,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
           </p>
           <ul style={{ fontSize: 13, lineHeight: 1.8, color: "var(--muted)", margin: "0 0 14px", paddingLeft: 18 }}>
             <li>✅ <strong style={{ color: "var(--text)" }}>Business Manager con verificación oficial Meta</strong></li>
-            <li>✅ <strong style={{ color: "var(--text)" }}>API de Publicidad de Facebook</strong> habilitada desde el primer día</li>
+            <li>✅ <strong style={{ color: "var(--text)" }}>API de WhatsApp</strong> habilitada desde el primer día</li>
             <li>✅ <strong style={{ color: "var(--text)" }}>Entrega inmediata</strong> tras confirmar el pago en USDT</li>
             <li>✅ Catálogo de <strong style={{ color: "var(--text)" }}>BMs Verificados</strong>, <strong style={{ color: "var(--text)" }}>BM Balloon</strong> y <strong style={{ color: "var(--text)" }}>Cuentas Publicitarias</strong></li>
             <li>✅ Descuentos por volumen y soporte post-venta incluido</li>
@@ -2974,7 +2974,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
           <p style={{ fontSize: 13, lineHeight: 1.75, color: "var(--muted)", margin: 0 }}>
             Un <strong style={{ color: "var(--text)" }}>Business Manager Verificado de Facebook</strong> es una cuenta empresarial
             que superó el proceso de verificación oficial de Meta. Esto otorga mayor confianza ante el algoritmo,
-            acceso a límites de gasto más altos y la <strong style={{ color: "var(--text)" }}>API de Publicidad</strong> desbloqueada
+            acceso a límites de gasto más altos y la <strong style={{ color: "var(--text)" }}>API de WhatsApp</strong> desbloqueada
             para integraciones avanzadas. Es la herramienta esencial para cualquier equipo de{" "}
             <strong style={{ color: "var(--text)" }}>publicidad en Facebook</strong> que busca escalar sin interrupciones.
           </p>
@@ -5803,8 +5803,8 @@ const LegalPrivacy = () => (
 
 // ─── FAQ VIEW ─────────────────────────────────────────────────────────────────
 const FAQ_ITEMS = [
-  ["¿Qué es un Business Manager Verificado?", "Es una cuenta empresarial de Meta (Facebook) que completó el proceso oficial de verificación. Al estar verificada, tiene acceso a mayores límites de gasto, más cuentas publicitarias y la API de Publicidad de Facebook habilitada desde el primer día."],
-  ["¿Qué es la API de Publicidad de Facebook?", "La Marketing API de Meta permite automatizar campañas, gestionar creatividades, leer reportes y conectar herramientas externas directamente con tu Business Manager. Solo cuentas verificadas tienen acceso completo a esta API."],
+  ["¿Qué es un Business Manager Verificado?", "Es una cuenta empresarial de Meta (Facebook) que completó el proceso oficial de verificación. Al estar verificada, tiene acceso a mayores límites de gasto, más cuentas publicitarias y la API de WhatsApp habilitada desde el primer día."],
+  ["¿Qué es la API de WhatsApp?", "La API de WhatsApp Business permite a las empresas enviar mensajes masivos, automatizar comunicaciones y conectar WhatsApp con sus sistemas de CRM o marketing. Solo cuentas con un Business Manager verificado tienen acceso completo a esta API."],
   ["¿Cómo es la entrega del producto?", "La entrega es inmediata tras la confirmación del pago. Recibirás las credenciales y accesos necesarios directamente a tu email registrado en BM Verificada."],
   ["¿Cómo funciona el pago en USDT?", "Aceptamos USDT tanto en red TRC20 (Tron) como BEP20 (Binance Smart Chain). Al crear tu orden se genera un monto único con centavos aleatorios para identificar tu pago automáticamente. Solo debés enviar el monto exacto indicado."],
   ["¿Hay reemplazo si la cuenta es baneada?", "Ofrecemos soporte post-venta para casos de inconvenientes. Contactá a nuestro equipo vía Telegram o email dentro de las 24 hs de recibir el producto para evaluar cada caso."],

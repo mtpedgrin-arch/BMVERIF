@@ -8,12 +8,13 @@ export const metadata = {
     template: "%s · BM Verificada",
   },
   description:
-    "Comprá Business Managers Verificados de Facebook con API de Publicidad habilitada. Entrega inmediata. Cuentas con acceso total y verificación oficial Meta. Pago USDT.",
+    "Comprá Business Managers Verificados de Facebook con API de WhatsApp habilitada. Entrega inmediata. Cuentas con acceso total y verificación oficial Meta. Pago USDT.",
   keywords: [
     "business manager verificado",
     "bm verificada",
     "bm verificado facebook",
-    "api publicidad facebook",
+    "api whatsapp business",
+    "api whatsapp facebook",
     "cuentas publicitarias facebook",
     "business manager facebook comprar",
     "cuentas meta ads",
@@ -31,7 +32,7 @@ export const metadata = {
   openGraph: {
     title: "BM Verificada · Business Manager Facebook Verificado",
     description:
-      "Comprá Business Managers Verificados de Facebook con API de Publicidad habilitada. Entrega inmediata. Pago USDT.",
+      "Comprá Business Managers Verificados de Facebook con API de WhatsApp habilitada. Entrega inmediata. Pago USDT.",
     url: "https://bmverificada.store",
     siteName: "BM Verificada",
     locale: "es_AR",
@@ -41,7 +42,7 @@ export const metadata = {
     card: "summary_large_image",
     title: "BM Verificada · Business Manager Facebook Verificado",
     description:
-      "Business Managers verificados con API de Publicidad habilitada. Entrega inmediata. Pago USDT.",
+      "Business Managers verificados con API de WhatsApp habilitada. Entrega inmediata. Pago USDT.",
   },
   icons: {
     icon: "/favicon.png",
@@ -76,7 +77,7 @@ export default function RootLayout({ children }) {
               url: "https://bmverificada.store",
               logo: "https://bmverificada.store/logo.png",
               description:
-                "Tienda de Business Managers Verificados de Facebook con API de Publicidad habilitada. Entrega inmediata.",
+                "Tienda de Business Managers Verificados de Facebook con API de WhatsApp habilitada. Entrega inmediata.",
             }),
           }}
         />
@@ -91,7 +92,7 @@ export default function RootLayout({ children }) {
               url: "https://bmverificada.store",
               inLanguage: "es",
               description:
-                "Comprá Business Managers Verificados de Facebook con API de Publicidad habilitada.",
+                "Comprá Business Managers Verificados de Facebook con API de WhatsApp habilitada.",
             }),
           }}
         />
