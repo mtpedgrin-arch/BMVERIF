@@ -2945,15 +2945,16 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
   const [refLoading, setRefLoading] = useState(false);
   const [refError, setRefError] = useState(null);
   const [refCopied, setRefCopied] = useState(false);
+  // Load referral data on mount so stats row is always populated
   useEffect(() => {
-    if (tab !== "referidos" || refData || refLoading) return;
+    if (refData || refLoading) return;
     setRefLoading(true); setRefError(null);
     fetch("/api/referrals")
       .then(r => r.json())
       .then(d => { if (d.referralCode) setRefData(d); else setRefError(d.error || "Error al cargar"); })
       .catch(() => setRefError("Error de red"))
       .finally(() => setRefLoading(false));
-  }, [tab, refData, refLoading]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Change password state ──
   const [pwForm, setPwForm] = useState({ current: "", newPw: "", confirm: "" });
@@ -3100,6 +3101,15 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
     URL.revokeObjectURL(url);
   };
   const displayName = user.name || user.email || "Usuario";
+  // ── Dashboard computed stats ──
+  const paidOrders    = myOrders.filter(o => o.status === "paid");
+  const totalGastado  = paidOrders.reduce((s, o) => s + o.total, 0);
+  const paidCount     = paidOrders.length;
+  const totalAhorrado = paidOrders.reduce((s, o) => s + (o.discount || 0), 0);
+  const refBalance    = refData?.referralCredit ?? 0;
+  const refCount      = refData?.referrals?.length ?? 0;
+  const refEarned     = refData?.referrals?.reduce((s, r) => s + (r.creditEarned || 0), 0) ?? 0;
+  const refBought     = refData?.referrals?.filter(r => r.status === "rewarded").length ?? 0;
   return (
     <>
     {reopenOrder && (
@@ -3123,6 +3133,31 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
         <div className="avatar-lg">{displayName[0].toUpperCase()}</div>
         <div><div style={{ fontFamily: "Syne", fontSize: 19, fontWeight: 800 }}>Hola, {displayName.split(" ")[0]} 👋</div><div style={{ fontSize: 13, color: "var(--muted)" }}>{user.email}</div></div>
       </div>
+
+      {/* ── Dashboard stats row ── */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
+        <div className="stat-card" style={{ flex: "1 1 130px" }}>
+          <div className="stat-label">Total gastado</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "var(--green)", margin: "4px 0 2px" }}>${totalGastado.toFixed(2)}</div>
+          <div style={{ fontSize: 11, color: "var(--muted)" }}>USDT acumulado</div>
+        </div>
+        <div className="stat-card" style={{ flex: "1 1 130px" }}>
+          <div className="stat-label">Órdenes pagadas</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "var(--blue)", margin: "4px 0 2px" }}>{paidCount}</div>
+          <div style={{ fontSize: 11, color: "var(--muted)" }}>completadas</div>
+        </div>
+        <div className="stat-card" style={{ flex: "1 1 130px" }}>
+          <div className="stat-label">Ahorrado</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: totalAhorrado > 0 ? "var(--amber)" : "var(--muted)", margin: "4px 0 2px" }}>${totalAhorrado.toFixed(2)}</div>
+          <div style={{ fontSize: 11, color: "var(--muted)" }}>en descuentos</div>
+        </div>
+        <div className="stat-card" style={{ flex: "1 1 130px" }}>
+          <div className="stat-label">Saldo referidos</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: refBalance > 0 ? "#16a34a" : "var(--muted)", margin: "4px 0 2px" }}>${refBalance.toFixed(2)}</div>
+          <div style={{ fontSize: 11, color: "var(--muted)" }}>USDT disponible</div>
+        </div>
+      </div>
+
       <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
         {[["orders", "📦 Mis órdenes"], ["favorites", `❤️ Favoritos${favProducts.length > 0 ? ` (${favProducts.length})` : ""}`], ["referidos", "🎁 Referidos"], ["settings", "⚙️ Ajustes"]].map(([id, label]) => (
           <button key={id} className={`nav-tab ${tab === id ? "active" : ""}`} onClick={() => setTab(id)}>{label}</button>
@@ -3226,36 +3261,61 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
       {/* ── REFERIDOS ── */}
       {tab === "referidos" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          {refLoading && <div style={{ textAlign: "center", padding: "40px 0", color: "var(--muted)" }}>Cargando...</div>}
-          {refError && <div style={{ textAlign: "center", padding: "20px", color: "var(--red)", background: "var(--surface)", borderRadius: 10 }}>⚠️ {refError} — <button className="btn btn-outline" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => { setRefError(null); setRefLoading(false); }}>Reintentar</button></div>}
-          {!refLoading && !refError && !refData && null}
+          {refError && (
+            <div style={{ textAlign: "center", padding: "20px", color: "var(--red)", background: "var(--surface)", borderRadius: 10 }}>
+              ⚠️ {refError} — <button className="btn btn-outline" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => { setRefError(null); setRefLoading(false); }}>Reintentar</button>
+            </div>
+          )}
+          {refLoading && !refData && (
+            <div style={{ textAlign: "center", padding: "40px 0", color: "var(--muted)" }}>Cargando...</div>
+          )}
           {refData && (
             <>
-              {/* Credit balance */}
-              <div className="card" style={{ background: refData.referralCredit > 0 ? "linear-gradient(135deg,#F0FDF4,#DCFCE7)" : undefined, border: refData.referralCredit > 0 ? "1px solid #BBF7D0" : undefined }}>
-                <div className="card-title">💰 Saldo de referidos</div>
-                <div style={{ fontSize: 36, fontWeight: 800, color: refData.referralCredit > 0 ? "#16a34a" : "var(--muted)", margin: "8px 0" }}>
-                  ${Number(refData.referralCredit).toFixed(2)} USDT
-                </div>
-                {refData.referralCredit > 0
-                  ? <div style={{ fontSize: 13, color: "#16a34a" }}>✅ Se aplica automáticamente en el checkout marcando "Usar saldo"</div>
-                  : <div style={{ fontSize: 13, color: "var(--muted)" }}>Ganás el 5% del monto de cada compra de tus referidos</div>
-                }
-              </div>
+              {/* ── Row 1: stats + link ── */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
 
-              {/* Referral link */}
-              <div className="card">
-                <div className="card-title">🔗 Tu link de referidos</div>
-                <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 10 }}>
-                  Compartí este link. Cuando alguien se registre y compre, ganás el <strong>5% de cashback</strong>.
+                {/* Left: program stats */}
+                <div className="card">
+                  <div className="card-title">📊 Estadísticas del programa</div>
+                  <div style={{ marginTop: 8 }}>
+                    {[
+                      ["Comisión por referido",   "5%",                                  "var(--amber)"],
+                      ["Total referidos",          `${refCount} pcs.`,                    "var(--text)"],
+                      ["Realizaron compras",       `${refBought} pcs.`,                   refBought > 0 ? "var(--green)" : "var(--muted)"],
+                      ["Ingresos totales",         `$${refEarned.toFixed(2)} USDT`,       refEarned > 0 ? "var(--green)" : "var(--muted)"],
+                    ].map(([label, value, color]) => (
+                      <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 0", borderBottom: "1px solid var(--border)" }}>
+                        <span style={{ fontSize: 13, color: "var(--muted)" }}>{label}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color }}>{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Balance highlight */}
+                  <div style={{ background: refBalance > 0 ? "rgba(22,163,74,0.12)" : "rgba(255,255,255,0.03)", borderRadius: 10, padding: "16px", marginTop: 14, textAlign: "center" }}>
+                    <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>Tu saldo disponible</div>
+                    <div style={{ fontSize: 32, fontWeight: 800, color: refBalance > 0 ? "#16a34a" : "var(--muted)", lineHeight: 1 }}>
+                      ${refBalance.toFixed(2)} <span style={{ fontSize: 14, fontWeight: 400 }}>USDT</span>
+                    </div>
+                    {refBalance > 0
+                      ? <div style={{ fontSize: 11, color: "#16a34a", marginTop: 8 }}>✅ Usalo en el checkout marcando "Usar saldo"</div>
+                      : <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 8 }}>Ganás saldo cuando tus referidos compren</div>
+                    }
+                  </div>
                 </div>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <div style={{ flex: 1, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", fontSize: 13, fontFamily: "monospace", wordBreak: "break-all", color: "var(--text)" }}>
+
+                {/* Right: referral link */}
+                <div className="card" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div className="card-title">🔗 Tu link de referidos</div>
+                  <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.65 }}>
+                    Compartí este link. Cuando alguien se registre y haga su <strong>primera compra</strong>,
+                    ganás el <strong style={{ color: "var(--amber)" }}>5% de cashback</strong> de esa compra, acreditado en tu saldo.
+                  </div>
+                  <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px", fontSize: 12, fontFamily: "monospace", wordBreak: "break-all", color: "var(--text)" }}>
                     {refData.referralLink}
                   </div>
                   <button
                     className="btn btn-primary"
-                    style={{ flexShrink: 0, padding: "10px 16px" }}
+                    style={{ width: "100%", padding: "12px 0", fontSize: 14 }}
                     onClick={() => {
                       navigator.clipboard.writeText(refData.referralLink).then(() => {
                         setRefCopied(true);
@@ -3263,33 +3323,31 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
                       });
                     }}
                   >
-                    {refCopied ? "✅ Copiado" : "📋 Copiar"}
+                    {refCopied ? "✅ ¡Link copiado!" : "📋 Copiar link"}
                   </button>
+                  <div style={{ marginTop: "auto", background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "var(--muted)" }}>
+                    💡 Tu código: <strong style={{ color: "var(--text)", fontFamily: "monospace", letterSpacing: 1 }}>{refData.referralCode}</strong>
+                  </div>
                 </div>
               </div>
 
-              {/* Referral stats */}
+              {/* ── Row 2: referrals table ── */}
               <div className="card">
-                <div className="card-title">📊 Mis referidos</div>
+                <div className="card-title">👥 Mis referidos</div>
                 {refData.referrals.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "20px 0", color: "var(--muted)", fontSize: 14 }}>
+                  <div style={{ textAlign: "center", padding: "28px 0", color: "var(--muted)", fontSize: 14 }}>
                     Aún no tenés referidos. ¡Compartí tu link y empezá a ganar!
                   </div>
                 ) : (
                   <div className="table-wrap">
                     <table>
                       <thead>
-                        <tr>
-                          <th>Email</th>
-                          <th>Estado</th>
-                          <th>Crédito ganado</th>
-                          <th>Fecha</th>
-                        </tr>
+                        <tr><th>Email</th><th>Estado</th><th>Ganado</th><th>Fecha</th></tr>
                       </thead>
                       <tbody>
                         {refData.referrals.map((r, i) => (
                           <tr key={i}>
-                            <td style={{ fontFamily: "monospace", fontSize: 13 }}>{r.email}</td>
+                            <td style={{ fontFamily: "monospace", fontSize: 12 }}>{r.email}</td>
                             <td>
                               {r.status === "rewarded"
                                 ? <span style={{ color: "var(--green)", fontWeight: 700 }}>✅ Compró</span>
