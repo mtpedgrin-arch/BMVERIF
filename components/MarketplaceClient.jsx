@@ -5427,6 +5427,26 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem("bmveri_cart", JSON.stringify(cart)); } catch {}
   }, [cart]);
+
+  // ── Auto-save cart for logged-in users (debounced 3s) → abandoned-cart emails ──
+  const cartSaveTimer = useRef(null);
+  useEffect(() => {
+    if (!user?.email) return;
+    if (cartSaveTimer.current) clearTimeout(cartSaveTimer.current);
+    cartSaveTimer.current = setTimeout(() => {
+      const total = cart.reduce((s, i) => s + (i.price ?? 0) * (i.qty ?? 1), 0);
+      fetch("/api/cart/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: cart.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty })),
+          total,
+        }),
+      }).catch(() => {});
+    }, 3000);
+    return () => { if (cartSaveTimer.current) clearTimeout(cartSaveTimer.current); };
+  }, [cart, user?.email]);
+
   const [cartOpen, setCartOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
 
@@ -5706,6 +5726,14 @@ export default function App() {
     setCart([]);
     setPendingCoupon(null);
     setShowSuccess(true);
+    // Clear saved cart on server immediately so no abandoned-cart email fires
+    if (user?.email) {
+      fetch("/api/cart/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: [], total: 0 }),
+      }).catch(() => {});
+    }
   };
 
   const handleConfirmOrder = async (orderId) => {
@@ -5821,7 +5849,7 @@ export default function App() {
 
       {view === "shop" && !selectedProduct && <ShopPage cart={cart} onAddToCart={addToCart} onBuyNow={handleBuyNow} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} onProductClick={handleProductClick} thumbs={thumbs} />}
       {view === "shop" && selectedProduct && <ProductDetailPage product={selectedProduct} cart={cart} onBack={() => setSelectedProduct(null)} onAddToCartQty={addToCartQty} onBuyNowQty={handleBuyNowQty} liked={liked} onToggleLike={toggleLike} user={user} />}
-      {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); }} onOrderPending={order => setGlobalPending(order)} wallets={wallets} paymentMethods={paymentMethods} />}
+      {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); if (user?.email) { fetch("/api/cart/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: [], total: 0 }) }).catch(() => {}); } }} onOrderPending={order => setGlobalPending(order)} wallets={wallets} paymentMethods={paymentMethods} />}
       {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} wallets={wallets} onOrderUpdate={updatedOrder => setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o))} />}
 
       {showMiniCart && cart.length > 0 && (

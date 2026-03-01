@@ -147,3 +147,14 @@ model Notification {
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 }
+
+model SavedCart {
+  id        String   @id @default(cuid())
+  userEmail String   @unique
+  userName  String
+  items     Json     @default("[]") // [{id, name, price, qty}]
+  total     Float    @default(0)
+  emailSent Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
