@@ -5,7 +5,7 @@ import { prisma } from "../../../../../lib/prisma";
 import { sendPaymentConfirmedEmail, sendReferralRewardEmail } from "../../../../../lib/mailer";
 import { sendCapiEvent } from "../../../../../lib/metaCapi";
 
-// Reward referrer with 10% cashback when referred user's first order is paid
+// Reward referrer with 5% cashback when referred user's first order is paid
 async function handleReferralReward(order) {
   try {
     // Deduct credit used in this order from buyer's balance
@@ -24,7 +24,7 @@ async function handleReferralReward(order) {
       where: { referredEmail: order.userEmail, status: "pending" },
     });
     if (!referral) return;
-    const creditEarned = parseFloat((order.total * 0.10).toFixed(2));
+    const creditEarned = parseFloat((order.total * 0.05).toFixed(2));
     await prisma.referral.update({
       where: { id: referral.id },
       data: { status: "rewarded", creditEarned },

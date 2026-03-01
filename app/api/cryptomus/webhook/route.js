@@ -16,7 +16,7 @@ async function handleReferralReward(order) {
     if (paidCount !== 1) return;
     const referral = await prisma.referral.findFirst({ where: { referredEmail: order.userEmail, status: "pending" } });
     if (!referral) return;
-    const creditEarned = parseFloat((order.total * 0.10).toFixed(2));
+    const creditEarned = parseFloat((order.total * 0.05).toFixed(2));
     await prisma.referral.update({ where: { id: referral.id }, data: { status: "rewarded", creditEarned } });
     await prisma.user.update({ where: { id: referral.referrerId }, data: { referralCredit: { increment: creditEarned } } });
     const referrer = await prisma.user.findUnique({ where: { id: referral.referrerId }, select: { email: true, name: true } });

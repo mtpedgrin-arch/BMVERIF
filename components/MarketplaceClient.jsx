@@ -3239,7 +3239,7 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
                 </div>
                 {refData.referralCredit > 0
                   ? <div style={{ fontSize: 13, color: "#16a34a" }}>✅ Se aplica automáticamente en el checkout marcando "Usar saldo"</div>
-                  : <div style={{ fontSize: 13, color: "var(--muted)" }}>Ganás el 10% del monto de cada compra de tus referidos</div>
+                  : <div style={{ fontSize: 13, color: "var(--muted)" }}>Ganás el 5% del monto de cada compra de tus referidos</div>
                 }
               </div>
 
@@ -3247,7 +3247,7 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
               <div className="card">
                 <div className="card-title">🔗 Tu link de referidos</div>
                 <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 10 }}>
-                  Compartí este link. Cuando alguien se registre y compre, ganás el <strong>10% de cashback</strong>.
+                  Compartí este link. Cuando alguien se registre y compre, ganás el <strong>5% de cashback</strong>.
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <div style={{ flex: 1, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", fontSize: 13, fontFamily: "monospace", wordBreak: "break-all", color: "var(--text)" }}>
