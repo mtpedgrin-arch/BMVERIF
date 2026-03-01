@@ -628,15 +628,16 @@ const css = `
   .site-footer-link:hover { color: var(--text); }
   .site-footer-copy { font-size: 11px; color: var(--muted); white-space: nowrap; }
   /* FAQ View */
-  .faq-wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px; }
+  .faq-wrap { max-width: 760px; width: 100%; margin: 0 auto; padding: 40px 20px; box-sizing: border-box; }
   .faq-wrap h1 { font-family: 'Syne', sans-serif; font-size: clamp(22px, 4vw, 32px); font-weight: 800; color: var(--text); margin-bottom: 8px; }
   .faq-sub { color: var(--muted); font-size: 15px; margin-bottom: 32px; }
-  .faq-item { border: 1.5px solid var(--border); border-radius: 12px; margin-bottom: 10px; overflow: hidden; background: var(--surface); }
-  .faq-question { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; cursor: pointer; font-weight: 600; font-size: 14px; color: var(--text); user-select: none; transition: background 0.15s; }
+  .faq-item { border: 1.5px solid var(--border); border-radius: 12px; margin-bottom: 10px; overflow: hidden; background: var(--surface); width: 100%; box-sizing: border-box; }
+  .faq-question { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 16px 20px; cursor: pointer; font-weight: 600; font-size: 14px; color: var(--text); user-select: none; transition: background 0.15s; width: 100%; box-sizing: border-box; }
+  .faq-question span:first-child { flex: 1; word-break: break-word; overflow-wrap: break-word; }
   .faq-question:hover { background: var(--border); }
-  .faq-chevron { font-size: 12px; color: var(--muted); transition: transform 0.2s; display: inline-block; }
+  .faq-chevron { font-size: 12px; color: var(--muted); transition: transform 0.2s; display: inline-block; flex-shrink: 0; margin-top: 3px; }
   .faq-chevron.open { transform: rotate(180deg); }
-  .faq-answer { font-size: 14px; color: var(--muted); line-height: 1.7; padding: 0 20px 16px; }
+  .faq-answer { font-size: 14px; color: var(--muted); line-height: 1.7; padding: 0 20px 16px; word-break: break-word; overflow-wrap: break-word; }
   /* Blog Admin */
   .blog-admin-list { display: flex; flex-direction: column; gap: 12px; }
   .blog-admin-row { display: flex; align-items: flex-start; gap: 12px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; padding: 14px 16px; }
