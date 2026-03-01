@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
 import { sendPaymentConfirmedEmail, sendReferralRewardEmail } from "../../../../lib/mailer";
 import { sendCapiEvent } from "../../../../lib/metaCapi";
+import { sendTelegramOrderNotification } from "../../../../lib/telegram";
 import crypto from "crypto";
 
 async function handleReferralReward(order) {
@@ -87,6 +88,23 @@ export async function POST(req) {
       network: "Cryptomus",
       txHash: txRef,
     }).catch(() => {});
+
+    // Telegram: pago confirmado → notificar para ir a comprar al proveedor
+    const itemLines = Array.isArray(order.items)
+      ? order.items.map(i => `  • ${i.name} ×${i.qty ?? 1} — $${((i.price ?? 0) * (i.qty ?? 1)).toFixed(2)}`).join("\n")
+      : "  • (sin detalle)";
+    const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+    sendTelegramOrderNotification(
+      `💰 <b>PAGO CONFIRMADO</b>\n\n` +
+      `👤 <b>${order.userName || order.userEmail}</b>\n` +
+      `📧 ${order.userEmail}\n\n` +
+      `📦 <b>Productos:</b>\n${itemLines}\n\n` +
+      `💵 <b>Total: ${(order.uniqueAmount ?? order.total).toFixed(2)} USDT · ${order.network ?? "Cryptomus"}</b>\n` +
+      `🆔 Orden: #${order.id.slice(-8)}\n` +
+      `🔗 Tx: ${txRef}\n` +
+      `⏰ ${hora}\n\n` +
+      `⚡️ <b>¡Ir a comprar al proveedor!</b>`
+    ).catch(() => {});
 
     // CAPI Purchase event (no browser data available in webhook, but email match is enough)
     sendCapiEvent({
