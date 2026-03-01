@@ -60,6 +60,22 @@ const css = `
   .hero-badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
   .hero-badge { background: rgba(212,175,55,0.1); border: 1px solid rgba(212,175,55,0.3); color: #D4AF37; padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; }
 
+  /* ── Featured product modal ── */
+  @keyframes featuredIn { from { opacity: 0; transform: translate(-50%,-50%) scale(0.82); } to { opacity: 1; transform: translate(-50%,-50%) scale(1); } }
+  @keyframes featuredOverlayIn { from { opacity: 0; } to { opacity: 1; } }
+  .featured-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.82); backdrop-filter: blur(6px); z-index: 1200; animation: featuredOverlayIn 0.25s ease both; }
+  .featured-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 1201; width: 92%; max-width: 460px; background: #0e0e0e; border: 1.5px solid rgba(212,175,55,0.5); border-radius: 24px; padding: 0; overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,0.8), 0 0 60px rgba(212,175,55,0.07); animation: featuredIn 0.4s cubic-bezier(.22,.68,0,1.2) both; }
+  .featured-header { background: linear-gradient(135deg,rgba(212,175,55,0.15) 0%,rgba(212,175,55,0.04) 100%); border-bottom: 1px solid rgba(212,175,55,0.2); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .featured-badge { background: linear-gradient(90deg,#D4AF37,#f0d060); color: #000; font-size: 11px; font-weight: 800; padding: 4px 12px; border-radius: 20px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .featured-body { padding: 24px 24px 20px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+  .featured-icon { width: 72px; height: 72px; background: linear-gradient(145deg,#1877F2,#0d5bbf); border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; box-shadow: 0 8px 24px rgba(24,119,242,0.35); flex-shrink: 0; }
+  .featured-price { font-family: Syne, sans-serif; font-size: 42px; font-weight: 900; color: var(--usdt); line-height: 1; }
+  .featured-tiers { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .featured-tier-pill { background: rgba(22,163,74,0.15); border: 1px solid rgba(22,163,74,0.4); color: #4ade80; padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+  .featured-cta { width: 100%; padding: 15px; background: linear-gradient(135deg,#D4AF37 0%,#b8942e 100%); color: #000; border: none; border-radius: 12px; font-size: 16px; font-weight: 800; font-family: Syne,sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 4px 20px rgba(212,175,55,0.35); }
+  .featured-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(212,175,55,0.5); }
+  .featured-footer { padding: 0 24px 20px; display: flex; flex-direction: column; gap: 8px; }
+
   /* ── Tier discount scroll banner ── */
   @keyframes tierBannerIn { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
   .tier-banner { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 1100; animation: tierBannerIn 0.35s cubic-bezier(.22,.68,0,1.2) both; background: linear-gradient(135deg,#1a1a1a 0%,#111 100%); border: 1.5px solid rgba(212,175,55,0.55); border-radius: 16px; padding: 13px 20px; display: flex; align-items: center; gap: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(212,175,55,0.1); max-width: calc(100vw - 32px); }
@@ -2721,6 +2737,33 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
   const [activeCat, setActiveCat] = useState("all");
   const getQty = id => cart.find(i => i.id === id)?.qty || 0;
 
+  // ── Featured product modal (appears after 4s) ──
+  const [featuredOpen, setFeaturedOpen] = useState(false);
+  const [featuredDismissed, setFeaturedDismissed] = useState(() => {
+    try { return sessionStorage.getItem("featured_modal_dismissed") === "1"; } catch { return false; }
+  });
+  // Pick product with best last-tier discount %
+  const featuredProduct = (() => {
+    if (!products.length) return null;
+    const scored = products.map(p => {
+      const tiers = (p.tiers || []).filter(t => t.qty > 0 && t.price > 0).sort((a, b) => b.qty - a.qty);
+      const pct = tiers.length && p.price > 0 ? Math.round((1 - tiers[0].price / p.price) * 100) : (p.badgeDiscount || 0);
+      return { p, pct };
+    });
+    const best = scored.sort((a, b) => b.pct - a.pct)[0];
+    return best?.pct > 0 ? best.p : products[0];
+  })();
+  useEffect(() => {
+    if (featuredDismissed || !featuredProduct) return;
+    const t = setTimeout(() => setFeaturedOpen(true), 4000);
+    return () => clearTimeout(t);
+  }, [featuredDismissed, featuredProduct]); // eslint-disable-line
+  const closeFeatured = () => {
+    setFeaturedOpen(false);
+    setFeaturedDismissed(true);
+    try { sessionStorage.setItem("featured_modal_dismissed", "1"); } catch {}
+  };
+
   // ── Scroll-triggered tier discount banner ──
   const [bannerVisible, setBannerVisible] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(() => {
@@ -2768,6 +2811,81 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
   const totalVisible = visibleCats.reduce((acc, c) => acc + products.filter(p => (p.category || "bm") === c.key).length, 0);
   return (
     <>
+      {/* ── Featured product modal ── */}
+      {featuredOpen && featuredProduct && (() => {
+        const fp = featuredProduct;
+        const sortedTiers = (fp.tiers || []).filter(t => t.qty > 0 && t.price > 0).sort((a, b) => a.qty - b.qty);
+        const catIcon = fp.category === "bm-balloon" ? "🎈" : fp.category === "ads-account" ? "📢" : "🏢";
+        const catLabel = fp.category === "bm-balloon" ? "BM Balloon" : fp.category === "ads-account" ? "Ads Account" : "Business Manager";
+        return (
+          <>
+            <div className="featured-overlay" onClick={closeFeatured} />
+            <div className="featured-modal">
+              {/* Header */}
+              <div className="featured-header">
+                <span className="featured-badge">⚡ Producto destacado</span>
+                <button onClick={closeFeatured} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "var(--muted)", width: 30, height: 30, borderRadius: "50%", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+              </div>
+
+              {/* Body */}
+              <div className="featured-body">
+                {/* Icon + name */}
+                <div style={{ display: "flex", alignItems: "center", gap: 16, width: "100%" }}>
+                  <div className="featured-icon">
+                    <span style={{ fontSize: 28 }}>👜</span>
+                    <span style={{ fontSize: 8, fontWeight: 800, color: "#fff", letterSpacing: "0.5px" }}>FB</span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>{catLabel}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{fp.name}</div>
+                  </div>
+                </div>
+
+                {/* Price */}
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4 }}>Precio por unidad</div>
+                  <div className="featured-price">${fp.price.toFixed(2)}</div>
+                  <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>USDT</div>
+                </div>
+
+                {/* Tier discounts */}
+                {sortedTiers.length > 0 && (
+                  <div style={{ width: "100%", background: "rgba(22,163,74,0.06)", border: "1px solid rgba(22,163,74,0.2)", borderRadius: 12, padding: "14px 16px" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#4ade80", marginBottom: 10, textAlign: "center", textTransform: "uppercase", letterSpacing: "0.05em" }}>🎯 Descuentos por cantidad</div>
+                    <div className="featured-tiers">
+                      {sortedTiers.map(t => {
+                        const pct = Math.round((1 - t.price / fp.price) * 100);
+                        return (
+                          <span key={t.qty} className="featured-tier-pill">
+                            ×{t.qty} → ${t.price.toFixed(2)}/u {pct > 0 ? `(−${pct}%)` : ""}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer CTAs */}
+              <div className="featured-footer">
+                <button
+                  className="featured-cta"
+                  onClick={() => { onBuyNow(fp); closeFeatured(); }}
+                >
+                  ⚡ Comprar ahora
+                </button>
+                <button
+                  onClick={closeFeatured}
+                  style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 13, cursor: "pointer", padding: "6px 0", textAlign: "center" }}
+                >
+                  No gracias, seguir viendo
+                </button>
+              </div>
+            </div>
+          </>
+        );
+      })()}
+
       {/* ── Tier discount banner (appears on scroll) ── */}
       {bannerVisible && !bannerDismissed && tierDiscounts.length > 0 && (
         <div className="tier-banner">
