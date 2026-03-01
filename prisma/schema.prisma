@@ -107,6 +107,7 @@ model ChatMessage {
   id        String   @id @default(cuid())
   text      String
   isAdmin   Boolean  @default(false)
+  isBot     Boolean  @default(false)
   userEmail String
   userName  String
   read      Boolean  @default(false)

@@ -980,7 +980,10 @@ const ChatWidget = ({ user, open, onClose }) => {
           {msgs.map((m) => (
             <div key={m.id} className={`cmsg ${m.isAdmin ? "cmsg-a" : "cmsg-u"}`}>
               <div className="cmsg-b">{m.text}</div>
-              <div className="cmsg-t">{new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+              <div className="cmsg-t">
+                {m.isBot && <span style={{ fontSize: 10, opacity: 0.7, marginRight: 4 }}>🤖 Bot ·</span>}
+                {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </div>
             </div>
           ))}
           <div ref={endRef} />
@@ -5259,7 +5262,10 @@ const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, coupons, setCoupon
                       {threadMsgs.map((m) => (
                         <div key={m.id} className={`cmsg ${m.isAdmin ? "cmsg-u" : "cmsg-a"}`}>
                           <div className="cmsg-b">{m.text}</div>
-                          <div className="cmsg-t">{new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+                          <div className="cmsg-t">
+                            {m.isBot && <span style={{ fontSize: 10, opacity: 0.7, marginRight: 4 }}>🤖 Bot ·</span>}
+                            {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </div>
                         </div>
                       ))}
                       <div ref={endRef} />

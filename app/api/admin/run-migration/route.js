@@ -33,6 +33,9 @@ export async function POST(req) {
     );
     await prisma.$executeRawUnsafe(`ALTER TABLE "BlogPost" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT`);
 
+    // ChatMessage: isBot column
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ChatMessage" ADD COLUMN IF NOT EXISTS "isBot" BOOLEAN NOT NULL DEFAULT false`);
+
     // BotKnowledge table
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "BotKnowledge" (
