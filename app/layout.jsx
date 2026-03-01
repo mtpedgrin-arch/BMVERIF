@@ -152,7 +152,7 @@ export default function RootLayout({ children }) {
                 {
                   "@type": "Question",
                   name: "¿Cómo contacto al soporte?",
-                  acceptedAnswer: { "@type": "Answer", text: "Podés contactarnos por el chat interno del sitio (ícono de mensaje en la esquina inferior derecha), por Telegram a @bmverificada_support o por email a soporte@bmverificada.com. El horario de atención es de lunes a viernes de 9 a 18 hs (GMT-3)." },
+                  acceptedAnswer: { "@type": "Answer", text: "Podés contactarnos por el chat interno del sitio (ícono 🎧 en la barra superior), por Telegram a @bmverificada_support o por email a soporte@bmverificada.com. El horario de atención es de lunes a viernes de 9 a 18 hs (GMT-3)." },
                 },
               ],
             }),
