@@ -1868,11 +1868,12 @@ const SuccessModal = ({ order, onClose }) => {
 };
 
 // ─── CHECKOUT PAGE ────────────────────────────────────────────────────────────
-const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShowAuth, onOrderPending, wallets: W = WALLETS, paymentMethods = { usdt: true, cryptomus: true } }) => {
+const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShowAuth, onOrderPending, wallets: W = WALLETS, paymentMethods = { usdt: true, cryptomus: true }, userCredit = 0, onCreditUsed }) => {
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponState, setCouponState] = useState("idle");
   const [couponError, setCouponError] = useState("");
+  const [useCredit, setUseCredit] = useState(false);
   const [network, setNetwork] = useState("TRC20");
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -1896,13 +1897,16 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
   }, []);
   const discountAmt = appliedCoupon ? subtotal * (appliedCoupon.discount / 100) : 0;
   const total = subtotal - discountAmt;
+  const creditApplied = useCredit ? parseFloat(Math.min(userCredit, total).toFixed(2)) : 0;
+  const effectiveTotal = parseFloat((total - creditApplied).toFixed(2));
   const wallet = W[network];
 
   const buildOrderBody = (net) => ({
     items: cart.map(i => ({ name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty, productId: i.id || null })),
     subtotal, discount: discountAmt,
     coupon: appliedCoupon?.code || null,
-    total, network: net,
+    creditUsed: creditApplied,
+    total: effectiveTotal, network: net,
   });
 
   const applyCoupon = async () => {
@@ -1926,6 +1930,7 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
       }
       const res = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(buildOrderBody(network)) });
       const order = await res.json();
+      if (creditApplied > 0) onCreditUsed?.(creditApplied);
       setCreatedOrder(order);
       setShowPendingModal(true);
       onSuccess(order);
@@ -1945,6 +1950,7 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
       const orderRes = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(buildOrderBody("CRYPTOMUS")) });
       const order = await orderRes.json();
       if (!order.id) throw new Error("No se pudo crear la orden");
+      if (creditApplied > 0) onCreditUsed?.(creditApplied);
       const payRes = await fetch("/api/cryptomus/create-payment", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId: order.id }) });
       const payData = await payRes.json();
       if (!payData.url) throw new Error(payData.error || "Error al generar pago");
@@ -2114,7 +2120,16 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
             <div className="co-totals">
               <div className="co-total-row"><span>Subtotal</span><span>{fmtUSDT(subtotal)}</span></div>
               {appliedCoupon && <div className="co-total-row discount"><span>Descuento ({appliedCoupon.discount}%)</span><span>− {fmtUSDT(discountAmt)}</span></div>}
-              <div className="co-total-row grand"><span>Total</span><span>{fmtUSDT(total)}</span></div>
+              {userCredit > 0 && (
+                <div className="co-total-row" style={{ cursor: "pointer" }} onClick={() => setUseCredit(u => !u)}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                    <span style={{ width: 16, height: 16, borderRadius: 4, border: "2px solid var(--red)", background: useCredit ? "var(--red)" : "transparent", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#fff", flexShrink: 0 }}>{useCredit ? "✓" : ""}</span>
+                    🎁 Usar saldo de referidos
+                  </span>
+                  <span style={{ color: useCredit ? "var(--green)" : "var(--muted)" }}>− {fmtUSDT(Math.min(userCredit, total))}</span>
+                </div>
+              )}
+              <div className="co-total-row grand"><span>Total</span><span>{fmtUSDT(effectiveTotal)}</span></div>
             </div>
           </div>
         </div>
@@ -6040,7 +6055,7 @@ export default function App() {
 
       {view === "shop" && !selectedProduct && <ShopPage cart={cart} onAddToCart={addToCart} onBuyNow={handleBuyNow} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} onProductClick={handleProductClick} thumbs={thumbs} />}
       {view === "shop" && selectedProduct && <ProductDetailPage product={selectedProduct} cart={cart} onBack={() => setSelectedProduct(null)} onAddToCartQty={addToCartQty} onBuyNowQty={handleBuyNowQty} liked={liked} onToggleLike={toggleLike} user={user} />}
-      {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); if (user?.email) { fetch("/api/cart/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: [], total: 0 }) }).catch(() => {}); } }} onOrderPending={order => setGlobalPending(order)} wallets={wallets} paymentMethods={paymentMethods} />}
+      {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); if (user?.email) { fetch("/api/cart/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: [], total: 0 }) }).catch(() => {}); } }} onOrderPending={order => setGlobalPending(order)} wallets={wallets} paymentMethods={paymentMethods} userCredit={referralCredit} onCreditUsed={amt => setReferralCredit(prev => Math.max(0, prev - amt))} />}
       {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} wallets={wallets} onOrderUpdate={updatedOrder => setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o))} />}
 
       {showMiniCart && cart.length > 0 && (
