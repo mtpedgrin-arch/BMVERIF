@@ -4,9 +4,15 @@ import crypto from "crypto";
 import { prisma } from "../../../../lib/prisma";
 import { sendVerificationEmail } from "../../../../lib/mailer";
 
+function generateReferralCode(name) {
+  const prefix = (name || "USER").replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 4).padEnd(4, "X");
+  const suffix = Math.random().toString(36).toUpperCase().slice(2, 6);
+  return prefix + suffix;
+}
+
 export async function POST(req) {
   try {
-    const { name, email, password } = await req.json();
+    const { name, email, password, refCode } = await req.json();
 
     if (!name || !email || !password)
       return NextResponse.json({ error: "Completá todos los campos." }, { status: 400 });
@@ -27,18 +33,45 @@ export async function POST(req) {
 
     const hashed = await bcrypt.hash(password, 10);
     const verifyToken = crypto.randomBytes(32).toString("hex");
-    const verifyTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    const verifyTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    // Generate unique referral code for the new user
+    let referralCode = generateReferralCode(name);
+    let attempts = 0;
+    while (attempts < 10) {
+      const exists = await prisma.user.findUnique({ where: { referralCode } });
+      if (!exists) break;
+      referralCode = generateReferralCode(name);
+      attempts++;
+    }
 
     await prisma.$executeRawUnsafe(
-      `INSERT INTO "User" (id, name, email, password, role, "emailVerified", "verifyToken", "verifyTokenExpiry", "createdAt", "updatedAt")
-       VALUES (gen_random_uuid()::text, $1, $2, $3, 'user', false, $4, $5, NOW(), NOW())`,
-      name.trim(), normalizedEmail, hashed, verifyToken, verifyTokenExpiry
+      `INSERT INTO "User" (id, name, email, password, role, "emailVerified", "verifyToken", "verifyTokenExpiry", "referralCode", "referredBy", "createdAt", "updatedAt")
+       VALUES (gen_random_uuid()::text, $1, $2, $3, 'user', false, $4, $5, $6, $7, NOW(), NOW())`,
+      name.trim(), normalizedEmail, hashed, verifyToken, verifyTokenExpiry, referralCode, refCode || null
     );
+
+    // Track referral if a refCode was provided
+    if (refCode) {
+      try {
+        const referrer = await prisma.user.findUnique({ where: { referralCode: refCode }, select: { id: true } });
+        const newUser  = await prisma.user.findUnique({ where: { email: normalizedEmail }, select: { id: true } });
+        if (referrer && newUser) {
+          await prisma.referral.create({
+            data: {
+              referrerId:    referrer.id,
+              referredEmail: normalizedEmail,
+              referredId:    newUser.id,
+              status:        "pending",
+            },
+          });
+        }
+      } catch { /* non-critical */ }
+    }
 
     const baseUrl = process.env.NEXTAUTH_URL || "https://bmverif.vercel.app";
     const verifyUrl = `${baseUrl}/?verify=${verifyToken}`;
 
-    // Send verification email (non-blocking)
     sendVerificationEmail({ to: normalizedEmail, name: name.trim(), verifyUrl }).catch(() => {});
 
     return NextResponse.json({ ok: true, pendingVerification: true });

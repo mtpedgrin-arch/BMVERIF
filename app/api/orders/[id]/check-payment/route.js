@@ -2,8 +2,51 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../../lib/authOptions";
 import { prisma } from "../../../../../lib/prisma";
-import { sendPaymentConfirmedEmail } from "../../../../../lib/mailer";
+import { sendPaymentConfirmedEmail, sendReferralRewardEmail } from "../../../../../lib/mailer";
 import { sendCapiEvent } from "../../../../../lib/metaCapi";
+
+// Reward referrer with 10% cashback when referred user's first order is paid
+async function handleReferralReward(order) {
+  try {
+    // Deduct credit used in this order from buyer's balance
+    if (order.creditUsed > 0) {
+      await prisma.user.update({
+        where: { email: order.userEmail },
+        data: { referralCredit: { decrement: order.creditUsed } },
+      }).catch(() => {});
+    }
+    // Count paid orders for this user — if this is their first, reward the referrer
+    const paidCount = await prisma.order.count({
+      where: { userEmail: order.userEmail, status: "paid" },
+    });
+    if (paidCount !== 1) return; // not the first paid order
+    const referral = await prisma.referral.findFirst({
+      where: { referredEmail: order.userEmail, status: "pending" },
+    });
+    if (!referral) return;
+    const creditEarned = parseFloat((order.total * 0.10).toFixed(2));
+    await prisma.referral.update({
+      where: { id: referral.id },
+      data: { status: "rewarded", creditEarned },
+    });
+    await prisma.user.update({
+      where: { id: referral.referrerId },
+      data: { referralCredit: { increment: creditEarned } },
+    });
+    const referrer = await prisma.user.findUnique({
+      where: { id: referral.referrerId },
+      select: { email: true, name: true },
+    });
+    if (referrer) {
+      sendReferralRewardEmail({
+        to: referrer.email,
+        name: referrer.name,
+        creditEarned,
+        referredEmail: order.userEmail,
+      }).catch(() => {});
+    }
+  } catch { /* non-critical */ }
+}
 
 // Parse USDT BEP20 value safely (18 decimals, avoids JS float precision loss)
 function parseUsdt18(valueStr) {
@@ -177,6 +220,8 @@ export async function GET(req, { params }) {
       orderId:   order.id,
       value:     order.uniqueAmount ?? order.total,
     }).catch(() => {});
+    // Referral reward (non-blocking)
+    handleReferralReward({ ...order, status: "paid" }).catch(() => {});
     return NextResponse.json({ paid: true, txHash: foundTx.txHash });
   }
 

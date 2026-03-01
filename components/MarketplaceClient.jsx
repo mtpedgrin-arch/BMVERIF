@@ -1054,7 +1054,7 @@ const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: form.name, email: form.email, password: form.password }),
+        body: JSON.stringify({ name: form.name, email: form.email, password: form.password, refCode: (() => { try { return localStorage.getItem("bmveri_ref"); } catch { return null; } })() }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Error al registrarse."); return; }
@@ -1631,11 +1631,12 @@ const GlobalPendingWidget = ({ order, wallets, onExpand, onClear }) => {
 };
 
 // ─── PAYMENT MODAL (step 1: select method + proceed) ─────────────────────────
-const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOrderUpdate, onOrderPending, wallets: W = WALLETS, paymentMethods = { usdt: true, cryptomus: true } }) => {
+const PaymentModal = ({ cart, user, coupon, finalTotal, userCredit = 0, onCreditUsed, onClose, onSuccess, onOrderUpdate, onOrderPending, wallets: W = WALLETS, paymentMethods = { usdt: true, cryptomus: true } }) => {
   const [network, setNetwork] = useState(null);
   const [creating, setCreating] = useState(false);
   const [cryptomusLoading, setCryptomusLoading] = useState(false);
   const [order, setOrder] = useState(null);
+  const [useCredit, setUseCredit] = useState(false);
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
 
@@ -1650,12 +1651,16 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOr
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const discountAmt = coupon ? subtotal * (coupon.discount / 100) : 0;
+  const creditApplied = useCredit ? parseFloat(Math.min(userCredit, finalTotal - discountAmt).toFixed(2)) : 0;
+  const effectiveTotal = parseFloat((finalTotal - creditApplied).toFixed(2));
 
-  const buildOrderBody = () => ({
+  const buildOrderBody = (network) => ({
     items: cart.map(i => ({ name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty, productId: i.id || null })),
     subtotal, discount: discountAmt,
     coupon: coupon?.code || null,
-    total: finalTotal,
+    creditUsed: creditApplied,
+    total: effectiveTotal,
+    network,
   });
 
   const useCoupon = () => coupon
@@ -1671,10 +1676,11 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOr
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...buildOrderBody(), network }),
+        body: JSON.stringify(buildOrderBody(network)),
       });
       const newOrder = await res.json();
       setOrder(newOrder);
+      if (creditApplied > 0) onCreditUsed?.(creditApplied);
       onOrderPending?.(newOrder);
     } catch {
       alert("Error al crear la orden. Intentá de nuevo.");
@@ -1691,7 +1697,7 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOr
       const orderRes = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...buildOrderBody(), network: "CRYPTOMUS" }),
+        body: JSON.stringify(buildOrderBody("CRYPTOMUS")),
       });
       const newOrder = await orderRes.json();
       if (!newOrder.id) throw new Error("No se pudo crear la orden");
@@ -1703,6 +1709,7 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOr
       });
       const payData = await payRes.json();
       if (!payData.url) throw new Error(payData.error || "Error al generar pago");
+      if (creditApplied > 0) onCreditUsed?.(creditApplied);
       onOrderPending?.(newOrder); // only after confirmed URL
       window.location.href = payData.url;
     } catch (err) {
@@ -1745,7 +1752,16 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, onClose, onSuccess, onOr
         <div className="order-summary-mini">
           {cart.map(i => <div className="order-row" key={i.id}><span>{i.name.slice(0,32)}... ×{i.qty}</span><span>{fmtUSDT(i.price * i.qty)}</span></div>)}
           {coupon && <div className="order-row discount"><span>🏷 {coupon.code} (-{coupon.discount}%)</span><span>− {fmtUSDT(discountAmt)}</span></div>}
-          <div className="order-row bold"><span>Total a pagar</span><span style={{ color: "var(--usdt)" }}>{fmtUSDT(finalTotal)}</span></div>
+          {userCredit > 0 && (
+            <div className="order-row" style={{ cursor: "pointer", userSelect: "none" }} onClick={() => setUseCredit(v => !v)}>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 16, height: 16, borderRadius: 4, border: "2px solid var(--red)", background: useCredit ? "var(--red)" : "transparent", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#fff", flexShrink: 0 }}>{useCredit ? "✓" : ""}</span>
+                🎁 Usar saldo de referidos
+              </span>
+              <span style={{ color: useCredit ? "var(--green)" : "var(--muted)" }}>− {fmtUSDT(Math.min(userCredit, finalTotal - discountAmt))}</span>
+            </div>
+          )}
+          <div className="order-row bold"><span>Total a pagar</span><span style={{ color: "var(--usdt)" }}>{fmtUSDT(effectiveTotal)}</span></div>
         </div>
 
         {/* ── Cryptomus (primary) ── */}
@@ -2924,6 +2940,14 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
   const myOrders = userOrders; // la API ya filtra por usuario
   const favProducts = products.filter(p => liked[p.id]);
 
+  // ── Referidos state ──
+  const [refData, setRefData] = useState(null); // { referralCode, referralCredit, referralLink, referrals[] }
+  const [refCopied, setRefCopied] = useState(false);
+  useEffect(() => {
+    if (tab !== "referidos" || refData) return;
+    fetch("/api/referrals").then(r => r.json()).then(d => { if (d.referralCode) setRefData(d); }).catch(() => {});
+  }, [tab, refData]);
+
   // ── Change password state ──
   const [pwForm, setPwForm] = useState({ current: "", newPw: "", confirm: "" });
   const [pwMsg, setPwMsg] = useState(null); // { text, ok }
@@ -3093,7 +3117,7 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
         <div><div style={{ fontFamily: "Syne", fontSize: 19, fontWeight: 800 }}>Hola, {displayName.split(" ")[0]} 👋</div><div style={{ fontSize: 13, color: "var(--muted)" }}>{user.email}</div></div>
       </div>
       <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
-        {[["orders", "📦 Mis órdenes"], ["favorites", `❤️ Favoritos${favProducts.length > 0 ? ` (${favProducts.length})` : ""}`], ["settings", "⚙️ Ajustes"]].map(([id, label]) => (
+        {[["orders", "📦 Mis órdenes"], ["favorites", `❤️ Favoritos${favProducts.length > 0 ? ` (${favProducts.length})` : ""}`], ["referidos", "🎁 Referidos"], ["settings", "⚙️ Ajustes"]].map(([id, label]) => (
           <button key={id} className={`nav-tab ${tab === id ? "active" : ""}`} onClick={() => setTab(id)}>{label}</button>
         ))}
       </div>
@@ -3190,6 +3214,95 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
             </>
           )}
         </>
+      )}
+
+      {/* ── REFERIDOS ── */}
+      {tab === "referidos" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          {!refData ? (
+            <div style={{ textAlign: "center", padding: "40px 0", color: "var(--muted)" }}>Cargando...</div>
+          ) : (
+            <>
+              {/* Credit balance */}
+              <div className="card" style={{ background: refData.referralCredit > 0 ? "linear-gradient(135deg,#F0FDF4,#DCFCE7)" : undefined, border: refData.referralCredit > 0 ? "1px solid #BBF7D0" : undefined }}>
+                <div className="card-title">💰 Saldo de referidos</div>
+                <div style={{ fontSize: 36, fontWeight: 800, color: refData.referralCredit > 0 ? "#16a34a" : "var(--muted)", margin: "8px 0" }}>
+                  ${Number(refData.referralCredit).toFixed(2)} USDT
+                </div>
+                {refData.referralCredit > 0
+                  ? <div style={{ fontSize: 13, color: "#16a34a" }}>✅ Se aplica automáticamente en el checkout marcando "Usar saldo"</div>
+                  : <div style={{ fontSize: 13, color: "var(--muted)" }}>Ganás el 10% del monto de cada compra de tus referidos</div>
+                }
+              </div>
+
+              {/* Referral link */}
+              <div className="card">
+                <div className="card-title">🔗 Tu link de referidos</div>
+                <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 10 }}>
+                  Compartí este link. Cuando alguien se registre y compre, ganás el <strong>10% de cashback</strong>.
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <div style={{ flex: 1, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", fontSize: 13, fontFamily: "monospace", wordBreak: "break-all", color: "var(--text)" }}>
+                    {refData.referralLink}
+                  </div>
+                  <button
+                    className="btn btn-primary"
+                    style={{ flexShrink: 0, padding: "10px 16px" }}
+                    onClick={() => {
+                      navigator.clipboard.writeText(refData.referralLink).then(() => {
+                        setRefCopied(true);
+                        setTimeout(() => setRefCopied(false), 2000);
+                      });
+                    }}
+                  >
+                    {refCopied ? "✅ Copiado" : "📋 Copiar"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Referral stats */}
+              <div className="card">
+                <div className="card-title">📊 Mis referidos</div>
+                {refData.referrals.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "20px 0", color: "var(--muted)", fontSize: 14 }}>
+                    Aún no tenés referidos. ¡Compartí tu link y empezá a ganar!
+                  </div>
+                ) : (
+                  <div className="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Email</th>
+                          <th>Estado</th>
+                          <th>Crédito ganado</th>
+                          <th>Fecha</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {refData.referrals.map((r, i) => (
+                          <tr key={i}>
+                            <td style={{ fontFamily: "monospace", fontSize: 13 }}>{r.email}</td>
+                            <td>
+                              {r.status === "rewarded"
+                                ? <span style={{ color: "var(--green)", fontWeight: 700 }}>✅ Compró</span>
+                                : <span style={{ color: "var(--amber)", fontWeight: 700 }}>⏳ Registrado</span>}
+                            </td>
+                            <td style={{ color: r.creditEarned > 0 ? "var(--green)" : "var(--muted)", fontWeight: 700 }}>
+                              {r.creditEarned > 0 ? `+$${r.creditEarned.toFixed(2)}` : "—"}
+                            </td>
+                            <td style={{ fontSize: 12, color: "var(--muted)" }}>
+                              {new Date(r.createdAt).toLocaleDateString("es-AR")}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       )}
 
       {/* ── AJUSTES ── */}
@@ -5477,7 +5590,9 @@ export default function App() {
       const reset = params.get("reset");
       const verify = params.get("verify");
       const viewParam = params.get("view");
-      if (reset || verify || viewParam) window.history.replaceState({}, "", "/"); // clean URL
+      const refCode = params.get("ref");
+      if (refCode) { try { localStorage.setItem("bmveri_ref", refCode); } catch {} }
+      if (reset || verify || viewParam || refCode) window.history.replaceState({}, "", "/"); // clean URL
       // Cryptomus return: redirect to orders view automatically
       if (viewParam === "account") setView("account");
       if (reset) setResetToken(reset);
@@ -5515,6 +5630,16 @@ export default function App() {
   };
   useEffect(() => { refreshOrders(); }, [user?.email]);
   useEffect(() => { if (view === "account") refreshOrders(); }, [view]);
+
+  // ── REFERRAL CREDIT ──
+  const [referralCredit, setReferralCredit] = useState(0);
+  useEffect(() => {
+    if (!user?.email) { setReferralCredit(0); return; }
+    fetch("/api/referrals")
+      .then(r => r.json())
+      .then(d => { if (d.referralCredit != null) setReferralCredit(d.referralCredit); })
+      .catch(() => {});
+  }, [user?.email]);
 
   // ── COUPONS (admin + support) ──
   const [coupons, setCoupons] = useState([]);
@@ -5863,7 +5988,7 @@ export default function App() {
         />
       )}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} onSuccess={() => setShowPayment(pendingTotal > 0)} initialTab={authTab} />}
-      {showPayment && user && <PaymentModal cart={cart} user={user} coupon={pendingCoupon} finalTotal={pendingTotal} onClose={() => setShowPayment(false)} onSuccess={handlePaySuccess} onOrderUpdate={o => setOrders(prev => { const ex = prev.find(x => x.id === o.id); return ex ? prev.map(x => x.id === o.id ? o : x) : [o, ...prev]; })} onOrderPending={order => setGlobalPending(order)} wallets={wallets} paymentMethods={paymentMethods} />}
+      {showPayment && user && <PaymentModal cart={cart} user={user} coupon={pendingCoupon} finalTotal={pendingTotal} userCredit={referralCredit} onCreditUsed={amt => setReferralCredit(prev => Math.max(0, prev - amt))} onClose={() => setShowPayment(false)} onSuccess={handlePaySuccess} onOrderUpdate={o => setOrders(prev => { const ex = prev.find(x => x.id === o.id); return ex ? prev.map(x => x.id === o.id ? o : x) : [o, ...prev]; })} onOrderPending={order => setGlobalPending(order)} wallets={wallets} paymentMethods={paymentMethods} />}
       {showSuccess && lastOrder && <SuccessModal order={lastOrder} onClose={() => { setShowSuccess(false); setView("account"); }} />}
       {resetToken && <ResetPasswordModal token={resetToken} onClose={() => { setResetToken(null); setAuthTab("login"); setShowAuth(true); }} />}
       {verifyResult && (

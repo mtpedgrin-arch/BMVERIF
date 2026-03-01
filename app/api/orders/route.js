@@ -40,7 +40,7 @@ export async function POST(req) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const { items, subtotal, discount, coupon, total, network } = await req.json();
+  const { items, subtotal, discount, coupon, total, network, creditUsed } = await req.json();
   if (!items?.length || !network || total == null) {
     return NextResponse.json({ error: "Faltan campos obligatorios." }, { status: 400 });
   }
@@ -62,6 +62,7 @@ export async function POST(req) {
       subtotal: parseFloat(subtotal) || 0,
       discount: parseFloat(discount) || 0,
       coupon: coupon || null,
+      creditUsed: parseFloat(creditUsed) || 0,
       total: parsedTotal,
       uniqueAmount,
       expiresAt,

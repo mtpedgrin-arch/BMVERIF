@@ -28,10 +28,14 @@ model User {
   stockUpdates      Boolean   @default(true)
   permissions       Json      @default("{}")
 
-  orders    Order[]
-  favorites Favorite[]
-  messages  ChatMessage[]
-  reviews   Review[]
+  referralCode String?   @unique // unique code for sharing (e.g. JUAN4K2M)
+  referredBy   String?            // referralCode used when registering
+
+  orders      Order[]
+  favorites   Favorite[]
+  messages    ChatMessage[]
+  reviews     Review[]
+  referrals   Referral[]  @relation("referrer")
 }
 
 model Product {
@@ -60,6 +64,7 @@ model Order {
   subtotal  Float    @default(0)
   discount  Float    @default(0)
   coupon    String?
+  creditUsed Float   @default(0) // referral credit applied to this order
   total     Float    @default(0)
   network   String
   txHash          String?
@@ -146,6 +151,18 @@ model Notification {
   orderId   String?
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model Referral {
+  id            String   @id @default(cuid())
+  referrerId    String
+  referrer      User     @relation("referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referredEmail String   // email of the person who was referred
+  referredId    String?  // set after they register
+  status        String   @default("pending") // pending | rewarded
+  creditEarned  Float    @default(0)          // 10% of referred user's purchase
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model SavedCart {
