@@ -8,7 +8,7 @@ export const metadata = {
     template: "%s · BM Verificada",
   },
   description:
-    "Comprá Business Managers Verificados de Facebook con API de WhatsApp habilitada. Entrega inmediata. Cuentas con acceso total y verificación oficial Meta. Pago USDT.",
+    "Comprá Business Managers Verificados de Facebook con API de WhatsApp habilitada. Entrega en 5-30 min. Cuentas con acceso total y verificación oficial Meta. Pago USDT.",
   keywords: [
     "business manager verificado",
     "bm verificada",
@@ -32,7 +32,7 @@ export const metadata = {
   openGraph: {
     title: "BM Verificada · Business Manager Facebook Verificado",
     description:
-      "Comprá Business Managers Verificados de Facebook con API de WhatsApp habilitada. Entrega inmediata. Pago USDT.",
+      "Comprá Business Managers Verificados de Facebook con API de WhatsApp habilitada. Entrega en 5-30 min. Pago USDT.",
     url: "https://bmverificada.store",
     siteName: "BM Verificada",
     locale: "es_AR",
@@ -42,7 +42,7 @@ export const metadata = {
     card: "summary_large_image",
     title: "BM Verificada · Business Manager Facebook Verificado",
     description:
-      "Business Managers verificados con API de WhatsApp habilitada. Entrega inmediata. Pago USDT.",
+      "Business Managers verificados con API de WhatsApp habilitada. Entrega en 5-30 min. Pago USDT.",
   },
   icons: {
     icon: "/favicon.png",
@@ -77,7 +77,7 @@ export default function RootLayout({ children }) {
               url: "https://bmverificada.store",
               logo: "https://bmverificada.store/logo.png",
               description:
-                "Tienda de Business Managers Verificados de Facebook con API de WhatsApp habilitada. Entrega inmediata.",
+                "Tienda de Business Managers Verificados de Facebook con API de WhatsApp habilitada. Entrega en 5-30 min.",
             }),
           }}
         />

@@ -2808,7 +2808,7 @@ const ProductDetailPage = ({ product: p, cart, onBack, onAddToCartQty, onBuyNowQ
           </button>
 
           <div style={{ marginTop: 14, fontSize: 11, color: "var(--muted)", textAlign: "center", lineHeight: 1.5 }}>
-            🔒 Pago seguro · 100% USDT · Entrega inmediata
+            🔒 Pago seguro · 100% USDT · Entrega en 5-30 min
           </div>
         </div>
       </div>
@@ -2939,7 +2939,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
         <img src="/logo.png" alt="BM Verificada" className="hero-logo" />
         <h1>BM <span>Verificada</span></h1>
         <div className="hero-badges">
-          <span className="hero-badge">✓ Entrega inmediata</span>
+          <span className="hero-badge">✓ Entrega en 5-30 min</span>
           <span className="hero-badge">₮ USDT TRC20 / BEP20</span>
           <span className="hero-badge">🔒 Compra segura</span>
           <span className="hero-badge">🏷 Descuentos por cantidad</span>
@@ -2964,7 +2964,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
           <ul style={{ fontSize: 13, lineHeight: 1.8, color: "var(--muted)", margin: "0 0 14px", paddingLeft: 18 }}>
             <li>✅ <strong style={{ color: "var(--text)" }}>Business Manager con verificación oficial Meta</strong></li>
             <li>✅ <strong style={{ color: "var(--text)" }}>API de WhatsApp</strong> habilitada desde el primer día</li>
-            <li>✅ <strong style={{ color: "var(--text)" }}>Entrega inmediata</strong> tras confirmar el pago en USDT</li>
+            <li>✅ <strong style={{ color: "var(--text)" }}>Entrega en 5 a 30 minutos</strong> tras confirmar el pago en USDT</li>
             <li>✅ Catálogo de <strong style={{ color: "var(--text)" }}>BMs Verificados</strong>, <strong style={{ color: "var(--text)" }}>BM Balloon</strong> y <strong style={{ color: "var(--text)" }}>Cuentas Publicitarias</strong></li>
             <li>✅ Descuentos por volumen y soporte post-venta incluido</li>
           </ul>
@@ -5805,7 +5805,7 @@ const LegalPrivacy = () => (
 const FAQ_ITEMS = [
   ["¿Qué es un Business Manager Verificado?", "Es una cuenta empresarial de Meta (Facebook) que completó el proceso oficial de verificación. Al estar verificada, tiene acceso a mayores límites de gasto, más cuentas publicitarias y la API de WhatsApp habilitada desde el primer día."],
   ["¿Qué es la API de WhatsApp?", "La API de WhatsApp Business permite a las empresas enviar mensajes masivos, automatizar comunicaciones y conectar WhatsApp con sus sistemas de CRM o marketing. Solo cuentas con un Business Manager verificado tienen acceso completo a esta API."],
-  ["¿Cómo es la entrega del producto?", "La entrega es inmediata tras la confirmación del pago. Recibirás las credenciales y accesos necesarios directamente a tu email registrado en BM Verificada."],
+  ["¿Cómo es la entrega del producto?", "La entrega puede demorar entre 5 y 30 minutos dependiendo del pedido. Una vez confirmado el pago, nuestro equipo procesa tu orden y recibirás las credenciales y accesos necesarios directamente a tu email registrado en BM Verificada."],
   ["¿Cómo funciona el pago en USDT?", "Aceptamos USDT tanto en red TRC20 (Tron) como BEP20 (Binance Smart Chain). Al crear tu orden se genera un monto único con centavos aleatorios para identificar tu pago automáticamente. Solo debés enviar el monto exacto indicado."],
   ["¿Hay reemplazo si la cuenta es baneada?", "Ofrecemos soporte post-venta para casos de inconvenientes. Contactá a nuestro equipo vía Telegram o email dentro de las 24 hs de recibir el producto para evaluar cada caso."],
   ["¿Puedo tener múltiples cuentas publicitarias dentro del BM?", "Sí. Los Business Managers Verificados permiten crear y administrar significativamente más cuentas publicitarias que los BM no verificados, facilitando el escalado de campañas."],
