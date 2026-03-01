@@ -2742,16 +2742,12 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
   const [featuredDismissed, setFeaturedDismissed] = useState(() => {
     try { return sessionStorage.getItem("featured_modal_dismissed") === "1"; } catch { return false; }
   });
-  // Pick product with best last-tier discount %
+  // Pick a random product that has tiers (so the modal always shows discounts)
   const featuredProduct = (() => {
     if (!products.length) return null;
-    const scored = products.map(p => {
-      const tiers = (p.tiers || []).filter(t => t.qty > 0 && t.price > 0).sort((a, b) => b.qty - a.qty);
-      const pct = tiers.length && p.price > 0 ? Math.round((1 - tiers[0].price / p.price) * 100) : (p.badgeDiscount || 0);
-      return { p, pct };
-    });
-    const best = scored.sort((a, b) => b.pct - a.pct)[0];
-    return best?.pct > 0 ? best.p : products[0];
+    const withTiers = products.filter(p => p.tiers && p.tiers.length > 0 && p.price > 0);
+    const pool = withTiers.length > 0 ? withTiers : products;
+    return pool[Math.floor(Math.random() * pool.length)];
   })();
   useEffect(() => {
     if (featuredDismissed || !featuredProduct) return;
