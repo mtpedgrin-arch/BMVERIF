@@ -6046,7 +6046,34 @@ export default function App() {
     prevUserRef.current = user;
   }, [user]);
 
-  const handleSignOut = () => {
+  // ── Restaurar carrito del servidor cuando el usuario inicia sesión ──
+  const cartRestoredRef = useRef(false);
+  useEffect(() => {
+    if (!user?.email) { cartRestoredRef.current = false; return; }
+    if (cartRestoredRef.current) return;
+    cartRestoredRef.current = true;
+    fetch("/api/cart/save")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (Array.isArray(data?.items) && data.items.length > 0) {
+          setCart(prev => prev.length === 0 ? rebalanceTiers(data.items) : prev);
+        }
+      })
+      .catch(() => {});
+  }, [user?.email]);
+
+  const handleSignOut = async () => {
+    // Guardar carrito en servidor antes de limpiar (para restaurar en el próximo login)
+    if (cart.length > 0 && user?.email) {
+      const total = cart.reduce((s, i) => s + (i.price ?? 0) * (i.qty ?? 1), 0);
+      try {
+        await fetch("/api/cart/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items: cart.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty })), total }),
+        });
+      } catch {}
+    }
     setCart([]);
     try { localStorage.removeItem("bmveri_cart"); } catch {}
     setView("shop");
