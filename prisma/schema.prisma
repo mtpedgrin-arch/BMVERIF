@@ -28,8 +28,9 @@ model User {
   stockUpdates      Boolean   @default(true)
   permissions       Json      @default("{}")
 
-  referralCode String?   @unique // unique code for sharing (e.g. JUAN4K2M)
-  referredBy   String?            // referralCode used when registering
+  referralCode   String?   @unique // unique code for sharing (e.g. JUAN4K2M)
+  referredBy     String?            // referralCode used when registering
+  referralCredit Float     @default(0) // accumulated credit from referrals
 
   orders      Order[]
   favorites   Favorite[]
