@@ -33,6 +33,19 @@ export async function POST(req) {
     );
     await prisma.$executeRawUnsafe(`ALTER TABLE "BlogPost" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT`);
 
+    // BotKnowledge table
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "BotKnowledge" (
+        "id"        TEXT         NOT NULL,
+        "topic"     TEXT         NOT NULL,
+        "content"   TEXT         NOT NULL,
+        "active"    BOOLEAN      NOT NULL DEFAULT true,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "BotKnowledge_pkey" PRIMARY KEY ("id")
+      )
+    `);
+
     return NextResponse.json({ ok: true, message: "Migrations applied successfully" });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });

@@ -5194,6 +5194,7 @@ const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, coupons, setCoupon
     { id: "thumbnails", icon: "🖼", label: "Miniaturas" },
     { id: "team",       icon: "👥", label: "Equipo", adminOnly: true },
     { id: "blog",       icon: "📝", label: "Blog",   adminOnly: true },
+    { id: "bot",        icon: "🤖", label: "Bot IA", adminOnly: true },
   ];
 
   const sideItems = isSupport
@@ -5285,6 +5286,7 @@ const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, coupons, setCoupon
         {section === "thumbnails" && <ThumbnailManager onThumbsChange={onThumbsChange} />}
         {section === "team" && !isSupport && <TeamManager />}
         {section === "blog" && !isSupport && <BlogManager />}
+        {section === "bot"  && !isSupport && <BotTrainer />}
       </div>
     </div>
   );
@@ -5790,6 +5792,161 @@ const LegalPrivacy = () => (
     </ul>
   </div>
 );
+
+// ─── BOT TRAINER ──────────────────────────────────────────────────────────────
+const TOPICS = ["Entregas", "Pagos", "Productos", "Soporte", "Garantías", "Registro", "General"];
+
+const BotTrainer = () => {
+  const [entries, setEntries] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [showForm, setShowForm] = React.useState(false);
+  const [editEntry, setEditEntry] = React.useState(null);
+  const [form, setForm] = React.useState({ topic: "General", content: "", active: true });
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const [filter, setFilter] = React.useState("all");
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/bot-knowledge");
+      if (res.ok) setEntries(await res.json());
+    } finally { setLoading(false); }
+  };
+  React.useEffect(() => { load(); }, []);
+
+  const openNew = () => { setEditEntry(null); setForm({ topic: "General", content: "", active: true }); setError(""); setShowForm(true); };
+  const openEdit = (e) => { setEditEntry(e); setForm({ topic: e.topic, content: e.content, active: e.active }); setError(""); setShowForm(true); };
+
+  const save = async () => {
+    if (!form.content.trim()) { setError("El contenido es obligatorio."); return; }
+    setSaving(true); setError("");
+    try {
+      const url = editEntry ? `/api/admin/bot-knowledge/${editEntry.id}` : "/api/admin/bot-knowledge";
+      const method = editEntry ? "PATCH" : "POST";
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      if (!res.ok) { const d = await res.json(); setError(d.error || "Error al guardar."); return; }
+      setShowForm(false); load();
+    } catch { setError("Error de red."); } finally { setSaving(false); }
+  };
+
+  const toggleActive = async (e) => {
+    await fetch(`/api/admin/bot-knowledge/${e.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ active: !e.active }) });
+    load();
+  };
+
+  const del = async (e) => {
+    if (!confirm(`¿Eliminar este fragmento de conocimiento?`)) return;
+    await fetch(`/api/admin/bot-knowledge/${e.id}`, { method: "DELETE" });
+    load();
+  };
+
+  const filtered = filter === "all" ? entries : entries.filter(e => filter === "active" ? e.active : !e.active);
+  const byTopic = filtered.reduce((acc, e) => { (acc[e.topic] = acc[e.topic] || []).push(e); return acc; }, {});
+  const activeCount = entries.filter(e => e.active).length;
+
+  if (showForm) return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+        <button className="btn btn-outline btn-sm" onClick={() => setShowForm(false)}>← Volver</button>
+        <h2 style={{ margin: 0, fontSize: 18, color: "var(--text)" }}>{editEntry ? "Editar conocimiento" : "Nuevo conocimiento"}</h2>
+      </div>
+      {error && <div style={{ background: "#fee2e2", color: "#b91c1c", padding: "10px 14px", borderRadius: 8, marginBottom: 14, fontSize: 13 }}>{error}</div>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14, maxWidth: 680 }}>
+        <div>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", display: "block", marginBottom: 6 }}>Categoría</label>
+          <select className="form-input" value={form.topic} onChange={e => setForm(f => ({ ...f, topic: e.target.value }))} style={{ width: "100%", boxSizing: "border-box" }}>
+            {TOPICS.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", display: "block", marginBottom: 6 }}>
+            Contenido <span style={{ fontWeight: 400, color: "var(--muted)" }}>— escribí preguntas y respuestas, info del producto, políticas, etc.</span>
+          </label>
+          <textarea
+            className="form-input"
+            rows={10}
+            value={form.content}
+            onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+            placeholder={`Ejemplo:\nPregunta: ¿Cuánto tarda la entrega?\nRespuesta: La entrega tarda entre 5 y 30 minutos. El cliente puede verla en Mi Cuenta → Mis Órdenes.`}
+            style={{ width: "100%", boxSizing: "border-box", resize: "vertical", fontFamily: "inherit", lineHeight: 1.7, fontSize: 13 }}
+          />
+          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+            💡 Tip: podés escribir múltiples preguntas y respuestas en un solo bloque. Cuanto más claro y específico, mejor responde el bot.
+          </div>
+        </div>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "var(--text)", cursor: "pointer" }}>
+          <input type="checkbox" checked={form.active} onChange={e => setForm(f => ({ ...f, active: e.target.checked }))} />
+          Activo (el bot usa este conocimiento)
+        </label>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? "Guardando…" : editEntry ? "Guardar cambios" : "Agregar conocimiento"}</button>
+          <button className="btn btn-outline" onClick={() => setShowForm(false)}>Cancelar</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 18, color: "var(--text)" }}>🤖 Entrenamiento del Bot IA</h2>
+          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--muted)" }}>
+            {activeCount} fragmentos activos · el bot usa este conocimiento para responder automáticamente
+          </p>
+        </div>
+        <button className="btn btn-primary btn-sm" onClick={openNew}>+ Agregar conocimiento</button>
+      </div>
+
+      {/* Filtros */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        {[["all", "Todos"], ["active", "Activos"], ["inactive", "Inactivos"]].map(([val, label]) => (
+          <button key={val} onClick={() => setFilter(val)}
+            style={{ padding: "5px 14px", borderRadius: 20, border: "1.5px solid var(--border)", fontSize: 12, fontWeight: 600, cursor: "pointer",
+              background: filter === val ? "var(--red)" : "var(--surface)", color: filter === val ? "#fff" : "var(--text)" }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: "center", padding: 40, color: "var(--muted)" }}>Cargando…</div>
+      ) : filtered.length === 0 ? (
+        <div style={{ textAlign: "center", padding: 40, color: "var(--muted)", fontSize: 15 }}>
+          No hay conocimiento cargado aún. ¡Agregá el primero!
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          {Object.entries(byTopic).map(([topic, items]) => (
+            <div key={topic}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>{topic}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {items.map(e => (
+                  <div key={e.id} style={{ display: "flex", gap: 12, alignItems: "flex-start", background: "var(--surface)", border: `1.5px solid ${e.active ? "var(--border)" : "var(--border)"}`, borderRadius: 12, padding: "12px 16px", opacity: e.active ? 1 : 0.55 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                        {e.content.length > 180 ? e.content.slice(0, 180) + "…" : e.content}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>
+                        {e.active ? "✅ Activo" : "⏸ Inactivo"} · Actualizado {new Date(e.updatedAt).toLocaleDateString("es-AR")}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                      <button className="btn btn-outline btn-sm" onClick={() => openEdit(e)}>✏️</button>
+                      <button className="btn btn-outline btn-sm" onClick={() => toggleActive(e)} title={e.active ? "Desactivar" : "Activar"}>{e.active ? "⏸" : "▶️"}</button>
+                      <button className="btn btn-sm" style={{ background: "#fee2e2", color: "#b91c1c", border: "1px solid #fca5a5" }} onClick={() => del(e)}>🗑</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ─── FAQ VIEW ─────────────────────────────────────────────────────────────────
 const FAQ_ITEMS = [
