@@ -3143,18 +3143,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
 
         <h2>Preguntas frecuentes (FAQ)</h2>
         <div className="info-faq">
-          {[
-            ["¿Qué brinda la verificación de Facebook Business Manager?", "Desbloquea capacidades publicitarias avanzadas, reduce el riesgo de baneos y aumenta la confianza de Meta en el negocio."],
-            ["¿Puedo comprar un Business Manager verificado listo para usar?", "Sí, este tipo de cuentas se venden en plataformas especializadas como BM Verificada, aunque su uso conlleva riesgos legales y técnicos."],
-            ["¿Qué riesgos tiene comprar una cuenta verificada?", "Pérdida de acceso, baneos permanentes sin reembolso y posibles problemas legales por violar las reglas de Meta."],
-            ["¿Quién necesita un Business Manager verificado?", "Son valiosos para agencias, dueños de e-commerce, especialistas en arbitraje y negocios que trabajan con anuncios de Facebook."],
-            ["¿Puedo verificar mi Business Manager por mi cuenta?", "Sí, Meta permite a las empresas enviar documentos oficiales y completar el proceso de verificación empresarial."],
-            ["¿Cuántas cuentas publicitarias puede crear un BM verificado?", "Las cuentas verificadas permiten significativamente más cuentas publicitarias que los BM regulares, facilitando el escalado."],
-            ["¿La verificación previene los baneos?", "Reduce la probabilidad, pero no garantiza inmunidad si se violan las políticas de Meta."],
-            ["¿Cuáles son las alternativas a comprar un BM verificado?", "Las alternativas incluyen la auto-verificación, el uso de cuentas proporcionadas por agencias o soluciones de publicidad asociadas."],
-            ["¿Cómo se debe usar correctamente un BM verificado?", "Para distribución de presupuestos, configuración de dominios y píxeles, y cumplimiento de las reglas publicitarias de Meta."],
-            ["¿Dónde puedo comprar un Business Manager verificado?", "En marketplaces especializados como BM Verificada, aunque los compradores deben estar al tanto de los riesgos asociados."],
-          ].map(([q, a]) => (
+          {FAQ_ITEMS.map(([q, a]) => (
             <div key={q} className="info-faq-item">
               <div className="info-faq-q">{q}</div>
               <div className="info-faq-a">{a}</div>
