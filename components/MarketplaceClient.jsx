@@ -5802,7 +5802,7 @@ const FAQ_ITEMS = [
   ["¿Necesito una cuenta personal de Facebook?", "No es necesario asociar tu cuenta personal de Facebook al BM que adquirís. El BM viene listo para usar de forma independiente."],
   ["¿Cómo me registro en BM Verificada?", "Hacé clic en «Registrarse» en la barra superior, completá tu email y contraseña, y ya podés comenzar a comprar. No se requiere información adicional para el registro."],
   ["¿Qué pasa si Meta revoca la verificación?", "Aunque es poco frecuente, en caso de que Meta revoque la verificación de la cuenta adquirida dentro del período de soporte, nuestro equipo evaluará la situación y buscará la mejor solución para vos."],
-  ["¿Cómo contacto al soporte?", "Podés escribirnos por Telegram a @bmverificada_support o por email a soporte@bmverificada.com. El horario de atención es de lunes a viernes de 9 a 18 hs (GMT-3)."],
+  ["¿Cómo contacto al soporte?", "Podés contactarnos por el chat interno del sitio (ícono de mensaje en la esquina inferior derecha), por Telegram a @bmverificada_support o por email a soporte@bmverificada.com. El horario de atención es de lunes a viernes de 9 a 18 hs (GMT-3)."],
 ];
 
 const FAQView = ({ onGoShop }) => {
