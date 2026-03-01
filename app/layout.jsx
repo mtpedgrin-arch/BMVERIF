@@ -96,6 +96,68 @@ export default function RootLayout({ children }) {
             }),
           }}
         />
+        {/* ── JSON-LD: FAQPage ── */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              mainEntity: [
+                {
+                  "@type": "Question",
+                  name: "¿Qué brinda la verificación de Facebook Business Manager?",
+                  acceptedAnswer: { "@type": "Answer", text: "Desbloquea capacidades publicitarias avanzadas, reduce el riesgo de baneos y aumenta la confianza de Meta en el negocio." },
+                },
+                {
+                  "@type": "Question",
+                  name: "¿Puedo comprar un Business Manager verificado listo para usar?",
+                  acceptedAnswer: { "@type": "Answer", text: "Sí, en BM Verificada ofrecemos Business Managers Verificados listos para usar, con API de WhatsApp habilitada y entrega en 5 a 30 minutos." },
+                },
+                {
+                  "@type": "Question",
+                  name: "¿Qué riesgos tiene comprar una cuenta verificada?",
+                  acceptedAnswer: { "@type": "Answer", text: "Es importante elegir un proveedor confiable. En BM Verificada ofrecemos garantía de reemplazo si hay algún inconveniente dentro del plazo acordado." },
+                },
+                {
+                  "@type": "Question",
+                  name: "¿Quién necesita un Business Manager verificado?",
+                  acceptedAnswer: { "@type": "Answer", text: "Son ideales para agencias de publicidad, dueños de e-commerce, especialistas en arbitraje y cualquier negocio que trabaje con anuncios de Facebook a escala." },
+                },
+                {
+                  "@type": "Question",
+                  name: "¿Cuántas cuentas publicitarias puede manejar un BM verificado?",
+                  acceptedAnswer: { "@type": "Answer", text: "Las cuentas verificadas permiten manejar significativamente más cuentas publicitarias que los BM regulares, facilitando el escalado de campañas." },
+                },
+                {
+                  "@type": "Question",
+                  name: "¿Cómo recibo el producto después de pagar?",
+                  acceptedAnswer: { "@type": "Answer", text: "La entrega puede demorar entre 5 y 30 minutos. Una vez procesada tu orden, podés acceder a las credenciales desde Mi Cuenta → Mis Órdenes → tu pedido." },
+                },
+                {
+                  "@type": "Question",
+                  name: "¿Qué métodos de pago aceptan?",
+                  acceptedAnswer: { "@type": "Answer", text: "Aceptamos pagos en USDT (Tether) a través de las redes TRC20 y BEP20, lo que garantiza transacciones seguras y anónimas." },
+                },
+                {
+                  "@type": "Question",
+                  name: "¿Ofrecen garantía o reemplazo?",
+                  acceptedAnswer: { "@type": "Answer", text: "Sí, ofrecemos garantía de reemplazo en caso de inconvenientes con el producto dentro del plazo acordado en cada plan." },
+                },
+                {
+                  "@type": "Question",
+                  name: "¿La verificación previene los baneos de Meta?",
+                  acceptedAnswer: { "@type": "Answer", text: "Reduce considerablemente la probabilidad de baneos, aunque siempre es importante respetar las políticas publicitarias de Meta para mantener la cuenta activa." },
+                },
+                {
+                  "@type": "Question",
+                  name: "¿Tienen soporte post-venta?",
+                  acceptedAnswer: { "@type": "Answer", text: "Sí, contamos con soporte post-venta incluido. Podés contactarnos desde el chat del sitio ante cualquier duda o inconveniente con tu compra." },
+                },
+              ],
+            }),
+          }}
+        />
         {/* ── Meta Pixel base code ── */}
         {PIXEL_ID && (
           <Script id="meta-pixel" strategy="afterInteractive">
