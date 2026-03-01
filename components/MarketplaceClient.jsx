@@ -627,6 +627,26 @@ const css = `
   .site-footer-link { font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; padding: 0; text-decoration: none; transition: color 0.15s; }
   .site-footer-link:hover { color: var(--text); }
   .site-footer-copy { font-size: 11px; color: var(--muted); white-space: nowrap; }
+  /* FAQ View */
+  .faq-wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px; }
+  .faq-wrap h1 { font-family: 'Syne', sans-serif; font-size: clamp(22px, 4vw, 32px); font-weight: 800; color: var(--text); margin-bottom: 8px; }
+  .faq-sub { color: var(--muted); font-size: 15px; margin-bottom: 32px; }
+  .faq-item { border: 1.5px solid var(--border); border-radius: 12px; margin-bottom: 10px; overflow: hidden; background: var(--surface); }
+  .faq-question { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; cursor: pointer; font-weight: 600; font-size: 14px; color: var(--text); user-select: none; transition: background 0.15s; }
+  .faq-question:hover { background: var(--border); }
+  .faq-chevron { font-size: 12px; color: var(--muted); transition: transform 0.2s; display: inline-block; }
+  .faq-chevron.open { transform: rotate(180deg); }
+  .faq-answer { font-size: 14px; color: var(--muted); line-height: 1.7; padding: 0 20px 16px; }
+  /* Blog Admin */
+  .blog-admin-list { display: flex; flex-direction: column; gap: 12px; }
+  .blog-admin-row { display: flex; align-items: flex-start; gap: 12px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .blog-admin-info { flex: 1; min-width: 0; }
+  .blog-admin-title { font-weight: 700; font-size: 14px; color: var(--text); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .blog-admin-meta { font-size: 12px; color: var(--muted); }
+  .blog-admin-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; margin-left: 8px; }
+  .blog-admin-badge.pub { background: #d1fae5; color: #065f46; }
+  .blog-admin-badge.draft { background: #fef3c7; color: #92400e; }
+  .blog-admin-actions { display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; align-items: flex-start; }
 `;
 
 
@@ -5183,6 +5203,7 @@ const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, coupons, setCoupon
     { id: "wallets",    icon: "💳", label: "Wallets" },
     { id: "thumbnails", icon: "🖼", label: "Miniaturas" },
     { id: "team",       icon: "👥", label: "Equipo", adminOnly: true },
+    { id: "blog",       icon: "📝", label: "Blog",   adminOnly: true },
   ];
 
   const sideItems = isSupport
@@ -5273,6 +5294,7 @@ const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, coupons, setCoupon
         {section === "wallets" && <WalletManager />}
         {section === "thumbnails" && <ThumbnailManager onThumbsChange={onThumbsChange} />}
         {section === "team" && !isSupport && <TeamManager />}
+        {section === "blog" && !isSupport && <BlogManager />}
       </div>
     </div>
   );
@@ -5779,6 +5801,158 @@ const LegalPrivacy = () => (
   </div>
 );
 
+// ─── FAQ VIEW ─────────────────────────────────────────────────────────────────
+const FAQ_ITEMS = [
+  ["¿Qué es un Business Manager Verificado?", "Es una cuenta empresarial de Meta (Facebook) que completó el proceso oficial de verificación. Al estar verificada, tiene acceso a mayores límites de gasto, más cuentas publicitarias y la API de Publicidad de Facebook habilitada desde el primer día."],
+  ["¿Qué es la API de Publicidad de Facebook?", "La Marketing API de Meta permite automatizar campañas, gestionar creatividades, leer reportes y conectar herramientas externas directamente con tu Business Manager. Solo cuentas verificadas tienen acceso completo a esta API."],
+  ["¿Cómo es la entrega del producto?", "La entrega es inmediata tras la confirmación del pago. Recibirás las credenciales y accesos necesarios directamente a tu email registrado en BM Verificada."],
+  ["¿Cómo funciona el pago en USDT?", "Aceptamos USDT tanto en red TRC20 (Tron) como BEP20 (Binance Smart Chain). Al crear tu orden se genera un monto único con centavos aleatorios para identificar tu pago automáticamente. Solo debés enviar el monto exacto indicado."],
+  ["¿Hay reemplazo si la cuenta es baneada?", "Ofrecemos soporte post-venta para casos de inconvenientes. Contactá a nuestro equipo vía Telegram o email dentro de las 24 hs de recibir el producto para evaluar cada caso."],
+  ["¿Puedo tener múltiples cuentas publicitarias dentro del BM?", "Sí. Los Business Managers Verificados permiten crear y administrar significativamente más cuentas publicitarias que los BM no verificados, facilitando el escalado de campañas."],
+  ["¿Necesito una cuenta personal de Facebook?", "No es necesario asociar tu cuenta personal de Facebook al BM que adquirís. El BM viene listo para usar de forma independiente."],
+  ["¿Cómo me registro en BM Verificada?", "Hacé clic en «Registrarse» en la barra superior, completá tu email y contraseña, y ya podés comenzar a comprar. No se requiere información adicional para el registro."],
+  ["¿Qué pasa si Meta revoca la verificación?", "Aunque es poco frecuente, en caso de que Meta revoque la verificación de la cuenta adquirida dentro del período de soporte, nuestro equipo evaluará la situación y buscará la mejor solución para vos."],
+  ["¿Cómo contacto al soporte?", "Podés escribirnos por Telegram a @bmverificada_support o por email a soporte@bmverificada.com. El horario de atención es de lunes a viernes de 9 a 18 hs (GMT-3)."],
+];
+
+const FAQView = ({ onGoShop }) => {
+  const [open, setOpen] = React.useState(null);
+  return (
+    <div className="faq-wrap">
+      <h1>Preguntas Frecuentes</h1>
+      <p className="faq-sub">Todo lo que necesitás saber sobre Business Managers Verificados y nuestra plataforma.</p>
+      {FAQ_ITEMS.map(([q, a], i) => (
+        <div key={i} className="faq-item">
+          <div className="faq-question" onClick={() => setOpen(open === i ? null : i)}>
+            <span>{q}</span>
+            <span className={`faq-chevron${open === i ? " open" : ""}`}>▼</span>
+          </div>
+          {open === i && <div className="faq-answer">{a}</div>}
+        </div>
+      ))}
+      <div style={{ marginTop: 32 }}>
+        <button className="btn btn-primary" onClick={onGoShop}>🛍 Ver productos</button>
+      </div>
+    </div>
+  );
+};
+
+// ─── BLOG MANAGER (Admin) ──────────────────────────────────────────────────────
+const BlogManager = () => {
+  const [posts, setPosts] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [showForm, setShowForm] = React.useState(false);
+  const [editPost, setEditPost] = React.useState(null);
+  const [form, setForm] = React.useState({ title: "", excerpt: "", content: "", published: false });
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState("");
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/blog?all=true");
+      if (res.ok) setPosts(await res.json());
+    } finally { setLoading(false); }
+  };
+
+  React.useEffect(() => { load(); }, []);
+
+  const openNew = () => { setEditPost(null); setForm({ title: "", excerpt: "", content: "", published: false }); setError(""); setShowForm(true); };
+  const openEdit = (p) => { setEditPost(p); setForm({ title: p.title, excerpt: p.excerpt || "", content: p.content, published: p.published }); setError(""); setShowForm(true); };
+
+  const save = async () => {
+    if (!form.title.trim() || !form.content.trim()) { setError("Título y contenido son obligatorios."); return; }
+    setSaving(true); setError("");
+    try {
+      const url = editPost ? `/api/blog/${editPost.id}` : "/api/blog";
+      const method = editPost ? "PATCH" : "POST";
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      if (!res.ok) { const d = await res.json(); setError(d.error || "Error al guardar."); return; }
+      setShowForm(false); load();
+    } catch { setError("Error de red."); } finally { setSaving(false); }
+  };
+
+  const togglePublish = async (p) => {
+    await fetch(`/api/blog/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ published: !p.published }) });
+    load();
+  };
+
+  const del = async (p) => {
+    if (!confirm(`¿Eliminar "${p.title}"?`)) return;
+    await fetch(`/api/blog/${p.id}`, { method: "DELETE" });
+    load();
+  };
+
+  if (showForm) return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+        <button className="btn btn-outline btn-sm" onClick={() => setShowForm(false)}>← Volver</button>
+        <h2 style={{ margin: 0, fontSize: 18, color: "var(--text)" }}>{editPost ? "Editar post" : "Nuevo post"}</h2>
+      </div>
+      {error && <div style={{ background: "#fee2e2", color: "#b91c1c", padding: "10px 14px", borderRadius: 8, marginBottom: 14, fontSize: 13 }}>{error}</div>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", display: "block", marginBottom: 6 }}>Título *</label>
+          <input className="form-input" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Título del artículo" style={{ width: "100%", boxSizing: "border-box" }} />
+        </div>
+        <div>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", display: "block", marginBottom: 6 }}>Extracto (resumen corto)</label>
+          <input className="form-input" value={form.excerpt} onChange={e => setForm(f => ({ ...f, excerpt: e.target.value }))} placeholder="Resumen opcional para SEO y listado" style={{ width: "100%", boxSizing: "border-box" }} />
+        </div>
+        <div>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", display: "block", marginBottom: 6 }}>Contenido * <span style={{ fontWeight: 400, color: "var(--muted)" }}>(texto plano, doble salto de línea = nuevo párrafo)</span></label>
+          <textarea className="form-input" rows={14} value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder="Escribí el contenido del artículo aquí..." style={{ width: "100%", boxSizing: "border-box", resize: "vertical", fontFamily: "inherit", lineHeight: 1.6 }} />
+        </div>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "var(--text)", cursor: "pointer" }}>
+          <input type="checkbox" checked={form.published} onChange={e => setForm(f => ({ ...f, published: e.target.checked }))} />
+          Publicar inmediatamente
+        </label>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? "Guardando…" : editPost ? "Guardar cambios" : "Crear post"}</button>
+          <button className="btn btn-outline" onClick={() => setShowForm(false)}>Cancelar</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <h2 style={{ margin: 0, fontSize: 18, color: "var(--text)" }}>📝 Blog</h2>
+        <button className="btn btn-primary btn-sm" onClick={openNew}>+ Nuevo post</button>
+      </div>
+      {loading ? (
+        <div style={{ textAlign: "center", padding: 40, color: "var(--muted)" }}>Cargando…</div>
+      ) : posts.length === 0 ? (
+        <div style={{ textAlign: "center", padding: 40, color: "var(--muted)", fontSize: 15 }}>No hay posts aún. ¡Creá el primero!</div>
+      ) : (
+        <div className="blog-admin-list">
+          {posts.map(p => (
+            <div key={p.id} className="blog-admin-row">
+              <div className="blog-admin-info">
+                <div className="blog-admin-title">
+                  {p.title}
+                  <span className={`blog-admin-badge ${p.published ? "pub" : "draft"}`}>{p.published ? "PUBLICADO" : "BORRADOR"}</span>
+                </div>
+                <div className="blog-admin-meta">
+                  {p.publishedAt ? `Publicado: ${new Date(p.publishedAt).toLocaleDateString("es-AR")}` : `Creado: ${new Date(p.createdAt).toLocaleDateString("es-AR")}`}
+                  {p.excerpt && ` · ${p.excerpt.slice(0, 60)}${p.excerpt.length > 60 ? "…" : ""}`}
+                </div>
+              </div>
+              <div className="blog-admin-actions">
+                <button className="btn btn-outline btn-sm" onClick={() => openEdit(p)}>✏️ Editar</button>
+                <button className="btn btn-outline btn-sm" onClick={() => togglePublish(p)}>{p.published ? "Despublicar" : "Publicar"}</button>
+                {p.published && <a href={`/blog/${p.slug}`} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm">🔗 Ver</a>}
+                <button className="btn btn-sm" style={{ background: "#fee2e2", color: "#b91c1c", border: "1px solid #fca5a5" }} onClick={() => del(p)}>🗑</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const sessionResult = useSession();
@@ -6206,7 +6380,9 @@ export default function App() {
         <div className="logo" onClick={() => { setView("shop"); setSelectedProduct(null); }}>
           <img src="/logoR.png" alt="BM Verificada" />
         </div>
+        <button className={`nav-tab ${view === "faq" ? "active" : ""}`} onClick={() => setView("faq")} style={{ marginLeft: 8 }}>❓ FAQ</button>
         <div className="topbar-right">
+          <a href="/blog" style={{ color: "var(--text)", fontWeight: 600, fontSize: 13, textDecoration: "none", padding: "6px 12px", borderRadius: 8, transition: "background 0.15s" }} onMouseOver={e => e.currentTarget.style.background="var(--border)"} onMouseOut={e => e.currentTarget.style.background="transparent"}>📝 Blog</a>
           {user ? (
             <>
               <button className={`nav-tab ${view === "shop" ? "active" : ""}`} onClick={() => { setView("shop"); setSelectedProduct(null); }}>🛍 Tienda</button>
@@ -6259,6 +6435,7 @@ export default function App() {
       {view === "shop" && selectedProduct && <ProductDetailPage product={selectedProduct} cart={cart} onBack={() => setSelectedProduct(null)} onAddToCartQty={addToCartQty} onBuyNowQty={handleBuyNowQty} liked={liked} onToggleLike={toggleLike} user={user} />}
       {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); if (user?.email) { fetch("/api/cart/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: [], total: 0 }) }).catch(() => {}); } }} onOrderPending={order => setGlobalPending(order)} wallets={wallets} paymentMethods={paymentMethods} userCredit={referralCredit} onCreditUsed={amt => setReferralCredit(prev => Math.max(0, prev - amt))} products={products} onAddToCart={p => { addToCart(p); }} />}
       {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} wallets={wallets} onOrderUpdate={updatedOrder => setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o))} />}
+      {view === "faq" && <FAQView onGoShop={() => setView("shop")} />}
 
       {showMiniCart && cart.length > 0 && (
         <MiniCart

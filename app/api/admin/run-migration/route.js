@@ -12,7 +12,27 @@ export async function POST(req) {
   try {
     await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "resetToken" TEXT`);
     await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "resetTokenExpiry" TIMESTAMP(3)`);
-    return NextResponse.json({ ok: true, message: "Migration applied: resetToken fields added to User" });
+
+    // BlogPost table
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "BlogPost" (
+        "id"          TEXT         NOT NULL,
+        "title"       TEXT         NOT NULL,
+        "slug"        TEXT         NOT NULL,
+        "excerpt"     TEXT,
+        "content"     TEXT         NOT NULL DEFAULT '',
+        "published"   BOOLEAN      NOT NULL DEFAULT false,
+        "publishedAt" TIMESTAMP(3),
+        "createdAt"   TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt"   TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "BlogPost_pkey" PRIMARY KEY ("id")
+      )
+    `);
+    await prisma.$executeRawUnsafe(
+      `CREATE UNIQUE INDEX IF NOT EXISTS "BlogPost_slug_key" ON "BlogPost"("slug")`
+    );
+
+    return NextResponse.json({ ok: true, message: "Migrations applied successfully" });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
