@@ -53,9 +53,12 @@ export async function PATCH(req, { params }) {
       excerpt:   body.excerpt?.trim() ?? existing.excerpt,
       content:   body.content?.trim() ?? existing.content,
       published: nowPublished,
-      // Set publishedAt only on first publish
-      publishedAt:
-        nowPublished && !wasPublished ? new Date() : existing.publishedAt,
+      // Allow manual override of publishedAt (admin only), otherwise set on first publish
+      publishedAt: body.publishedAt
+        ? new Date(body.publishedAt)
+        : nowPublished && !wasPublished
+        ? new Date()
+        : existing.publishedAt,
     },
   });
   return NextResponse.json(post);
