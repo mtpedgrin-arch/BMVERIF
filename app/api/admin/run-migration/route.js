@@ -31,6 +31,7 @@ export async function POST(req) {
     await prisma.$executeRawUnsafe(
       `CREATE UNIQUE INDEX IF NOT EXISTS "BlogPost_slug_key" ON "BlogPost"("slug")`
     );
+    await prisma.$executeRawUnsafe(`ALTER TABLE "BlogPost" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT`);
 
     return NextResponse.json({ ok: true, message: "Migrations applied successfully" });
   } catch (e) {

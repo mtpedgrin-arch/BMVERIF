@@ -32,11 +32,13 @@ export async function generateMetadata({ params }) {
       type: "article",
       publishedTime: post.publishedAt,
       modifiedTime: post.updatedAt,
+      ...(post.imageUrl && { images: [{ url: post.imageUrl, width: 1200, height: 630 }] }),
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description: post.excerpt || post.title,
+      ...(post.imageUrl && { images: [post.imageUrl] }),
     },
   };
 }
@@ -45,7 +47,6 @@ export default async function BlogPostPage({ params }) {
   const post = await getPost(params.slug);
   if (!post) notFound();
 
-  // Convert plain text to basic HTML (no markdown library needed)
   const htmlContent = post.content
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -74,13 +75,9 @@ export default async function BlogPostPage({ params }) {
           flexWrap: "wrap",
         }}
       >
-        <a href="/" style={{ color: "#999", textDecoration: "none" }}>
-          Inicio
-        </a>
+        <a href="/" style={{ color: "#999", textDecoration: "none" }}>Inicio</a>
         <span>/</span>
-        <a href="/blog" style={{ color: "#999", textDecoration: "none" }}>
-          Blog
-        </a>
+        <a href="/blog" style={{ color: "#999", textDecoration: "none" }}>Blog</a>
         <span>/</span>
         <span style={{ color: "#444" }}>{post.title}</span>
       </nav>
@@ -100,20 +97,12 @@ export default async function BlogPostPage({ params }) {
         </h1>
 
         {post.excerpt && (
-          <p
-            style={{
-              fontSize: 16,
-              color: "#666",
-              lineHeight: 1.65,
-              marginBottom: 16,
-              marginTop: 0,
-            }}
-          >
+          <p style={{ fontSize: 16, color: "#666", lineHeight: 1.65, marginBottom: 16, marginTop: 0 }}>
             {post.excerpt}
           </p>
         )}
 
-        <div style={{ fontSize: 13, color: "#aaa", marginBottom: 28 }}>
+        <div style={{ fontSize: 13, color: "#aaa", marginBottom: 24 }}>
           {post.publishedAt
             ? new Date(post.publishedAt).toLocaleDateString("es-AR", {
                 year: "numeric",
@@ -123,20 +112,29 @@ export default async function BlogPostPage({ params }) {
             : ""}
         </div>
 
-        <hr
-          style={{
-            border: "none",
-            borderTop: "1.5px solid #efefef",
-            marginBottom: 32,
-          }}
-        />
+        {/* Hero image */}
+        {post.imageUrl && (
+          <img
+            src={post.imageUrl}
+            alt={post.title}
+            style={{
+              width: "100%",
+              height: "auto",
+              maxHeight: 420,
+              objectFit: "cover",
+              borderRadius: 14,
+              marginBottom: 32,
+              display: "block",
+            }}
+          />
+        )}
+
+        {!post.imageUrl && (
+          <hr style={{ border: "none", borderTop: "1.5px solid #efefef", marginBottom: 32 }} />
+        )}
 
         <div
-          style={{
-            fontSize: 15,
-            lineHeight: 1.85,
-            color: "#333",
-          }}
+          style={{ fontSize: 15, lineHeight: 1.85, color: "#333" }}
           dangerouslySetInnerHTML={{
             __html: `<p style="margin:0 0 16px">${htmlContent}</p>`,
           }}
@@ -144,13 +142,7 @@ export default async function BlogPostPage({ params }) {
       </article>
 
       {/* Back link */}
-      <div
-        style={{
-          marginTop: 52,
-          paddingTop: 24,
-          borderTop: "1.5px solid #efefef",
-        }}
-      >
+      <div style={{ marginTop: 52, paddingTop: 24, borderTop: "1.5px solid #efefef" }}>
         <a
           href="/blog"
           style={{
@@ -179,14 +171,12 @@ export default async function BlogPostPage({ params }) {
             url: `https://bmverificada.store/blog/${post.slug}`,
             datePublished: post.publishedAt,
             dateModified: post.updatedAt,
+            image: post.imageUrl,
             inLanguage: "es",
             publisher: {
               "@type": "Organization",
               name: "BM Verificada",
-              logo: {
-                "@type": "ImageObject",
-                url: "https://bmverificada.store/logo.png",
-              },
+              logo: { "@type": "ImageObject", url: "https://bmverificada.store/logo.png" },
             },
           }),
         }}

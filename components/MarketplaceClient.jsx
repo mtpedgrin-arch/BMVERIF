@@ -5844,7 +5844,7 @@ const BlogManager = () => {
   const [loading, setLoading] = React.useState(true);
   const [showForm, setShowForm] = React.useState(false);
   const [editPost, setEditPost] = React.useState(null);
-  const [form, setForm] = React.useState({ title: "", excerpt: "", content: "", published: false });
+  const [form, setForm] = React.useState({ title: "", excerpt: "", content: "", imageUrl: "", published: false });
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
 
@@ -5858,8 +5858,8 @@ const BlogManager = () => {
 
   React.useEffect(() => { load(); }, []);
 
-  const openNew = () => { setEditPost(null); setForm({ title: "", excerpt: "", content: "", published: false }); setError(""); setShowForm(true); };
-  const openEdit = (p) => { setEditPost(p); setForm({ title: p.title, excerpt: p.excerpt || "", content: p.content, published: p.published }); setError(""); setShowForm(true); };
+  const openNew = () => { setEditPost(null); setForm({ title: "", excerpt: "", content: "", imageUrl: "", published: false }); setError(""); setShowForm(true); };
+  const openEdit = (p) => { setEditPost(p); setForm({ title: p.title, excerpt: p.excerpt || "", content: p.content, imageUrl: p.imageUrl || "", published: p.published }); setError(""); setShowForm(true); };
 
   const save = async () => {
     if (!form.title.trim() || !form.content.trim()) { setError("Título y contenido son obligatorios."); return; }
@@ -5901,6 +5901,15 @@ const BlogManager = () => {
           <input className="form-input" value={form.excerpt} onChange={e => setForm(f => ({ ...f, excerpt: e.target.value }))} placeholder="Resumen opcional para SEO y listado" style={{ width: "100%", boxSizing: "border-box" }} />
         </div>
         <div>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", display: "block", marginBottom: 6 }}>URL de imagen <span style={{ fontWeight: 400, color: "var(--muted)" }}>(opcional · se muestra como portada del post)</span></label>
+          <input className="form-input" value={form.imageUrl} onChange={e => setForm(f => ({ ...f, imageUrl: e.target.value }))} placeholder="https://images.unsplash.com/photo-..." style={{ width: "100%", boxSizing: "border-box" }} />
+          {form.imageUrl && (
+            <div style={{ marginTop: 8, borderRadius: 8, overflow: "hidden", maxHeight: 120, border: "1px solid var(--border)" }}>
+              <img src={form.imageUrl} alt="preview" style={{ width: "100%", height: 120, objectFit: "cover", display: "block" }} onError={e => e.target.style.display="none"} />
+            </div>
+          )}
+        </div>
+        <div>
           <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", display: "block", marginBottom: 6 }}>Contenido * <span style={{ fontWeight: 400, color: "var(--muted)" }}>(texto plano, doble salto de línea = nuevo párrafo)</span></label>
           <textarea className="form-input" rows={14} value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder="Escribí el contenido del artículo aquí..." style={{ width: "100%", boxSizing: "border-box", resize: "vertical", fontFamily: "inherit", lineHeight: 1.6 }} />
         </div>
@@ -5930,6 +5939,9 @@ const BlogManager = () => {
         <div className="blog-admin-list">
           {posts.map(p => (
             <div key={p.id} className="blog-admin-row">
+              {p.imageUrl && (
+                <img src={p.imageUrl} alt="" style={{ width: 64, height: 48, objectFit: "cover", borderRadius: 8, flexShrink: 0, border: "1px solid var(--border)" }} />
+              )}
               <div className="blog-admin-info">
                 <div className="blog-admin-title">
                   {p.title}

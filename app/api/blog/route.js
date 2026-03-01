@@ -38,6 +38,7 @@ export async function GET(req) {
       title: true,
       slug: true,
       excerpt: true,
+      imageUrl: true,
       publishedAt: true,
       updatedAt: true,
     },
@@ -52,7 +53,7 @@ export async function POST(req) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const { title, excerpt, content, published } = await req.json();
+  const { title, excerpt, content, published, imageUrl } = await req.json();
   if (!title?.trim() || !content?.trim()) {
     return NextResponse.json(
       { error: "Título y contenido son obligatorios." },
@@ -75,6 +76,7 @@ export async function POST(req) {
       slug,
       excerpt: excerpt?.trim() || null,
       content: content.trim(),
+      imageUrl: imageUrl?.trim() || null,
       published: isPublished,
       publishedAt: isPublished ? new Date() : null,
     },

@@ -3,7 +3,7 @@ import Link from "next/link";
 export const metadata = {
   title: "Blog · BM Verificada",
   description:
-    "Artículos sobre Business Managers Verificados, API de Publicidad de Facebook, cuentas Meta Ads y pagos en USDT.",
+    "Artículos sobre Business Managers Verificados, API de WhatsApp, cuentas Meta Ads y pagos en USDT.",
   alternates: { canonical: "https://bmverificada.store/blog" },
   openGraph: {
     title: "Blog · BM Verificada",
@@ -77,18 +77,11 @@ export default async function BlogPage() {
 
       {/* Posts */}
       {posts.length === 0 ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "60px 20px",
-            color: "#999",
-            fontSize: 15,
-          }}
-        >
+        <div style={{ textAlign: "center", padding: "60px 20px", color: "#999", fontSize: 15 }}>
           No hay artículos publicados aún. ¡Volvé pronto!
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           {posts.map((post) => (
             <article
               key={post.id}
@@ -96,75 +89,75 @@ export default async function BlogPage() {
                 background: "#fff",
                 border: "1.5px solid #e8e4df",
                 borderRadius: 16,
-                padding: "24px 28px",
-                boxShadow: "0 1px 6px rgba(0,0,0,0.06)",
-                transition: "box-shadow 0.15s",
+                overflow: "hidden",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
               }}
             >
-              <Link
-                href={`/blog/${post.slug}`}
-                style={{ textDecoration: "none" }}
-              >
-                <h2
-                  style={{
-                    fontFamily: "Syne, sans-serif",
-                    fontSize: 20,
-                    fontWeight: 700,
-                    color: "#1a1a1a",
-                    marginBottom: 8,
-                    lineHeight: 1.3,
-                  }}
-                >
-                  {post.title}
-                </h2>
-              </Link>
-
-              {post.excerpt && (
-                <p
-                  style={{
-                    color: "#777",
-                    fontSize: 14,
-                    lineHeight: 1.65,
-                    marginBottom: 16,
-                    marginTop: 0,
-                  }}
-                >
-                  {post.excerpt}
-                </p>
+              {/* Image */}
+              {post.imageUrl && (
+                <Link href={`/blog/${post.slug}`} style={{ display: "block" }}>
+                  <img
+                    src={post.imageUrl}
+                    alt={post.title}
+                    style={{
+                      width: "100%",
+                      height: 200,
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                </Link>
               )}
 
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  flexWrap: "wrap",
-                  gap: 10,
-                }}
-              >
-                <span style={{ fontSize: 12, color: "#aaa" }}>
-                  {post.publishedAt
-                    ? new Date(post.publishedAt).toLocaleDateString("es-AR", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })
-                    : ""}
-                </span>
-                <Link
-                  href={`/blog/${post.slug}`}
-                  style={{
-                    background: "#D92B2B",
-                    color: "#fff",
-                    padding: "7px 16px",
-                    borderRadius: 8,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    textDecoration: "none",
-                  }}
-                >
-                  Leer más →
+              {/* Content */}
+              <div style={{ padding: "22px 26px" }}>
+                <Link href={`/blog/${post.slug}`} style={{ textDecoration: "none" }}>
+                  <h2
+                    style={{
+                      fontFamily: "Syne, sans-serif",
+                      fontSize: 20,
+                      fontWeight: 700,
+                      color: "#1a1a1a",
+                      marginBottom: 8,
+                      marginTop: 0,
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {post.title}
+                  </h2>
                 </Link>
+
+                {post.excerpt && (
+                  <p style={{ color: "#777", fontSize: 14, lineHeight: 1.65, marginBottom: 16, marginTop: 0 }}>
+                    {post.excerpt}
+                  </p>
+                )}
+
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+                  <span style={{ fontSize: 12, color: "#aaa" }}>
+                    {post.publishedAt
+                      ? new Date(post.publishedAt).toLocaleDateString("es-AR", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })
+                      : ""}
+                  </span>
+                  <Link
+                    href={`/blog/${post.slug}`}
+                    style={{
+                      background: "#D92B2B",
+                      color: "#fff",
+                      padding: "7px 16px",
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      textDecoration: "none",
+                    }}
+                  >
+                    Leer más →
+                  </Link>
+                </div>
               </div>
             </article>
           ))}
@@ -180,14 +173,14 @@ export default async function BlogPage() {
             "@type": "Blog",
             name: "Blog · BM Verificada",
             url: "https://bmverificada.store/blog",
-            description:
-              "Artículos sobre Business Managers Verificados y publicidad en Meta.",
+            description: "Artículos sobre Business Managers Verificados y publicidad en Meta.",
             blogPost: posts.map((p) => ({
               "@type": "BlogPosting",
               headline: p.title,
               url: `https://bmverificada.store/blog/${p.slug}`,
               datePublished: p.publishedAt,
               description: p.excerpt,
+              image: p.imageUrl,
             })),
           }),
         }}

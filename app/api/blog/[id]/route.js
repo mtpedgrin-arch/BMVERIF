@@ -52,6 +52,7 @@ export async function PATCH(req, { params }) {
       title:     body.title?.trim()   ?? existing.title,
       excerpt:   body.excerpt?.trim() ?? existing.excerpt,
       content:   body.content?.trim() ?? existing.content,
+      imageUrl:  body.imageUrl !== undefined ? (body.imageUrl?.trim() || null) : existing.imageUrl,
       published: nowPublished,
       // Allow manual override of publishedAt (admin only), otherwise set on first publish
       publishedAt: body.publishedAt
