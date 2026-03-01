@@ -60,6 +60,14 @@ const css = `
   .hero-badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
   .hero-badge { background: rgba(212,175,55,0.1); border: 1px solid rgba(212,175,55,0.3); color: #D4AF37; padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; }
 
+  /* ── Tier discount scroll banner ── */
+  @keyframes tierBannerIn { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+  .tier-banner { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 1100; animation: tierBannerIn 0.35s cubic-bezier(.22,.68,0,1.2) both; background: linear-gradient(135deg,#1a1a1a 0%,#111 100%); border: 1.5px solid rgba(212,175,55,0.55); border-radius: 16px; padding: 13px 20px; display: flex; align-items: center; gap: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(212,175,55,0.1); max-width: calc(100vw - 32px); }
+  .tier-banner-close { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: var(--muted); width: 26px; height: 26px; border-radius: 50%; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s; }
+  .tier-banner-close:hover { background: rgba(255,255,255,0.15); color: #fff; }
+  .tier-pill { background: rgba(212,175,55,0.12); border: 1px solid rgba(212,175,55,0.35); color: #D4AF37; padding: 5px 13px; border-radius: 20px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+  @media (max-width: 600px) { .tier-banner { flex-wrap: wrap; justify-content: center; bottom: 14px; padding: 11px 14px; } }
+
   .shop-wrap { flex: 1; max-width: 1200px; margin: 0 auto; width: 100%; padding: 24px 20px; }
   .shop-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .shop-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
@@ -2712,6 +2720,39 @@ const ProductDetailPage = ({ product: p, cart, onBack, onAddToCartQty, onBuyNowQ
 const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike, products, onProductClick, thumbs }) => {
   const [activeCat, setActiveCat] = useState("all");
   const getQty = id => cart.find(i => i.id === id)?.qty || 0;
+
+  // ── Scroll-triggered tier discount banner ──
+  const [bannerVisible, setBannerVisible] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(() => {
+    try { return sessionStorage.getItem("tier_banner_dismissed") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    const onScroll = () => { if (window.scrollY > 320) setBannerVisible(true); };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  const dismissBanner = () => {
+    setBannerDismissed(true);
+    try { sessionStorage.setItem("tier_banner_dismissed", "1"); } catch {}
+  };
+  // Compute best discount per tier qty across all products
+  const tierDiscounts = (() => {
+    const map = {};
+    products.forEach(p => {
+      if (!p.tiers || p.tiers.length === 0 || p.price <= 0) return;
+      p.tiers.forEach(t => {
+        if (t.qty > 0 && t.price > 0) {
+          const pct = Math.round((1 - t.price / p.price) * 100);
+          if (pct > 0 && (!map[t.qty] || pct > map[t.qty])) map[t.qty] = pct;
+        }
+      });
+    });
+    return Object.entries(map)
+      .map(([qty, pct]) => ({ qty: parseInt(qty), pct }))
+      .filter(t => t.pct > 0)
+      .sort((a, b) => a.qty - b.qty)
+      .slice(0, 3);
+  })();
   const getThumb = (cat) => cat === "ads-account" ? (thumbs?.ads || "/facebook-verificado.png") : cat === "bm-balloon" ? (thumbs?.balloon || "/facebook-verificado.png") : (thumbs?.bm || "/facebook-verificado.png");
   const CATS = [
     { key: "ads-account", label: "Cuentas para Publicidad" },
@@ -2727,6 +2768,25 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
   const totalVisible = visibleCats.reduce((acc, c) => acc + products.filter(p => (p.category || "bm") === c.key).length, 0);
   return (
     <>
+      {/* ── Tier discount banner (appears on scroll) ── */}
+      {bannerVisible && !bannerDismissed && tierDiscounts.length > 0 && (
+        <div className="tier-banner">
+          <span style={{ fontSize: 20 }}>⚡</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#fff", fontFamily: "Syne", letterSpacing: "0.02em" }}>
+              ¡Comprá más y ahorrá más!
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 7, alignItems: "center" }}>
+              {tierDiscounts.map(t => (
+                <span key={t.qty} className="tier-pill">×{t.qty} unidades → -{t.pct}%</span>
+              ))}
+              <span style={{ fontSize: 12, color: "var(--muted)" }}>por volumen</span>
+            </div>
+          </div>
+          <button className="tier-banner-close" onClick={dismissBanner} title="Cerrar">✕</button>
+        </div>
+      )}
+
       <div className="hero">
         <img src="/Banner.png" alt="BM Verificada" className="hero-banner-img" />
         <img src="/logo.png" alt="BM Verificada" className="hero-logo" />
