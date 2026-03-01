@@ -94,12 +94,17 @@ export async function POST(req) {
       ? order.items.map(i => `  • ${i.name} ×${i.qty ?? 1} — $${((i.price ?? 0) * (i.qty ?? 1)).toFixed(2)}`).join("\n")
       : "  • (sin detalle)";
     const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+    const discountLine = order.discount > 0
+      ? `🏷️ Descuento: -$${order.discount.toFixed(2)}${order.coupon ? ` (${order.coupon})` : ""}\n` +
+        `💲 Subtotal original: $${order.subtotal.toFixed(2)}\n`
+      : "";
     sendTelegramOrderNotification(
       `💰 <b>PAGO CONFIRMADO</b>\n\n` +
       `👤 <b>${order.userName || order.userEmail}</b>\n` +
       `📧 ${order.userEmail}\n\n` +
       `📦 <b>Productos:</b>\n${itemLines}\n\n` +
-      `💵 <b>Total: ${(order.uniqueAmount ?? order.total).toFixed(2)} USDT · ${order.network ?? "Cryptomus"}</b>\n` +
+      discountLine +
+      `💵 <b>Transferido: ${(order.uniqueAmount ?? order.total).toFixed(2)} USDT · ${order.network ?? "Cryptomus"}</b>\n` +
       `🆔 Orden: #${order.id.slice(-8)}\n` +
       `🔗 Tx: ${txRef}\n` +
       `⏰ ${hora}\n\n` +
