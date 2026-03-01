@@ -2,8 +2,47 @@ import Script from "next/script";
 import Providers from "./providers";
 
 export const metadata = {
-  title: "BM Verificada · Business Manager Premium",
-  description: "Business Manager verificados · Entrega inmediata · Pago USDT TRC20 / BEP20",
+  metadataBase: new URL("https://bmverificada.store"),
+  title: {
+    default: "BM Verificada · Business Manager Facebook Verificado",
+    template: "%s · BM Verificada",
+  },
+  description:
+    "Comprá Business Managers Verificados de Facebook con API de Publicidad habilitada. Entrega inmediata. Cuentas con acceso total y verificación oficial Meta. Pago USDT.",
+  keywords: [
+    "business manager verificado",
+    "bm verificada",
+    "bm verificado facebook",
+    "api publicidad facebook",
+    "cuentas publicitarias facebook",
+    "business manager facebook comprar",
+    "cuentas meta ads",
+    "bm facebook premium",
+    "comprar business manager",
+  ],
+  alternates: {
+    canonical: "https://bmverificada.store",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
+  openGraph: {
+    title: "BM Verificada · Business Manager Facebook Verificado",
+    description:
+      "Comprá Business Managers Verificados de Facebook con API de Publicidad habilitada. Entrega inmediata. Pago USDT.",
+    url: "https://bmverificada.store",
+    siteName: "BM Verificada",
+    locale: "es_AR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BM Verificada · Business Manager Facebook Verificado",
+    description:
+      "Business Managers verificados con API de Publicidad habilitada. Entrega inmediata. Pago USDT.",
+  },
   icons: {
     icon: "/favicon.png",
     apple: "/favicon.png",
@@ -26,6 +65,36 @@ export default function RootLayout({ children }) {
             "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial",
         }}
       >
+        {/* ── JSON-LD: Organization ── */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "BM Verificada",
+              url: "https://bmverificada.store",
+              logo: "https://bmverificada.store/logo.png",
+              description:
+                "Tienda de Business Managers Verificados de Facebook con API de Publicidad habilitada. Entrega inmediata.",
+            }),
+          }}
+        />
+        {/* ── JSON-LD: WebSite ── */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "BM Verificada",
+              url: "https://bmverificada.store",
+              inLanguage: "es",
+              description:
+                "Comprá Business Managers Verificados de Facebook con API de Publicidad habilitada.",
+            }),
+          }}
+        />
         {/* ── Meta Pixel base code ── */}
         {PIXEL_ID && (
           <Script id="meta-pixel" strategy="afterInteractive">

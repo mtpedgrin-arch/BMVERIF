@@ -2930,18 +2930,33 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
       <div style={{ maxWidth: 1200, margin: "0 auto", width: "100%", padding: "20px 20px 0" }}>
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "22px 28px" }}>
           <h2 style={{ fontFamily: "Syne", fontSize: 18, fontWeight: 800, marginBottom: 12, color: "var(--text)" }}>
-            Comprá Business Managers Verificados de Facebook
+            Comprá Business Managers Verificados de Facebook con API de Publicidad
           </h2>
-          <p style={{ fontSize: 13.5, lineHeight: 1.75, color: "var(--muted)", margin: 0 }}>
-            <strong style={{ color: "var(--text)" }}>Business Managers Verificados (BM) — Comprá cuentas Meta premium de nuestro catálogo.</strong>{" "}
-            Esta categoría está diseñada para afiliados y agencias que requieren máxima confianza y estabilidad al trabajar con verticales de alto riesgo.
-            La verificación garantiza el mayor nivel de fiabilidad y minimiza el riesgo de baneos.
-            En <strong style={{ color: "var(--text)" }}>BM Verificada</strong> podés comprar BMs listos para lanzar —
-            ideales tanto para operaciones diarias estables como para recuperar activos publicitarios.
-            Explorá nuestro catálogo de <strong style={{ color: "var(--text)" }}>BMs Verificados</strong> y{" "}
-            <strong style={{ color: "var(--text)" }}>BMs Balloon</strong> para campañas de alto presupuesto.
-            Precios transparentes, <strong style={{ color: "var(--text)" }}>entrega inmediata</strong> y garantía de confianza.
-            Comprá Business Managers Verificados — una inversión a largo plazo para una publicidad estable y segura.
+          <p style={{ fontSize: 13.5, lineHeight: 1.75, color: "var(--muted)", margin: "0 0 14px" }}>
+            <strong style={{ color: "var(--text)" }}>BM Verificada</strong> es tu fuente confiable de{" "}
+            <strong style={{ color: "var(--text)" }}>Business Managers Verificados de Facebook</strong> con{" "}
+            <strong style={{ color: "var(--text)" }}>API de Publicidad habilitada</strong> desde el primer día.
+            Diseñado para afiliados, agencias y medios compradores que necesitan cuentas publicitarias de Meta estables,
+            con el mayor nivel de confianza y mínimo riesgo de baneos.
+            Todos nuestros <strong style={{ color: "var(--text)" }}>Business Managers</strong> pasan por verificación oficial de Meta
+            antes de ser entregados — listos para lanzar campañas de alto presupuesto de inmediato.
+          </p>
+          <ul style={{ fontSize: 13, lineHeight: 1.8, color: "var(--muted)", margin: "0 0 14px", paddingLeft: 18 }}>
+            <li>✅ <strong style={{ color: "var(--text)" }}>Business Manager con verificación oficial Meta</strong></li>
+            <li>✅ <strong style={{ color: "var(--text)" }}>API de Publicidad de Facebook</strong> habilitada desde el primer día</li>
+            <li>✅ <strong style={{ color: "var(--text)" }}>Entrega inmediata</strong> tras confirmar el pago en USDT</li>
+            <li>✅ Catálogo de <strong style={{ color: "var(--text)" }}>BMs Verificados</strong>, <strong style={{ color: "var(--text)" }}>BM Balloon</strong> y <strong style={{ color: "var(--text)" }}>Cuentas Publicitarias</strong></li>
+            <li>✅ Descuentos por volumen y soporte post-venta incluido</li>
+          </ul>
+          <h3 style={{ fontFamily: "Syne", fontSize: 14, fontWeight: 700, margin: "0 0 8px", color: "var(--text)" }}>
+            ¿Qué es un Business Manager Verificado?
+          </h3>
+          <p style={{ fontSize: 13, lineHeight: 1.75, color: "var(--muted)", margin: 0 }}>
+            Un <strong style={{ color: "var(--text)" }}>Business Manager Verificado de Facebook</strong> es una cuenta empresarial
+            que superó el proceso de verificación oficial de Meta. Esto otorga mayor confianza ante el algoritmo,
+            acceso a límites de gasto más altos y la <strong style={{ color: "var(--text)" }}>API de Publicidad</strong> desbloqueada
+            para integraciones avanzadas. Es la herramienta esencial para cualquier equipo de{" "}
+            <strong style={{ color: "var(--text)" }}>publicidad en Facebook</strong> que busca escalar sin interrupciones.
           </p>
         </div>
       </div>
