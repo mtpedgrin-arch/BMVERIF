@@ -2941,12 +2941,19 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
   const favProducts = products.filter(p => liked[p.id]);
 
   // ── Referidos state ──
-  const [refData, setRefData] = useState(null); // { referralCode, referralCredit, referralLink, referrals[] }
+  const [refData, setRefData] = useState(null);
+  const [refLoading, setRefLoading] = useState(false);
+  const [refError, setRefError] = useState(null);
   const [refCopied, setRefCopied] = useState(false);
   useEffect(() => {
-    if (tab !== "referidos" || refData) return;
-    fetch("/api/referrals").then(r => r.json()).then(d => { if (d.referralCode) setRefData(d); }).catch(() => {});
-  }, [tab, refData]);
+    if (tab !== "referidos" || refData || refLoading) return;
+    setRefLoading(true); setRefError(null);
+    fetch("/api/referrals")
+      .then(r => r.json())
+      .then(d => { if (d.referralCode) setRefData(d); else setRefError(d.error || "Error al cargar"); })
+      .catch(() => setRefError("Error de red"))
+      .finally(() => setRefLoading(false));
+  }, [tab, refData, refLoading]);
 
   // ── Change password state ──
   const [pwForm, setPwForm] = useState({ current: "", newPw: "", confirm: "" });
@@ -3219,9 +3226,10 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
       {/* ── REFERIDOS ── */}
       {tab === "referidos" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          {!refData ? (
-            <div style={{ textAlign: "center", padding: "40px 0", color: "var(--muted)" }}>Cargando...</div>
-          ) : (
+          {refLoading && <div style={{ textAlign: "center", padding: "40px 0", color: "var(--muted)" }}>Cargando...</div>}
+          {refError && <div style={{ textAlign: "center", padding: "20px", color: "var(--red)", background: "var(--surface)", borderRadius: 10 }}>⚠️ {refError} — <button className="btn btn-outline" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => { setRefError(null); setRefLoading(false); }}>Reintentar</button></div>}
+          {!refLoading && !refError && !refData && null}
+          {refData && (
             <>
               {/* Credit balance */}
               <div className="card" style={{ background: refData.referralCredit > 0 ? "linear-gradient(135deg,#F0FDF4,#DCFCE7)" : undefined, border: refData.referralCredit > 0 ? "1px solid #BBF7D0" : undefined }}>
