@@ -50,7 +50,7 @@ export const metadata = {
   },
   other: {
     cryptomus: "cfb2ea1b",
-    "facebook-domain-verification": "l9e08q5h1e5rr1w508fru1x6uky5f1",
+    "facebook-domain-verification": "bf9hl952d6n58hpp5qr5z8hceai12e",
   },
 };
 
