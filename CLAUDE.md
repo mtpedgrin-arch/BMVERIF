@@ -263,13 +263,15 @@ Cuando se agrega un campo o tabla nueva a `prisma/schema.prisma`:
 
 ## 🌐 DOMINIO
 
-- Dominio activo: **bmverificada.space** (GoDaddy — ⚠️ cuenta bloqueada, vence pronto)
-- Plan: comprar dominio nuevo en **Namecheap** o **Cloudflare Registrar**
-- Al cambiar dominio, actualizar en:
+- Dominio activo: **bmverificada.space** (Hostinger ✅)
+- Email soporte: **soporte@bmverificada.space** (Hostinger Email)
+- Dominio anterior: bmverificada.store (GoDaddy — cuenta bloqueada, abandonado)
+- Al cambiar dominio en el futuro, actualizar en:
   - `app/layout.jsx` → metadataBase, canonical, OG url, JSON-LD urls
   - `app/sitemap.js` → base URL
   - Vercel → dominio custom
   - `NEXTAUTH_URL` en env vars
+  - Cryptomus → webhook URL
 
 ---
 
