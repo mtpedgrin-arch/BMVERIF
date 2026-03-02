@@ -37,7 +37,7 @@ export async function POST(req) {
     amount:       String((order.uniqueAmount ?? order.total).toFixed(2)),
     currency:     "USDT",
     order_id:     order.id,
-    url_return:   `${BASE_URL}/?view=account`,
+    url_return:   `${BASE_URL}/payment/return?orderId=${order.id}`,
     url_callback: `${BASE_URL}/api/cryptomus/webhook`,
     lifetime:     3600,
   };
