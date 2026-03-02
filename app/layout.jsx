@@ -126,8 +126,13 @@ export default function RootLayout({ children }) {
                 },
                 {
                   "@type": "Question",
-                  name: "¿Hay reemplazo si la cuenta es baneada?",
-                  acceptedAnswer: { "@type": "Answer", text: "Ofrecemos soporte post-venta para casos de inconvenientes. Contactá a nuestro equipo vía Telegram o email dentro de las 24 hs de recibir el producto para evaluar cada caso." },
+                  name: "¿Qué cubre la garantía?",
+                  acceptedAnswer: { "@type": "Answer", text: "La garantía cubre únicamente productos que lleguen bloqueados o que no puedan utilizarse desde el momento de la entrega (antes de que el cliente los use). No cubre problemas derivados del mal uso: conectar el BM a un CRM, lanzar publicidad dentro de las primeras horas de recibido, ni ninguna acción que pueda comprometer la cuenta. No nos responsabilizamos por el mal uso de la cuenta. Si el producto llega con inconvenientes, contactá al soporte dentro de las 24 hs." },
+                },
+                {
+                  "@type": "Question",
+                  name: "¿Cómo conecto el BM al CRM de forma segura?",
+                  acceptedAnswer: { "@type": "Answer", text: "Una vez recibido el BM y aceptado en tu perfil, esperá al menos 4 a 6 horas antes de conectarlo a cualquier CRM (lo recomendado es esperar entre 12 y 24 horas). Una vez conectado al CRM, esperá un mínimo de 24 horas antes de empezar a enviar tráfico desde Meta. Respetar estos tiempos reduce significativamente el riesgo de baneos innecesarios en la cuenta." },
                 },
                 {
                   "@type": "Question",

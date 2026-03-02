@@ -944,8 +944,7 @@ const ChatWidget = ({ user, open, onClose }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
-      const msg = await res.json();
-      if (res.ok) setMsgs(p => [...p, msg]);
+      if (res.ok) await fetchMsgs();
     } catch {}
     finally { setSending(false); }
   };
@@ -5960,7 +5959,8 @@ const FAQ_ITEMS = [
   ["¿Qué es la API de WhatsApp?", "La API de WhatsApp Business permite a las empresas enviar mensajes masivos, automatizar comunicaciones y conectar WhatsApp con sus sistemas de CRM o marketing. Solo cuentas con un Business Manager verificado tienen acceso completo a esta API."],
   ["¿Cómo es la entrega del producto?", "La entrega puede demorar entre 5 y 30 minutos dependiendo del pedido. Una vez procesada tu orden, podés acceder a las credenciales y accesos desde tu cuenta: Mi Cuenta → Mis Órdenes → hacé clic en el pedido correspondiente."],
   ["¿Cómo funciona el pago en USDT?", "Aceptamos USDT tanto en red TRC20 (Tron) como BEP20 (Binance Smart Chain). Al crear tu orden se genera un monto único con centavos aleatorios para identificar tu pago automáticamente. Solo debés enviar el monto exacto indicado."],
-  ["¿Hay reemplazo si la cuenta es baneada?", "Ofrecemos soporte post-venta para casos de inconvenientes. Contactá a nuestro equipo vía Telegram o email dentro de las 24 hs de recibir el producto para evaluar cada caso."],
+  ["¿Qué cubre la garantía?", "La garantía cubre únicamente productos que lleguen bloqueados o que no puedan utilizarse desde el momento de la entrega (antes de que el cliente los use). No cubre problemas derivados del mal uso: conectar el BM a un CRM, lanzar publicidad dentro de las primeras horas de recibido, ni ninguna acción que pueda comprometer la cuenta. No nos responsabilizamos por el mal uso de la cuenta. Si el producto llega con inconvenientes, contactá a nuestro equipo dentro de las 24 hs."],
+  ["¿Cómo conecto el BM al CRM de forma segura?", "Una vez recibido el BM y aceptado en tu perfil, esperá al menos 4 a 6 horas antes de conectarlo a cualquier CRM (lo recomendado es esperar entre 12 y 24 horas). Una vez conectado al CRM, esperá un mínimo de 24 horas antes de empezar a enviar tráfico desde Meta. Respetar estos tiempos reduce significativamente el riesgo de baneos innecesarios en la cuenta."],
   ["¿Puedo tener múltiples cuentas publicitarias dentro del BM?", "Sí. Los Business Managers Verificados permiten crear y administrar significativamente más cuentas publicitarias que los BM no verificados, facilitando el escalado de campañas."],
   ["¿Necesito una cuenta personal de Facebook?", "No es necesario asociar tu cuenta personal de Facebook al BM que adquirís. El BM viene listo para usar de forma independiente."],
   ["¿Cómo me registro en BM Verificada?", "Hacé clic en «Registrarse» en la barra superior, completá tu email y contraseña, y ya podés comenzar a comprar. No se requiere información adicional para el registro."],
