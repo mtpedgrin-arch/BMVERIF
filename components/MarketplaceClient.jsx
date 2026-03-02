@@ -423,6 +423,7 @@ const css = `
     .topbar-right { gap: 4px; }
     .nav-tab { padding: 5px 8px; font-size: 12px; }
     .cart-fab { padding: 7px 11px; font-size: 12px; }
+    .logo { display: none; }
   }
 
   /* DARK MODE TOGGLE BUTTON */
