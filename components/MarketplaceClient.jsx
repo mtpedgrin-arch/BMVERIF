@@ -1118,6 +1118,8 @@ const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Error al registrarse."); return; }
+      // Track CompleteRegistration en Meta Pixel
+      trackEvent("CompleteRegistration", { status: true, currency: "USD", value: 0 });
       // Don't auto-login — show "check your email" screen
       setVerifyPending(true);
     } finally {
@@ -1716,6 +1718,7 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, userCredit = 0, onCredit
 
   // ── Track InitiateCheckout on open ──
   useEffect(() => {
+    if (cart.length === 0) return;
     trackEvent("InitiateCheckout", {
       num_items:   cart.reduce((s, i) => s + i.qty, 0),
       value:       finalTotal,
@@ -1728,6 +1731,14 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, userCredit = 0, onCredit
   const creditApplied = useCredit ? parseFloat(Math.min(userCredit, finalTotal - discountAmt).toFixed(2)) : 0;
   const effectiveTotal = parseFloat((finalTotal - creditApplied).toFixed(2));
 
+  const getMetaCookies = () => {
+    try {
+      const cookies = document.cookie.split("; ");
+      const fbp = cookies.find(r => r.startsWith("_fbp="))?.split("=")[1] || null;
+      const fbc = cookies.find(r => r.startsWith("_fbc="))?.split("=")[1] || null;
+      return { fbp, fbc };
+    } catch { return { fbp: null, fbc: null }; }
+  };
   const buildOrderBody = (network) => ({
     items: cart.map(i => ({ name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty, productId: i.id || null })),
     subtotal, discount: discountAmt,
@@ -1735,6 +1746,7 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, userCredit = 0, onCredit
     creditUsed: creditApplied,
     total: effectiveTotal,
     network,
+    ...getMetaCookies(),
   });
 
   const useCoupon = () => coupon
@@ -1975,12 +1987,21 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
   const effectiveTotal = parseFloat((total - creditApplied).toFixed(2));
   const wallet = W[network];
 
+  const getMetaCookies = () => {
+    try {
+      const cookies = document.cookie.split("; ");
+      const fbp = cookies.find(r => r.startsWith("_fbp="))?.split("=")[1] || null;
+      const fbc = cookies.find(r => r.startsWith("_fbc="))?.split("=")[1] || null;
+      return { fbp, fbc };
+    } catch { return { fbp: null, fbc: null }; }
+  };
   const buildOrderBody = (net) => ({
     items: cart.map(i => ({ name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty, productId: i.id || null })),
     subtotal, discount: discountAmt,
     coupon: appliedCoupon?.code || null,
     creditUsed: creditApplied,
     total: effectiveTotal, network: net,
+    ...getMetaCookies(),
   });
 
   const applyCoupon = async () => {

@@ -212,13 +212,16 @@ export async function GET(req, { params }) {
     const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || undefined;
     const ua = req.headers.get("user-agent") || undefined;
     sendCapiEvent({
-      eventName: "Purchase",
-      eventId:   `purchase_${order.id}`,
-      email:     order.userEmail,
+      eventName:  "Purchase",
+      eventId:    `purchase_${order.id}`,
+      email:      order.userEmail,
+      externalId: order.userEmail,
       ip,
-      userAgent: ua,
-      orderId:   order.id,
-      value:     order.uniqueAmount ?? order.total,
+      userAgent:  ua,
+      fbp:        order.fbp || undefined,
+      fbc:        order.fbc || undefined,
+      orderId:    order.id,
+      value:      order.uniqueAmount ?? order.total,
     }).catch(() => {});
     // Referral reward (non-blocking)
     handleReferralReward({ ...order, status: "paid" }).catch(() => {});

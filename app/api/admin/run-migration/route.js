@@ -49,6 +49,10 @@ export async function POST(req) {
       )
     `);
 
+    // Order: fbp y fbc para Meta CAPI matching
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "fbp" TEXT`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "fbc" TEXT`);
+
     return NextResponse.json({ ok: true, message: "Migrations applied successfully" });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });

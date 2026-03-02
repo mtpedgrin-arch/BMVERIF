@@ -111,13 +111,16 @@ export async function POST(req) {
       `⚡️ <b>¡Ir a comprar al proveedor!</b>`
     ).catch(() => {});
 
-    // CAPI Purchase event (no browser data available in webhook, but email match is enough)
+    // CAPI Purchase event — incluye fbp/fbc guardados en la orden para mejor matching
     sendCapiEvent({
-      eventName: "Purchase",
-      eventId:   `purchase_${order.id}`,
-      email:     order.userEmail,
-      orderId:   order.id,
-      value:     order.uniqueAmount ?? order.total,
+      eventName:  "Purchase",
+      eventId:    `purchase_${order.id}`,
+      email:      order.userEmail,
+      externalId: order.userEmail,
+      fbp:        order.fbp || undefined,
+      fbc:        order.fbc || undefined,
+      orderId:    order.id,
+      value:      order.uniqueAmount ?? order.total,
     }).catch(() => {});
 
     // Referral reward (non-blocking)
