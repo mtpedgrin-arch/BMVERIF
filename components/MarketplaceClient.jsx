@@ -32,11 +32,11 @@ const css = `
     --usdt: #26A17B; --usdt-light: #E8F8F3;
     --shadow: 0 1px 4px rgba(0,0,0,0.07); --shadow-lg: 0 8px 40px rgba(0,0,0,0.14);
   }
-  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; max-width: 100vw; }
   h1,h2,h3,h4 { font-family: 'Syne', sans-serif; }
   button { cursor: pointer; font-family: 'DM Sans', sans-serif; }
   input, textarea, select { font-family: 'DM Sans', sans-serif; }
-  .app { min-height: 100vh; display: flex; flex-direction: column; }
+  .app { min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
 
   .topbar { background: var(--surface); border-bottom: 1.5px solid var(--border); padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
   .logo { cursor: pointer; align-self: stretch; display: flex; align-items: stretch; padding: 0; overflow: hidden; }

@@ -64,6 +64,8 @@ export default function RootLayout({ children }) {
           margin: 0,
           fontFamily:
             "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial",
+          overflowX: "hidden",
+          maxWidth: "100vw",
         }}
       >
         {/* ── JSON-LD: Organization ── */}
