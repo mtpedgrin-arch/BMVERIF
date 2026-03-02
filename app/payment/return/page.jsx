@@ -1,9 +1,10 @@
 "use client";
+import { Suspense } from "react";
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
-export default function PaymentReturnPage() {
+function PaymentReturn() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
@@ -15,7 +16,6 @@ export default function PaymentReturnPage() {
   const attemptsRef = useRef(0);
   const MAX_ATTEMPTS = 20; // ~60 segundos de polling
 
-  // Limpiar carrito del localStorage al confirmar pago
   const clearCart = () => {
     try { localStorage.removeItem("bmveri_cart"); } catch {}
   };
@@ -41,7 +41,7 @@ export default function PaymentReturnPage() {
 
       attemptsRef.current += 1;
       if (attemptsRef.current >= MAX_ATTEMPTS) {
-        setState("pending"); // sigue pendiente, redirigir a mis órdenes
+        setState("pending");
         if (pollRef.current) clearInterval(pollRef.current);
       }
     } catch {
@@ -58,9 +58,7 @@ export default function PaymentReturnPage() {
     if (!session?.user) { router.replace("/"); return; }
     if (!orderId) { router.replace("/"); return; }
 
-    // Check inmediato
     checkPayment();
-    // Luego cada 3 segundos
     pollRef.current = setInterval(checkPayment, 3000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [sessionStatus, session, orderId]);
@@ -90,7 +88,7 @@ export default function PaymentReturnPage() {
       }}>
 
         {/* CHECKING */}
-        {(state === "checking") && (
+        {state === "checking" && (
           <>
             <div style={{ fontSize: 56, marginBottom: 20 }}>🔍</div>
             <h2 style={{ color: "#fff", fontFamily: "Syne, sans-serif", fontWeight: 800, fontSize: 22, marginBottom: 12 }}>
@@ -147,7 +145,7 @@ export default function PaymentReturnPage() {
             </h2>
             <p style={{ color: "#8b8fa8", fontSize: 15, marginBottom: 24 }}>
               Tu pago todavía no fue confirmado en la blockchain. Puede demorar algunos minutos.
-              Podés seguir el estado desde "Mis Órdenes".
+              Podés seguir el estado desde &quot;Mis Órdenes&quot;.
             </p>
             <button onClick={goToOrders} style={{
               width: "100%", padding: "13px", background: "#f59e0b",
@@ -204,7 +202,7 @@ export default function PaymentReturnPage() {
               Error al verificar
             </h2>
             <p style={{ color: "#8b8fa8", fontSize: 15, marginBottom: 24 }}>
-              No pudimos verificar el estado de tu pago. Chequeá "Mis Órdenes" o contactá a soporte.
+              No pudimos verificar el estado de tu pago. Chequeá &quot;Mis Órdenes&quot; o contactá a soporte.
             </p>
             <button onClick={goToOrders} style={{
               width: "100%", padding: "13px", background: "#1877F2",
@@ -217,11 +215,24 @@ export default function PaymentReturnPage() {
           </>
         )}
 
-        {/* Footer */}
         <p style={{ color: "#3d4056", fontSize: 12, marginTop: 28 }}>
           BM Verificada · Business Managers Verificados
         </p>
       </div>
     </div>
+  );
+}
+
+// Suspense boundary requerido por Next.js 15 para useSearchParams()
+export default function PaymentReturnPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0f1117" }}>
+        <div style={{ width: 40, height: 40, border: "3px solid #2a2d3a", borderTop: "3px solid #26a17b", borderRadius: "50%", animation: "spin 0.9s linear infinite" }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    }>
+      <PaymentReturn />
+    </Suspense>
   );
 }
