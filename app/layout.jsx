@@ -49,7 +49,7 @@ export const metadata = {
     apple: "/favicon.png",
   },
   other: {
-    cryptomus: "3c4bc7a4",
+    cryptomus: "cfb2ea1b",
     "facebook-domain-verification": "l9e08q5h1e5rr1w508fru1x6uky5f1",
   },
 };
