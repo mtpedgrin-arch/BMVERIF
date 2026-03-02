@@ -1785,6 +1785,7 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, userCredit = 0, onCredit
       if (!payData.url) throw new Error(payData.error || "Error al generar pago");
       if (creditApplied > 0) onCreditUsed?.(creditApplied);
       onOrderPending?.(newOrder); // only after confirmed URL
+      try { localStorage.removeItem("bmveri_cart"); } catch {}
       window.location.href = payData.url;
     } catch (err) {
       alert(err.message || "Error al procesar pago con Cryptomus. Intentá de nuevo.");
@@ -2029,6 +2030,7 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
       const payData = await payRes.json();
       if (!payData.url) throw new Error(payData.error || "Error al generar pago");
       onOrderPending?.(order); // only after confirmed URL
+      try { localStorage.removeItem("bmveri_cart"); } catch {}
       window.location.href = payData.url;
     } catch (err) {
       alert(err.message || "Error al procesar pago con Cryptomus.");
