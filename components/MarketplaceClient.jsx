@@ -1208,7 +1208,21 @@ const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
             }
           </div>
         )}
-        {error && error !== "UNVERIFIED" && <div className="error-msg">{error}</div>}
+        {error && error !== "UNVERIFIED" && (
+          <div className="error-msg">
+            ⚠️ {error}
+            {tab === "register" && error.includes("ya está registrado") && (
+              <div style={{ marginTop: 8 }}>
+                {resendSent
+                  ? <span style={{ color: "#15803D", fontWeight: 600, fontSize: 12 }}>✅ Email reenviado. Revisá también spam.</span>
+                  : <button style={{ background: "none", border: "1px solid #F59E0B", borderRadius: 7, padding: "5px 12px", fontSize: 12, color: "#92400E", cursor: "pointer", fontWeight: 600 }} onClick={handleResendFromLogin} disabled={resendLoading}>
+                      {resendLoading ? "Enviando..." : "📨 ¿No recibiste el email? Reenviar verificación"}
+                    </button>
+                }
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── FORGOT PASSWORD VIEW ── */}
         {tab === "forgot" && (
