@@ -161,6 +161,8 @@
 - Entrega de producto
 - Recompensa de referido (crédito ganado)
 - Recordatorio de carrito abandonado
+- Remitente: `"BM Verificada" <soporte@mail.bmverificada.space>`
+- Dominio de envío verificado en Resend: `mail.bmverificada.space`
 
 ### ⚙️ Ajustes & Settings
 - Tabla `Settings` (key-value) para configuración dinámica del sitio
@@ -171,6 +173,8 @@
 - Diseño responsive mobile-first
 - Animaciones en carrito, notificaciones, chat
 - Logo en topbar, branding BM Verificada
+- Mobile (<600px): logo oculto, product cards en 2 filas (precio+botones debajo), overflow-x hidden
+- Botón "Reenviar verificación" en registro cuando el email ya existe
 
 ---
 
@@ -206,12 +210,12 @@ DIRECT_DATABASE_URL=
 NEXTAUTH_URL=https://bmverificada.space
 NEXTAUTH_SECRET=
 
-# Email (Resend)
+# Email (Resend) — dominio verificado en Resend: mail.bmverificada.space
 SMTP_HOST=smtp.resend.com
 SMTP_PORT=465
 SMTP_USER=resend
-SMTP_PASS=
-SMTP_FROM=
+SMTP_PASS=re_...   # ⚠️ Rotar el key en resend.com/api-keys si se expuso en el chat
+SMTP_FROM=soporte@mail.bmverificada.space
 
 # Cryptomus (pagos crypto)
 CRYPTOMUS_MERCHANT_UUID=
@@ -264,7 +268,7 @@ Cuando se agrega un campo o tabla nueva a `prisma/schema.prisma`:
 ## 🌐 DOMINIO
 
 - Dominio activo: **bmverificada.space** (Hostinger ✅)
-- Email soporte: **soporte@bmverificada.space** (Hostinger Email)
+- Email transaccional: **soporte@mail.bmverificada.space** via Resend (dominio `mail.bmverificada.space` verificado ✅)
 - Dominio anterior: bmverificada.store (GoDaddy — cuenta bloqueada, abandonado)
 - Al cambiar dominio en el futuro, actualizar en:
   - `app/layout.jsx` → metadataBase, canonical, OG url, JSON-LD urls
@@ -292,6 +296,10 @@ Cuando se agrega un campo o tabla nueva a `prisma/schema.prisma`:
 ## 📌 PENDIENTES / NOTAS IMPORTANTES
 
 - 🔑 **OpenAI API key**: si el usuario la pegó en el chat → pedirle que la revoque en platform.openai.com/api-keys y genere una nueva
-- 🌐 **Dominio**: gestionar cambio a Namecheap antes del vencimiento
+- 🔑 **Resend API key**: fue compartida en el chat → rotar en resend.com/api-keys y actualizar SMTP_PASS en Vercel via API
+- 🔑 **Vercel API token**: guardado de forma segura — Claude puede actualizar env vars via API (pedirle el token al usuario si hace falta)
+- ⚠️ **Cryptomus webhook**: PENDIENTE actualizar a `https://bmverificada.space/api/cryptomus/webhook` en el dashboard de Cryptomus
+- ⚠️ **DMARC mail subdomain**: PENDIENTE agregar en Hostinger DNS → TXT `_dmarc.mail` → `v=DMARC1; p=none;`
+- 🌐 **Dominio**: bmverificada.space en Hostinger — vence revisar antes de que expire
 - 🧪 **Testear el bot**: enviar mensaje como usuario regular para verificar respuestas GPT
 - 📋 **BotKnowledge**: cargar más info si el bot no sabe responder algo específico (panel admin → Bot IA)
