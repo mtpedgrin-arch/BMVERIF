@@ -3,19 +3,19 @@ import { prisma } from "../lib/prisma";
 export default async function sitemap() {
   const staticRoutes = [
     {
-      url: "https://bmverificada.store",
+      url: "https://bmverificada.space",
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 1.0,
     },
     {
-      url: "https://bmverificada.store/login",
+      url: "https://bmverificada.space/login",
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.3,
     },
     {
-      url: "https://bmverificada.store/blog",
+      url: "https://bmverificada.space/blog",
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.8,
@@ -30,7 +30,7 @@ export default async function sitemap() {
       orderBy: { publishedAt: "desc" },
     });
     blogRoutes = posts.map((post) => ({
-      url: `https://bmverificada.store/blog/${post.slug}`,
+      url: `https://bmverificada.space/blog/${post.slug}`,
       lastModified: post.updatedAt,
       changeFrequency: "weekly",
       priority: 0.7,

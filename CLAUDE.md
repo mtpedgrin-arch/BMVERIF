@@ -7,7 +7,7 @@
 
 ## 🏪 QUÉ ES EL PROYECTO
 
-**BM Verificada** (`bmverificada.store`) es una tienda e-commerce que vende **Business Managers Verificados de Meta/Facebook** con API de WhatsApp habilitada.
+**BM Verificada** (`bmverificada.space`) es una tienda e-commerce que vende **Business Managers Verificados de Meta/Facebook** con API de WhatsApp habilitada.
 - Stack: **Next.js 15 App Router** + **Prisma** + **PostgreSQL (Neon)** + **Vercel**
 - Repo GitHub: `mtpedgrin-arch/BMVERIF`
 - Archivo principal del frontend: `components/MarketplaceClient.jsx` (~415 KB, componente único gigante)
@@ -203,7 +203,7 @@ DATABASE_URL=
 DIRECT_DATABASE_URL=
 
 # NextAuth
-NEXTAUTH_URL=https://bmverificada.store
+NEXTAUTH_URL=https://bmverificada.space
 NEXTAUTH_SECRET=
 
 # Email (Resend)
@@ -263,7 +263,7 @@ Cuando se agrega un campo o tabla nueva a `prisma/schema.prisma`:
 
 ## 🌐 DOMINIO
 
-- Dominio activo: **bmverificada.store** (GoDaddy — ⚠️ cuenta bloqueada, vence pronto)
+- Dominio activo: **bmverificada.space** (GoDaddy — ⚠️ cuenta bloqueada, vence pronto)
 - Plan: comprar dominio nuevo en **Namecheap** o **Cloudflare Registrar**
 - Al cambiar dominio, actualizar en:
   - `app/layout.jsx` → metadataBase, canonical, OG url, JSON-LD urls

@@ -2,7 +2,7 @@ import Script from "next/script";
 import Providers from "./providers";
 
 export const metadata = {
-  metadataBase: new URL("https://bmverificada.store"),
+  metadataBase: new URL("https://bmverificada.space"),
   title: {
     default: "BM Verificada · Business Manager Facebook Verificado",
     template: "%s · BM Verificada",
@@ -22,7 +22,7 @@ export const metadata = {
     "comprar business manager",
   ],
   alternates: {
-    canonical: "https://bmverificada.store",
+    canonical: "https://bmverificada.space",
   },
   robots: {
     index: true,
@@ -33,7 +33,7 @@ export const metadata = {
     title: "BM Verificada · Business Manager Facebook Verificado",
     description:
       "Comprá Business Managers Verificados de Facebook con API de WhatsApp habilitada. Entrega en 5-30 min. Pago USDT.",
-    url: "https://bmverificada.store",
+    url: "https://bmverificada.space",
     siteName: "BM Verificada",
     locale: "es_AR",
     type: "website",
@@ -74,8 +74,8 @@ export default function RootLayout({ children }) {
               "@context": "https://schema.org",
               "@type": "Organization",
               name: "BM Verificada",
-              url: "https://bmverificada.store",
-              logo: "https://bmverificada.store/logo.png",
+              url: "https://bmverificada.space",
+              logo: "https://bmverificada.space/logo.png",
               description:
                 "Tienda de Business Managers Verificados de Facebook con API de WhatsApp habilitada. Entrega en 5-30 min.",
             }),
@@ -89,7 +89,7 @@ export default function RootLayout({ children }) {
               "@context": "https://schema.org",
               "@type": "WebSite",
               name: "BM Verificada",
-              url: "https://bmverificada.store",
+              url: "https://bmverificada.space",
               inLanguage: "es",
               description:
                 "Comprá Business Managers Verificados de Facebook con API de WhatsApp habilitada.",
@@ -157,7 +157,7 @@ export default function RootLayout({ children }) {
                 {
                   "@type": "Question",
                   name: "¿Cómo contacto al soporte?",
-                  acceptedAnswer: { "@type": "Answer", text: "Podés contactarnos por el chat interno del sitio (ícono 🎧 en la barra superior), por Telegram a @bmverificada_support o por email a soporte@bmverificada.com. El horario de atención es de lunes a viernes de 9 a 18 hs (GMT-3)." },
+                  acceptedAnswer: { "@type": "Answer", text: "Podés contactarnos por el chat interno del sitio (ícono 🎧 en la barra superior), por Telegram a @bmverificada_support o por email a soporte@bmverificada.space. El horario de atención es de lunes a viernes de 9 a 18 hs (GMT-3)." },
                 },
               ],
             }),
