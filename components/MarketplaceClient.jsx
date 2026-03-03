@@ -2933,7 +2933,8 @@ const ReviewsSection = ({ productId, user }) => {
 
 // ─── PRODUCT DETAIL PAGE ──────────────────────────────────────────────────────
 const ProductDetailPage = ({ product: p, cart, onBack, onAddToCartQty, onBuyNowQty, liked, onToggleLike, user }) => {
-  const [qty, setLocalQty] = useState(1);
+  const minQty = Math.max(1, p.minQty ?? 1);
+  const [qty, setLocalQty] = useState(minQty);
   const cartItem = cart.find(i => i.id === p.id);
   const cartQty = cartItem?.qty || 0;
 
@@ -2983,6 +2984,7 @@ const ProductDetailPage = ({ product: p, cart, onBack, onAddToCartQty, onBuyNowQ
             {p.rating > 0 && <Stars rating={p.rating} reviews={p.reviews} />}
             <span className="chip chip-stock">📦 Stock: <strong>{p.stock}</strong></span>
             {p.sales > 0 && <span className="chip chip-sales">🏷 Ventas: <strong>{p.sales}</strong></span>}
+            {minQty > 1 && <span className="chip" style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444", fontWeight: 700 }}>⚠️ Mín. {minQty} uds</span>}
           </div>
 
           {attrs.length > 0 ? (
@@ -3062,9 +3064,9 @@ const ProductDetailPage = ({ product: p, cart, onBack, onAddToCartQty, onBuyNowQ
           </div>
 
           <div className="pd-qty-row">
-            <span className="pd-qty-label">Cantidad</span>
+            <span className="pd-qty-label">Cantidad{minQty > 1 && <span style={{ fontSize: 11, color: "#ef4444", fontWeight: 700, marginLeft: 6 }}>mín. {minQty}</span>}</span>
             <div className="qty-ctrl">
-              <button className="qty-btn" onClick={() => setLocalQty(q => Math.max(1, q - 1))}>−</button>
+              <button className="qty-btn" onClick={() => setLocalQty(q => Math.max(minQty, q - 1))}>−</button>
               <span className="qty-num">{qty}</span>
               <button className="qty-btn" onClick={() => setLocalQty(q => Math.min(p.stock || 99, q + 1))}>+</button>
             </div>
