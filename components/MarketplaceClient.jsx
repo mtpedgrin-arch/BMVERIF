@@ -4701,11 +4701,11 @@ const ProductManager = ({ products, setProducts }) => {
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>Nombre</th><th>Detalles</th><th>Categoría</th><th>Venta</th><th>Costo</th><th>Ganancia</th><th>Stock</th><th>Ventas</th><th>Badge %</th><th>Estado</th><th>Acciones</th></tr>
+              <tr><th>Nombre</th><th>Detalles</th><th>Categoría</th><th>Venta</th><th>Costo</th><th>Ganancia</th><th>Stock</th><th>Mín.</th><th>Ventas</th><th>Badge %</th><th>Estado</th><th>Acciones</th></tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={11} style={{ textAlign: "center", padding: "30px 0", color: "var(--muted)" }}>No hay productos que coincidan con los filtros.</td></tr>
+                <tr><td colSpan={12} style={{ textAlign: "center", padding: "30px 0", color: "var(--muted)" }}>No hay productos que coincidan con los filtros.</td></tr>
               )}
               {filtered.map(p => {
                 const margin = p.cost > 0 ? (((p.price - p.cost) / p.cost) * 100).toFixed(0) : null;
@@ -4736,6 +4736,12 @@ const ProductManager = ({ products, setProducts }) => {
                     <span className="chip" style={{ background: p.stock > 0 ? "#F0FDF4" : "var(--red-light)", color: p.stock > 0 ? "#15803D" : "var(--red)", border: `1px solid ${p.stock > 0 ? "#BBF7D0" : "var(--red)"}` }}>
                       {p.stock} pcs.
                     </span>
+                  </td>
+                  <td>
+                    {(p.minQty ?? 1) > 1
+                      ? <span className="chip" style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444", fontWeight: 700, border: "1px solid rgba(239,68,68,0.3)" }}>{p.minQty} uds</span>
+                      : <span style={{ color: "var(--muted)", fontSize: 12 }}>1</span>
+                    }
                   </td>
                   <td><span className="chip chip-sales">{p.sales}</span></td>
                   <td>
