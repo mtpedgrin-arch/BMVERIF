@@ -5,6 +5,16 @@ import { prisma } from "../../../lib/prisma";
 import { sendTelegramNotification } from "../../../lib/telegram";
 
 // ─── GPT auto-response ────────────────────────────────────────────────────────
+function isOutsideHours() {
+  // Argentina time (UTC-3)
+  const now = new Date(Date.now() - 3 * 60 * 60 * 1000);
+  const day = now.getUTCDay();  // 0=Dom, 6=Sáb
+  const hour = now.getUTCHours();
+  const isWeekend = day === 0 || day === 6;
+  const isNight = hour < 8 || hour >= 23;
+  return isWeekend || isNight;
+}
+
 async function generateBotReply(userMessage, userEmail) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
@@ -227,6 +237,7 @@ export async function POST(req) {
         },
       });
 
+      const fueraHorario = isOutsideHours() ? `\n⏰ <i>Mensaje recibido fuera de horario (Lun–Vie 08:00–23:00)</i>` : "";
       if (needsHuman) {
         // Bot no pudo responder → notificar admin para que tome el chat
         await sendTelegramNotification(
@@ -234,18 +245,19 @@ export async function POST(req) {
           `👤 <b>${session.user.name || session.user.email}</b>\n` +
           `📧 ${session.user.email}\n` +
           `📝 "${text.trim()}"\n` +
-          `⏰ ${hora}`
+          `⏰ ${hora}${fueraHorario}`
         );
       }
       // Si el bot respondió OK → no se notifica, no hace falta intervención
     } else {
       // Sin bot activo → notificar admin normalmente
+      const fueraHorario = isOutsideHours() ? `\n⏰ <i>Mensaje recibido fuera de horario (Lun–Vie 08:00–23:00)</i>` : "";
       await sendTelegramNotification(
         `💬 <b>Nuevo mensaje de soporte</b>\n\n` +
         `👤 <b>${session.user.name || session.user.email}</b>\n` +
         `📧 ${session.user.email}\n` +
         `📝 "${text.trim()}"\n` +
-        `⏰ ${hora}`
+        `⏰ ${hora}${fueraHorario}`
       );
     }
   }
