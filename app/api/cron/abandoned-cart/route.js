@@ -13,6 +13,20 @@ export async function GET(req) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // ── 1. Auto-cancel expired pending orders ──────────────────────────────────
+  const now = new Date();
+  const expiredOrders = await prisma.order.findMany({
+    where: { status: "pending", expiresAt: { lt: now } },
+    select: { id: true },
+  });
+  if (expiredOrders.length > 0) {
+    await prisma.order.updateMany({
+      where: { id: { in: expiredOrders.map(o => o.id) }, status: "pending" },
+      data: { status: "cancelled" },
+    });
+  }
+
+  // ── 2. Abandoned cart emails ────────────────────────────────────────────────
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
   // Carts not updated in the last 2 hours and email not sent yet
@@ -58,5 +72,5 @@ export async function GET(req) {
     }
   }
 
-  return NextResponse.json({ ok: true, processed: carts.length, sent });
+  return NextResponse.json({ ok: true, expiredCancelled: expiredOrders.length, processed: carts.length, sent });
 }
