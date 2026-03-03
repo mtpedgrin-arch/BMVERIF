@@ -62,6 +62,26 @@ export async function POST(req) {
       return NextResponse.json({ ok: true });
     }
 
+    // ── Check if this is a WalletTopup (not a product order) ──────────────────
+    const topup = await prisma.walletTopup.findUnique({ where: { id: order_id } });
+    if (topup) {
+      if (topup.status === "paid") return NextResponse.json({ ok: true }); // idempotent
+      const txRef = txid || paymentUuid || "cryptomus";
+      await prisma.walletTopup.update({ where: { id: topup.id }, data: { status: "paid", txHash: txRef } });
+      await prisma.user.update({ where: { email: topup.userEmail }, data: { walletBalance: { increment: topup.amount } } });
+      const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+      sendTelegramOrderNotification(
+        `💰 <b>RECARGA DE BILLETERA</b>\n\n` +
+        `👤 <b>${topup.userName}</b>\n` +
+        `📧 ${topup.userEmail}\n` +
+        `💵 <b>+$${topup.amount.toFixed(2)} USDT acreditados</b>\n` +
+        `🔗 Tx: ${txRef}\n` +
+        `⏰ ${hora}`
+      ).catch(() => {});
+      return NextResponse.json({ ok: true });
+    }
+
+    // ── Regular product order ──────────────────────────────────────────────────
     const order = await prisma.order.findUnique({ where: { id: order_id } });
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
     if (order.status === "paid") return NextResponse.json({ ok: true }); // idempotent

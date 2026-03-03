@@ -9,6 +9,31 @@ function PaymentReturn() {
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
   const orderId = searchParams.get("orderId");
+  const topupId = searchParams.get("topupId");
+
+  // ── Topup return page ──────────────────────────────────────────────────────
+  if (topupId) {
+    const goToWallet = () => router.push("/?view=account&tab=wallet");
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0f1117", fontFamily: "'DM Sans', sans-serif", padding: "20px" }}>
+        <div style={{ background: "#1a1d27", border: "1.5px solid #2a2d3a", borderRadius: 20, padding: "48px 40px", maxWidth: 480, width: "100%", textAlign: "center", boxShadow: "0 8px 40px rgba(0,0,0,0.4)" }}>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>💰</div>
+          <h2 style={{ color: "#26a17b", fontFamily: "Syne, sans-serif", fontWeight: 800, fontSize: 24, marginBottom: 12 }}>
+            ¡Recarga en proceso!
+          </h2>
+          <p style={{ color: "#8b8fa8", fontSize: 15, marginBottom: 24, lineHeight: 1.6 }}>
+            Tu pago fue recibido por Cryptomus. El saldo se acreditará automáticamente en tu Billetera Interna en cuanto se confirme la transacción.
+          </p>
+          <p style={{ color: "#5a5e72", fontSize: 12, marginBottom: 28 }}>
+            ID de recarga: {topupId.slice(-12)}
+          </p>
+          <button onClick={goToWallet} style={{ width: "100%", padding: "13px", background: "#26a17b", color: "#fff", border: "none", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "Syne, sans-serif" }}>
+            Ver mi Billetera →
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const [state, setState] = useState("checking"); // checking | paid | pending | expired | error
   const [txHash, setTxHash] = useState(null);

@@ -31,6 +31,7 @@ model User {
   referralCode   String?   @unique // unique code for sharing (e.g. JUAN4K2M)
   referredBy     String?            // referralCode used when registering
   referralCredit Float     @default(0) // accumulated credit from referrals
+  walletBalance  Float     @default(0) // internal wallet balance (USDT)
 
   orders      Order[]
   favorites   Favorite[]
@@ -187,6 +188,19 @@ model BotKnowledge {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model WalletTopup {
+  id           String   @id @default(cuid())
+  userEmail    String
+  userName     String
+  amount       Float                        // monto que se acredita al usuario
+  uniqueAmount Float?                       // amount + centavos únicos para identificar en blockchain
+  status       String   @default("pending") // pending | paid | cancelled
+  txHash       String?
+  expiresAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model BlogPost {

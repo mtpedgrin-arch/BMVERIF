@@ -53,6 +53,24 @@ export async function POST(req) {
     await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "fbp" TEXT`);
     await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "fbc" TEXT`);
 
+    // Wallet: walletBalance en User + tabla WalletTopup
+    await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "walletBalance" DOUBLE PRECISION NOT NULL DEFAULT 0`);
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "WalletTopup" (
+        "id"           TEXT             NOT NULL,
+        "userEmail"    TEXT             NOT NULL,
+        "userName"     TEXT             NOT NULL,
+        "amount"       DOUBLE PRECISION NOT NULL,
+        "uniqueAmount" DOUBLE PRECISION,
+        "status"       TEXT             NOT NULL DEFAULT 'pending',
+        "txHash"       TEXT,
+        "expiresAt"    TIMESTAMP(3),
+        "createdAt"    TIMESTAMP(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt"    TIMESTAMP(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "WalletTopup_pkey" PRIMARY KEY ("id")
+      )
+    `);
+
     return NextResponse.json({ ok: true, message: "Migrations applied successfully" });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });

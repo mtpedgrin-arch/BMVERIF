@@ -1711,10 +1711,11 @@ const GlobalPendingWidget = ({ order, wallets, onExpand, onClear }) => {
 };
 
 // ─── PAYMENT MODAL (step 1: select method + proceed) ─────────────────────────
-const PaymentModal = ({ cart, user, coupon, finalTotal, userCredit = 0, onCreditUsed, onClose, onSuccess, onOrderUpdate, onOrderPending, wallets: W = WALLETS, paymentMethods = { usdt: true, cryptomus: true } }) => {
+const PaymentModal = ({ cart, user, coupon, finalTotal, userCredit = 0, onCreditUsed, onClose, onSuccess, onOrderUpdate, onOrderPending, wallets: W = WALLETS, paymentMethods = { usdt: true, cryptomus: true }, walletBalance = 0, onWalletUpdate }) => {
   const [network, setNetwork] = useState(null);
   const [creating, setCreating] = useState(false);
   const [cryptomusLoading, setCryptomusLoading] = useState(false);
+  const [walletLoading, setWalletLoading] = useState(false);
   const [order, setOrder] = useState(null);
   const [useCredit, setUseCredit] = useState(false);
 
@@ -1809,6 +1810,29 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, userCredit = 0, onCredit
     }
   };
 
+  // ── Wallet (billetera interna) proceed ──
+  const proceedWallet = async () => {
+    setWalletLoading(true);
+    try {
+      await useCoupon();
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildOrderBody("WALLET")),
+      });
+      const newOrder = await res.json();
+      if (!newOrder.id) throw new Error(newOrder.error || "Saldo insuficiente o error al procesar");
+      if (creditApplied > 0) onCreditUsed?.(creditApplied);
+      onWalletUpdate?.(Math.max(0, walletBalance - effectiveTotal));
+      onSuccess(newOrder);
+      onClose();
+    } catch (err) {
+      alert(err.message || "Error al pagar con billetera.");
+    } finally {
+      setWalletLoading(false);
+    }
+  };
+
   // Once USDT order is created, show PaymentPendingModal full-screen
   if (order) return (
     <PaymentPendingModal
@@ -1855,10 +1879,51 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, userCredit = 0, onCredit
           <div className="order-row bold"><span>Total a pagar</span><span style={{ color: "var(--usdt)" }}>{fmtUSDT(effectiveTotal)}</span></div>
         </div>
 
+        {/* ── Billetera Interna ── */}
+        {walletBalance > 0 && (
+          <div style={{ marginBottom: 4 }}>
+            <div style={{ fontFamily: "Syne", fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+              Billetera interna
+            </div>
+            <button
+              onClick={walletBalance >= effectiveTotal ? proceedWallet : undefined}
+              disabled={walletBalance < effectiveTotal || walletLoading}
+              style={{
+                width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                gap: 8, padding: "13px 16px", borderRadius: 10,
+                border: `2px solid ${walletBalance >= effectiveTotal ? "var(--usdt)" : "var(--border)"}`,
+                cursor: walletBalance >= effectiveTotal ? "pointer" : "not-allowed",
+                background: walletBalance >= effectiveTotal ? "rgba(38,161,123,0.08)" : "var(--bg)",
+                color: walletBalance >= effectiveTotal ? "var(--usdt)" : "var(--muted)",
+                fontSize: 14, fontWeight: 700, fontFamily: "Syne",
+                opacity: walletLoading ? 0.6 : 1, transition: "all .15s",
+              }}
+            >
+              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 18 }}>💰</span>
+                {walletLoading ? "⏳ Procesando..." : "Pagar con Billetera Interna"}
+              </span>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>${walletBalance.toFixed(2)} disp.</span>
+            </button>
+            {walletBalance < effectiveTotal && (
+              <div style={{ fontSize: 11, color: "var(--red)", marginTop: 5, textAlign: "center" }}>
+                Saldo insuficiente · Te faltan ${(effectiveTotal - walletBalance).toFixed(2)} USDT
+              </div>
+            )}
+            {(showCryptomus || showUsdt) && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, marginBottom: 2 }}>
+                <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+                <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 700, letterSpacing: "0.05em" }}>O USAR OTRO MÉTODO</span>
+                <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── Cryptomus (primary) ── */}
         {showCryptomus && (
           <div style={{ marginBottom: showUsdt ? 0 : 4 }}>
-            {showUsdt && (
+            {showUsdt && !walletBalance && (
               <div style={{ fontFamily: "Syne", fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
                 Pago automático
               </div>
@@ -1959,7 +2024,7 @@ const SuccessModal = ({ order, onClose }) => {
 };
 
 // ─── CHECKOUT PAGE ────────────────────────────────────────────────────────────
-const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShowAuth, onOrderPending, wallets: W = WALLETS, paymentMethods = { usdt: true, cryptomus: true }, userCredit = 0, onCreditUsed, products = [], onAddToCart }) => {
+const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShowAuth, onOrderPending, wallets: W = WALLETS, paymentMethods = { usdt: true, cryptomus: true }, userCredit = 0, onCreditUsed, products = [], onAddToCart, walletBalance = 0, onWalletUpdate }) => {
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponState, setCouponState] = useState("idle");
@@ -1969,6 +2034,7 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [cryptomusSubmitting, setCryptomusSubmitting] = useState(false);
+  const [walletSubmitting, setWalletSubmitting] = useState(false);
   const [createdOrder, setCreatedOrder] = useState(null);
   const [showPendingModal, setShowPendingModal] = useState(false);
   const [payStatus, setPayStatus] = useState("polling");
@@ -2060,6 +2126,27 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
     } catch (err) {
       alert(err.message || "Error al procesar pago con Cryptomus.");
       setCryptomusSubmitting(false);
+    }
+  };
+
+  // ── Wallet (billetera interna) submit ──
+  const handleWallet = async () => {
+    if (!user) { onShowAuth(); return; }
+    setWalletSubmitting(true);
+    try {
+      if (appliedCoupon) {
+        await fetch("/api/coupons/use", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: appliedCoupon.code }) }).catch(() => {});
+      }
+      const res = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(buildOrderBody("WALLET")) });
+      const order = await res.json();
+      if (!order.id) throw new Error(order.error || "Saldo insuficiente o error al procesar");
+      if (creditApplied > 0) onCreditUsed?.(creditApplied);
+      onWalletUpdate?.(Math.max(0, walletBalance - effectiveTotal));
+      onSuccess(order);
+    } catch (err) {
+      alert(err.message || "Error al pagar con billetera.");
+    } finally {
+      setWalletSubmitting(false);
     }
   };
 
@@ -2246,6 +2333,50 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
                 <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Cuenta</div>
                 <div style={{ fontWeight: 600 }}>{user.name || user.email}</div>
                 <div style={{ color: "var(--muted)", fontSize: 12 }}>{user.email}</div>
+              </div>
+            )}
+
+            {/* ── Billetera Interna ── */}
+            {walletBalance > 0 && (
+              <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
+                {!user ? (
+                  <button className="co-submit" onClick={onShowAuth}>🔐 Iniciá sesión para continuar</button>
+                ) : (
+                  <>
+                    <button
+                      onClick={walletBalance >= effectiveTotal ? handleWallet : undefined}
+                      disabled={walletBalance < effectiveTotal || walletSubmitting}
+                      style={{
+                        width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                        gap: 8, padding: "13px 16px", borderRadius: 10,
+                        border: `2px solid ${walletBalance >= effectiveTotal ? "var(--usdt)" : "var(--border)"}`,
+                        cursor: walletBalance >= effectiveTotal ? "pointer" : "not-allowed",
+                        background: walletBalance >= effectiveTotal ? "rgba(38,161,123,0.08)" : "var(--bg)",
+                        color: walletBalance >= effectiveTotal ? "var(--usdt)" : "var(--muted)",
+                        fontSize: 14, fontWeight: 700, fontFamily: "Syne",
+                        opacity: walletSubmitting ? 0.6 : 1, transition: "all .15s",
+                      }}
+                    >
+                      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 18 }}>💰</span>
+                        {walletSubmitting ? "⏳ Procesando..." : "Pagar con Billetera Interna"}
+                      </span>
+                      <span style={{ fontSize: 12, fontWeight: 600 }}>${walletBalance.toFixed(2)} disp.</span>
+                    </button>
+                    {walletBalance < effectiveTotal && (
+                      <div style={{ fontSize: 11, color: "var(--red)", marginTop: 5, textAlign: "center" }}>
+                        Saldo insuficiente · Te faltan ${(effectiveTotal - walletBalance).toFixed(2)} USDT
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+            {walletBalance > 0 && paymentMethods.cryptomus && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 20px" }}>
+                <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+                <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 700, letterSpacing: "0.05em" }}>O PAGAR CON</span>
+                <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
               </div>
             )}
 
@@ -3219,7 +3350,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
 };
 
 // ─── USER ACCOUNT ─────────────────────────────────────────────────────────────
-const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products, wallets: W = WALLETS, onOrderUpdate }) => {
+const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products, wallets: W = WALLETS, onOrderUpdate, walletBalance: walletBalanceProp = 0, onWalletUpdate }) => {
   const [tab, setTab] = useState(() => {
     try { return sessionStorage.getItem("account_tab") || "orders"; } catch { return "orders"; }
   });
@@ -3229,6 +3360,27 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
   const [reopenOrder, setReopenOrder] = useState(null); // pending order to reopen modal
   const myOrders = userOrders; // la API ya filtra por usuario
   const favProducts = products.filter(p => liked[p.id]);
+
+  // ── Billetera state ──
+  const [walletData, setWalletData] = useState(null);
+  const [walletDataLoading, setWalletDataLoading] = useState(false);
+  const [topupAmount, setTopupAmount] = useState("");
+  const [topupLoading, setTopupLoading] = useState(false);
+  const [topupMsg, setTopupMsg] = useState(null);
+  const loadWalletData = () => {
+    setWalletDataLoading(true);
+    fetch("/api/wallet")
+      .then(r => r.json())
+      .then(d => {
+        setWalletData(d);
+        if (d.balance != null) onWalletUpdate?.(d.balance);
+      })
+      .catch(() => {})
+      .finally(() => setWalletDataLoading(false));
+  };
+  useEffect(() => {
+    if (tab === "wallet") loadWalletData();
+  }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Referidos state ──
   const [refData, setRefData] = useState(null);
@@ -3446,10 +3598,17 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
           <div style={{ fontSize: 22, fontWeight: 800, color: refBalance > 0 ? "#16a34a" : "var(--muted)", margin: "4px 0 2px" }}>${refBalance.toFixed(2)}</div>
           <div style={{ fontSize: 11, color: "var(--muted)" }}>USDT disponible</div>
         </div>
+        <div className="stat-card" style={{ flex: "1 1 130px", cursor: "pointer" }} onClick={() => setTab("wallet")}>
+          <div className="stat-label">💰 Billetera</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: (walletData?.balance ?? walletBalanceProp) > 0 ? "var(--usdt)" : "var(--muted)", margin: "4px 0 2px" }}>
+            ${(walletData?.balance ?? walletBalanceProp).toFixed(2)}
+          </div>
+          <div style={{ fontSize: 11, color: "var(--muted)" }}>saldo interno</div>
+        </div>
       </div>
 
-      <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
-        {[["orders", "📦 Mis órdenes"], ["favorites", `❤️ Favoritos${favProducts.length > 0 ? ` (${favProducts.length})` : ""}`], ["referidos", "🎁 Referidos"], ["settings", "⚙️ Ajustes"]].map(([id, label]) => (
+      <div style={{ display: "flex", gap: 4, marginBottom: 20, flexWrap: "wrap" }}>
+        {[["orders", "📦 Mis órdenes"], ["favorites", `❤️ Favoritos${favProducts.length > 0 ? ` (${favProducts.length})` : ""}`], ["referidos", "🎁 Referidos"], ["wallet", "💰 Billetera"], ["settings", "⚙️ Ajustes"]].map(([id, label]) => (
           <button key={id} className={`nav-tab ${tab === id ? "active" : ""}`} onClick={() => setTab(id)}>{label}</button>
         ))}
       </div>
@@ -3657,6 +3816,108 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
                 )}
               </div>
             </>
+          )}
+        </div>
+      )}
+
+      {/* ── BILLETERA ── */}
+      {tab === "wallet" && (
+        <div>
+          {/* Balance card */}
+          <div className="card" style={{ marginBottom: 16 }}>
+            <div className="card-title">💰 Billetera Interna</div>
+            {walletDataLoading ? (
+              <div style={{ padding: "20px 0", textAlign: "center", color: "var(--muted)" }}>Cargando...</div>
+            ) : (
+              <>
+                <div style={{ textAlign: "center", padding: "20px 0 10px" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+                    Saldo disponible
+                  </div>
+                  <div style={{ fontFamily: "Syne", fontSize: 48, fontWeight: 900, color: "var(--usdt)" }}>
+                    ${(walletData?.balance ?? walletBalanceProp).toFixed(2)}
+                  </div>
+                  <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>USDT</div>
+                </div>
+
+                {/* Topup form */}
+                <div style={{ borderTop: "1px solid var(--border)", padding: "16px 0 4px" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Recargar saldo</div>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                    <input
+                      type="number"
+                      placeholder="Monto mín. $2 USDT"
+                      value={topupAmount}
+                      onChange={e => { setTopupAmount(e.target.value); setTopupMsg(null); }}
+                      style={{ flex: 1, padding: "9px 12px", borderRadius: 9, border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 14, outline: "none" }}
+                      min="2"
+                      step="1"
+                    />
+                    <button
+                      className="btn btn-primary"
+                      disabled={topupLoading || !topupAmount || parseFloat(topupAmount) < 2}
+                      onClick={async () => {
+                        setTopupLoading(true);
+                        setTopupMsg(null);
+                        try {
+                          const res = await fetch("/api/wallet/topup", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ amount: parseFloat(topupAmount) }),
+                          });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data.error || "Error al crear recarga");
+                          window.location.href = data.url;
+                        } catch (err) {
+                          setTopupMsg({ ok: false, text: err.message });
+                        } finally {
+                          setTopupLoading(false);
+                        }
+                      }}
+                    >
+                      {topupLoading ? "..." : "Recargar →"}
+                    </button>
+                  </div>
+                  {topupMsg && (
+                    <div style={{ fontSize: 12, color: topupMsg.ok ? "var(--green)" : "var(--red)", marginBottom: 8 }}>
+                      {topupMsg.text}
+                    </div>
+                  )}
+                  <div style={{ fontSize: 11, color: "var(--muted)", lineHeight: 1.5 }}>
+                    El pago se procesa vía Cryptomus · El saldo se acredita automáticamente al confirmar.
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Topup history */}
+          {!walletDataLoading && walletData?.topups?.length > 0 && (
+            <div className="card">
+              <div className="card-title">Historial de recargas</div>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>ID</th><th>Monto a acreditar</th><th>Estado</th><th>Fecha</th></tr>
+                  </thead>
+                  <tbody>
+                    {walletData.topups.map(t => (
+                      <tr key={t.id}>
+                        <td><code style={{ fontSize: 11, color: "var(--purple)" }}>{t.id.slice(-8)}</code></td>
+                        <td><strong style={{ color: "var(--usdt)" }}>${t.amount.toFixed(2)} USDT</strong></td>
+                        <td><StatusPill status={t.status === "paid" ? "paid" : t.status === "cancelled" ? "cancelled" : "pending"} /></td>
+                        <td style={{ fontSize: 12, color: "var(--muted)" }}>{new Date(t.createdAt).toLocaleDateString("es-AR")}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          {!walletDataLoading && walletData && (!walletData.topups || walletData.topups.length === 0) && (
+            <div className="card" style={{ textAlign: "center", color: "var(--muted)", fontSize: 14, padding: "30px 0" }}>
+              No tenés recargas registradas aún.
+            </div>
           )}
         </div>
       )}
@@ -6486,9 +6747,12 @@ export default function App() {
       const reset = params.get("reset");
       const verify = params.get("verify");
       const viewParam = params.get("view");
+      const tabParam = params.get("tab");
       const refCode = params.get("ref");
       if (refCode) { try { localStorage.setItem("bmveri_ref", refCode); } catch {} }
       if (reset || verify || viewParam || refCode) window.history.replaceState({}, "", "/"); // clean URL
+      // Tab param: pre-set sessionStorage tab for UserAccount
+      if (tabParam) { try { sessionStorage.setItem("account_tab", tabParam); } catch {} }
       // Cryptomus return: redirect to orders view automatically
       if (viewParam === "account") setView("account");
       if (reset) setResetToken(reset);
@@ -6534,6 +6798,16 @@ export default function App() {
     fetch("/api/referrals")
       .then(r => r.json())
       .then(d => { if (d.referralCredit != null) setReferralCredit(d.referralCredit); })
+      .catch(() => {});
+  }, [user?.email]);
+
+  // ── WALLET BALANCE ──
+  const [walletBalance, setWalletBalance] = useState(0);
+  useEffect(() => {
+    if (!user?.email) { setWalletBalance(0); return; }
+    fetch("/api/wallet")
+      .then(r => r.json())
+      .then(d => { if (d.balance != null) setWalletBalance(d.balance); })
       .catch(() => {});
   }, [user?.email]);
 
@@ -6883,8 +7157,8 @@ export default function App() {
 
       {view === "shop" && !selectedProduct && <ShopPage cart={cart} onAddToCart={addToCart} onBuyNow={handleBuyNow} onCartOpen={() => setCartOpen(true)} liked={liked} onToggleLike={toggleLike} products={products} onProductClick={handleProductClick} thumbs={thumbs} />}
       {view === "shop" && selectedProduct && <ProductDetailPage product={selectedProduct} cart={cart} onBack={() => setSelectedProduct(null)} onAddToCartQty={addToCartQty} onBuyNowQty={handleBuyNowQty} liked={liked} onToggleLike={toggleLike} user={user} />}
-      {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); if (user?.email) { fetch("/api/cart/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: [], total: 0 }) }).catch(() => {}); } }} onOrderPending={order => setGlobalPending(order)} wallets={wallets} paymentMethods={paymentMethods} userCredit={referralCredit} onCreditUsed={amt => setReferralCredit(prev => Math.max(0, prev - amt))} products={products} onAddToCart={p => { addToCart(p); }} />}
-      {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} wallets={wallets} onOrderUpdate={updatedOrder => setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o))} />}
+      {view === "checkout" && <CheckoutPage cart={cart} onQty={setQty} onRemove={removeFromCart} user={user} onGoShop={() => setView("shop")} onShowAuth={() => { setAuthTab("login"); setShowAuth(true); }} onSuccess={order => { setOrders(prev => [order, ...prev]); setCart([]); if (user?.email) { fetch("/api/cart/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: [], total: 0 }) }).catch(() => {}); } if (order.network === "WALLET") { setLastOrder(order); setShowSuccess(true); } }} onOrderPending={order => setGlobalPending(order)} wallets={wallets} paymentMethods={paymentMethods} userCredit={referralCredit} onCreditUsed={amt => setReferralCredit(prev => Math.max(0, prev - amt))} products={products} onAddToCart={p => { addToCart(p); }} walletBalance={walletBalance} onWalletUpdate={bal => setWalletBalance(bal)} />}
+      {view === "account" && user && <UserAccount user={user} userOrders={orders} liked={liked} onToggleLike={toggleLike} onGoShop={() => setView("shop")} products={products} wallets={wallets} onOrderUpdate={updatedOrder => setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o))} walletBalance={walletBalance} onWalletUpdate={bal => setWalletBalance(bal)} />}
       {view === "faq" && <FAQView onGoShop={() => setView("shop")} />}
 
       {showMiniCart && cart.length > 0 && (
@@ -6898,7 +7172,7 @@ export default function App() {
         />
       )}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} onSuccess={() => setShowPayment(pendingTotal > 0)} initialTab={authTab} />}
-      {showPayment && user && <PaymentModal cart={cart} user={user} coupon={pendingCoupon} finalTotal={pendingTotal} userCredit={referralCredit} onCreditUsed={amt => setReferralCredit(prev => Math.max(0, prev - amt))} onClose={() => setShowPayment(false)} onSuccess={handlePaySuccess} onOrderUpdate={o => setOrders(prev => { const ex = prev.find(x => x.id === o.id); return ex ? prev.map(x => x.id === o.id ? o : x) : [o, ...prev]; })} onOrderPending={order => setGlobalPending(order)} wallets={wallets} paymentMethods={paymentMethods} />}
+      {showPayment && user && <PaymentModal cart={cart} user={user} coupon={pendingCoupon} finalTotal={pendingTotal} userCredit={referralCredit} onCreditUsed={amt => setReferralCredit(prev => Math.max(0, prev - amt))} onClose={() => setShowPayment(false)} onSuccess={handlePaySuccess} onOrderUpdate={o => setOrders(prev => { const ex = prev.find(x => x.id === o.id); return ex ? prev.map(x => x.id === o.id ? o : x) : [o, ...prev]; })} onOrderPending={order => setGlobalPending(order)} wallets={wallets} paymentMethods={paymentMethods} walletBalance={walletBalance} onWalletUpdate={bal => setWalletBalance(bal)} />}
       {showSuccess && lastOrder && <SuccessModal order={lastOrder} onClose={() => { setShowSuccess(false); setView("account"); }} />}
       {resetToken && <ResetPasswordModal token={resetToken} onClose={() => { setResetToken(null); setAuthTab("login"); setShowAuth(true); }} />}
       {verifyResult && (
