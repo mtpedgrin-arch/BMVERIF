@@ -3846,16 +3846,16 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
                   <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                     <input
                       type="number"
-                      placeholder="Monto mín. $2 USDT"
+                      placeholder="Monto mín. $20 USDT"
                       value={topupAmount}
                       onChange={e => { setTopupAmount(e.target.value); setTopupMsg(null); }}
                       style={{ flex: 1, padding: "9px 12px", borderRadius: 9, border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 14, outline: "none" }}
-                      min="2"
+                      min="20"
                       step="1"
                     />
                     <button
                       className="btn btn-primary"
-                      disabled={topupLoading || !topupAmount || parseFloat(topupAmount) < 2}
+                      disabled={topupLoading || !topupAmount || parseFloat(topupAmount) < 20}
                       onClick={async () => {
                         setTopupLoading(true);
                         setTopupMsg(null);

@@ -21,8 +21,8 @@ export async function POST(req) {
 
   const { amount } = await req.json();
   const parsed = parseFloat(amount);
-  if (!parsed || parsed < 2) {
-    return NextResponse.json({ error: "El monto mínimo de recarga es $2 USDT" }, { status: 400 });
+  if (!parsed || parsed < 20) {
+    return NextResponse.json({ error: "El monto mínimo de recarga es $20 USDT" }, { status: 400 });
   }
 
   if (!MERCHANT || !API_KEY) {
