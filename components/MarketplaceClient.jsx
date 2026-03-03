@@ -4656,14 +4656,14 @@ const ProductManager = ({ products, setProducts }) => {
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>Nombre</th><th>Detalles</th><th>Categoría</th><th>Venta</th><th>Costo</th><th>Margen</th><th>Stock</th><th>Ventas</th><th>Badge %</th><th>Estado</th><th>Acciones</th></tr>
+              <tr><th>Nombre</th><th>Detalles</th><th>Categoría</th><th>Venta</th><th>Costo</th><th>Ganancia</th><th>Stock</th><th>Ventas</th><th>Badge %</th><th>Estado</th><th>Acciones</th></tr>
             </thead>
             <tbody>
               {products.length === 0 && (
                 <tr><td colSpan={7} style={{ textAlign: "center", padding: "30px 0", color: "var(--muted)" }}>No hay productos. Crea el primero.</td></tr>
               )}
               {products.map(p => {
-                const margin = p.cost > 0 ? (((p.price - p.cost) / p.price) * 100).toFixed(0) : null;
+                const margin = p.cost > 0 ? (((p.price - p.cost) / p.cost) * 100).toFixed(0) : null;
                 return (
                 <tr key={p.id} style={{ opacity: p.isActive ? 1 : 0.5 }}>
                   <td style={{ maxWidth: 200, fontSize: 12, fontWeight: 600 }}>{p.name}</td>
