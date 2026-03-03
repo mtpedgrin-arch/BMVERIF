@@ -155,7 +155,11 @@ const css = `
     .sidebar-tree-box { display: none; }
     .sidebar-section { display: none; }
   }
-  .cat-section-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 10px; margin-top: 4px; padding-bottom: 8px; border-bottom: 2px solid #1877F2; display: inline-block; }
+  .cat-section-title { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 12px; margin-top: 6px; padding-bottom: 10px; border-bottom: 1.5px solid var(--border); }
+  .cat-section-badge { width: 30px; height: 30px; border-radius: 50%; background: #1877F2; display: flex; align-items: center; justify-Content: center; font-size: 14px; flex-shrink: 0; }
+  .cat-section-meta { display: flex; flex-direction: column; gap: 1px; }
+  .cat-section-label { font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.2; }
+  .cat-section-sub { font-size: 11px; color: var(--muted); font-weight: 400; }
   .product-list { display: flex; flex-direction: column; background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
   .product-row { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); transition: background 0.12s; }
   .product-row:last-child { border-bottom: none; }
@@ -488,7 +492,8 @@ const css = `
     .prod-price { font-size: 18px; }
     .buy-btn { padding: 8px 14px; font-size: 13px; }
     .icon-btn { width: 32px; height: 32px; font-size: 14px; }
-    .cat-section-title { font-size: 14px; }
+    .cat-section-title { font-size: 13px; }
+    .cat-section-badge { width: 26px; height: 26px; font-size: 12px; }
     .topbar { padding: 0 12px; gap: 4px; }
     .topbar-right { gap: 4px; }
     .nav-tab { padding: 5px 8px; font-size: 12px; }
@@ -3342,6 +3347,16 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
                         <span className="tree-count">{count}</span>
                         {l3s.length > 0 && <span className="tree-arrow">{isOpen ? "▾" : "▸"}</span>}
                       </div>
+                      {isOpen && l3s.length > 0 && (
+                        <div
+                          className={`sidebar-tree-row l3${!activeL3 ? " active" : ""}`}
+                          onClick={() => setActiveL3(null)}
+                          style={{ fontStyle: "italic" }}>
+                          <div className="tree-dot" />
+                          <span>Todos</span>
+                          <span className="tree-count">{count}</span>
+                        </div>
+                      )}
                       {isOpen && l3s.map(l3 => {
                         const l3count = products.filter(p => p.category === l3.key).length;
                         return (
@@ -3382,9 +3397,15 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
               </div>
             )}
 
-            {groups.map(({ key, label, icon, prods }) => (
+            {groups.map(({ key, label, icon, platformLabel, platformIcon, prods }) => (
               <div key={key} style={{ marginBottom: 28 }}>
-                <div className="cat-section-title">{icon} {label}</div>
+                <div className="cat-section-title">
+                  <div className="cat-section-badge">{platformIcon || icon}</div>
+                  <div className="cat-section-meta">
+                    <div className="cat-section-label">{icon} {label}</div>
+                    {platformLabel && <div className="cat-section-sub">{platformLabel}</div>}
+                  </div>
+                </div>
                 <div className="product-list">
                   {sortProds(prods).map(p => (
                     <div key={p.id} className="product-row" onClick={() => onProductClick && onProductClick(p)}>
@@ -6587,7 +6608,8 @@ const AdminSupplierCatalog = () => {
       price: rowPrice,
       cost: costVal,
       margin: realMargin,
-      category: f.category,
+      // Auto-detectar categoría del proveedor; si no hay, mantener la anterior
+      category: p.subcat || f.category,
     }));
     setImportMsg(null);
   };
