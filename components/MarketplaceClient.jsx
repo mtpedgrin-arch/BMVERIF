@@ -6557,16 +6557,23 @@ const AdminSupplierCatalog = () => {
 
   const openImport = (p) => {
     const costVal  = String(p.priceUsd ?? p.price ?? "");
-    // Usa el precio editado en la tabla si existe, sino calcula con el margen
-    const rowPrice = customPrices[p.id] !== undefined
+    const isCustom = customPrices[p.id] !== undefined;
+    // Usa el precio editado en la tabla si existe, sino calcula con el margen base
+    const rowPrice = isCustom
       ? String(customPrices[p.id])
       : calcPrice(costVal, importForm.margin);
+    // Si el precio fue editado manualmente, calcula el % real que corresponde
+    const costNum  = parseFloat(costVal) || 0;
+    const priceNum = parseFloat(rowPrice) || 0;
+    const realMargin = isCustom && costNum > 0
+      ? ((priceNum - costNum) / costNum * 100).toFixed(1)
+      : importForm.margin;
     setImporting(p.id ?? lookupId.trim());
     setImportForm(f => ({
       name: p.titleEn || p.title || "",
       price: rowPrice,
       cost: costVal,
-      margin: f.margin,
+      margin: realMargin,
       category: f.category,
     }));
     setImportMsg(null);
