@@ -6473,8 +6473,10 @@ const AdminSupplierCatalog = () => {
   const [products, setProducts] = useState(null);
   const [productsError, setPE]  = useState(null);
   const [search, setSearch]     = useState("");
-  const [subcatFilter, setSubcat]       = useState("all");
-  const [onlyInStock, setInStock]       = useState(true);
+  const [filterPlatform, setFilterPlatform] = useState("all");
+  const [filterL2, setFilterL2]             = useState("all");
+  const [filterL3, setFilterL3]             = useState("all");
+  const [onlyInStock, setInStock]           = useState(true);
   const [previewMargin, setPreviewMarg] = useState("30"); // % para mostrar precio público en tabla
 
   // Búsqueda individual por ID
@@ -6514,19 +6516,19 @@ const AdminSupplierCatalog = () => {
       .finally(() => setBL(false));
   }, []);
 
+  // Helper: dado un subcat del proveedor (L3 o L2 sin hijos), retorna la clave L2 padre
+  const getParentL2 = (subcat) => {
+    const def = PRODUCT_CATS.find(c => c.key === subcat);
+    return def?.parent ?? subcat;
+  };
+
   const filtered = (products || []).filter(p => {
-    const matchSubcat = subcatFilter === "all" || p.subcat === subcatFilter;
+    const matchL2 = filterL2 === "all" || getParentL2(p.subcat) === filterL2;
+    const matchL3 = filterL3 === "all" || p.subcat === filterL3;
     const matchSearch = !search || p.titleEn?.toLowerCase().includes(search.toLowerCase()) || String(p.id).includes(search);
     const matchStock  = !onlyInStock || (p.qty ?? 0) > 0;
-    return matchSubcat && matchSearch && matchStock;
+    return matchL2 && matchL3 && matchSearch && matchStock;
   });
-
-  const subcatCounts = SUPPLIER_SUBCATS.reduce((acc, s) => {
-    acc[s.key] = s.key === "all"
-      ? (products || []).filter(p => !onlyInStock || (p.qty ?? 0) > 0).length
-      : (products || []).filter(p => p.subcat === s.key && (!onlyInStock || (p.qty ?? 0) > 0)).length;
-    return acc;
-  }, {});
 
   const doLookup = async () => {
     if (!lookupId.trim()) return;
@@ -6881,18 +6883,50 @@ const AdminSupplierCatalog = () => {
         <div style={{ textAlign: "center", padding: "40px 0", color: "var(--muted)" }}>⏳ Cargando catálogo...</div>
       ) : (
         <>
-          {/* Tabs subcategorías */}
-          <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
-            {SUPPLIER_SUBCATS.map(s => (
-              <button key={s.key}
-                className={`btn ${subcatFilter === s.key ? "btn-primary" : "btn-outline"} btn-sm`}
-                style={{ fontSize: 12 }}
-                onClick={() => setSubcat(s.key)}
-                disabled={subcatCounts[s.key] === 0}
-              >
-                {s.label} <span style={{ opacity: 0.7, fontSize: 11 }}>({subcatCounts[s.key] ?? 0})</span>
+          {/* ── Filtros en cascada: plataforma → categoría → subcategoría ── */}
+          <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
+            {/* Dropdown 1: Plataforma */}
+            <div>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.05em" }}>Plataforma</label>
+              <select className="form-input" style={{ minWidth: 160 }} value={filterPlatform}
+                onChange={e => { setFilterPlatform(e.target.value); setFilterL2("all"); setFilterL3("all"); }}>
+                <option value="all">🌐 Todas</option>
+                <option value="facebook">🔵 Facebook</option>
+              </select>
+            </div>
+
+            {/* Dropdown 2: Categoría L2 */}
+            <div>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.05em" }}>Categoría</label>
+              <select className="form-input" style={{ minWidth: 210 }} value={filterL2}
+                onChange={e => { setFilterL2(e.target.value); setFilterL3("all"); }}>
+                <option value="all">📂 Todas las categorías</option>
+                {PRODUCT_CATS.filter(c => !c.parent && c.platform === "facebook").map(c => (
+                  <option key={c.key} value={c.key}>{c.icon} {c.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Dropdown 3: Subcategoría L3 */}
+            <div>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.05em" }}>Subcategoría</label>
+              <select className="form-input" style={{ minWidth: 210 }} value={filterL3}
+                onChange={e => setFilterL3(e.target.value)}
+                disabled={filterL2 === "all" || PRODUCT_CATS.filter(c => c.parent === filterL2).length === 0}>
+                <option value="all">🔽 Todas las subcategorías</option>
+                {filterL2 !== "all" && PRODUCT_CATS.filter(c => c.parent === filterL2).map(c => (
+                  <option key={c.key} value={c.key}>{c.icon} {c.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Botón limpiar */}
+            {(filterPlatform !== "all" || filterL2 !== "all" || filterL3 !== "all") && (
+              <button className="btn btn-outline btn-sm" style={{ fontSize: 11, marginBottom: 2 }}
+                onClick={() => { setFilterPlatform("all"); setFilterL2("all"); setFilterL3("all"); }}>
+                ✕ Limpiar
               </button>
-            ))}
+            )}
           </div>
 
           {/* Barra de búsqueda + toggle stock + preview margen */}
