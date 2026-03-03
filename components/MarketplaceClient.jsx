@@ -6479,7 +6479,8 @@ const AdminSupplierCatalog = () => {
   const [filterL2, setFilterL2]             = useState("all");
   const [filterL3, setFilterL3]             = useState("all");
   const [onlyInStock, setInStock]           = useState(true);
-  const [previewMargin, setPreviewMarg] = useState("30"); // % para mostrar precio público en tabla
+  const [previewMargin, setPreviewMarg] = useState("30"); // % base para calcular precio público
+  const [customPrices, setCustomPrices] = useState({});   // id → precio personalizado por fila
 
   // Búsqueda individual por ID
   const [lookupId, setLookupId]     = useState("");
@@ -6555,12 +6556,15 @@ const AdminSupplierCatalog = () => {
   };
 
   const openImport = (p) => {
-    const costVal = String(p.priceUsd ?? p.price ?? "");
-    const autoPrice = calcPrice(costVal, importForm.margin);
+    const costVal  = String(p.priceUsd ?? p.price ?? "");
+    // Usa el precio editado en la tabla si existe, sino calcula con el margen
+    const rowPrice = customPrices[p.id] !== undefined
+      ? String(customPrices[p.id])
+      : calcPrice(costVal, importForm.margin);
     setImporting(p.id ?? lookupId.trim());
     setImportForm(f => ({
       name: p.titleEn || p.title || "",
-      price: autoPrice,
+      price: rowPrice,
       cost: costVal,
       margin: f.margin,
       category: f.category,
@@ -6961,7 +6965,7 @@ const AdminSupplierCatalog = () => {
                   <tr>
                     <th>ID</th><th>Producto</th><th>Categoría</th>
                     <th>Costo</th>
-                    <th style={{ color: "#22C55E" }}>Precio público (+{previewMargin}%)</th>
+                    <th style={{ color: "#22C55E" }}>Mi precio de venta <span style={{ fontWeight: 400, fontSize: 10, opacity: 0.7 }}>(base +{previewMargin}% · editable)</span></th>
                     <th>Stock</th><th>Acción</th>
                   </tr>
                 </thead>
@@ -6979,10 +6983,38 @@ const AdminSupplierCatalog = () => {
                         <td><span className="tag-network" style={{ fontSize: 10, whiteSpace: "nowrap" }}>{p.subcatLabel}</span></td>
                         <td><strong style={{ color: "var(--usdt)" }}>${cost.toFixed(2)}</strong></td>
                         <td>
-                          <span style={{ fontWeight: 700, color: "#22C55E", fontSize: 13 }}>${pubPrice}</span>
-                          <span style={{ fontSize: 10, color: "var(--muted)", marginLeft: 4 }}>
-                            (+${(parseFloat(pubPrice) - cost).toFixed(2)})
-                          </span>
+                          {(() => {
+                            const isCustom = customPrices[p.id] !== undefined;
+                            const displayPrice = isCustom ? customPrices[p.id] : pubPrice;
+                            const gain = (parseFloat(displayPrice) || 0) - cost;
+                            return (
+                              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                <span style={{ color: "var(--muted)", fontSize: 12 }}>$</span>
+                                <input
+                                  type="number" step="0.01" min="0"
+                                  value={displayPrice}
+                                  onChange={e => setCustomPrices(prev => ({ ...prev, [p.id]: e.target.value }))}
+                                  style={{
+                                    width: 72, padding: "3px 6px",
+                                    border: `1.5px solid ${isCustom ? "#22C55E" : "var(--border)"}`,
+                                    borderRadius: 6, fontSize: 12,
+                                    background: isCustom ? "rgba(34,197,94,0.07)" : "var(--surface)",
+                                    color: "#22C55E", fontWeight: 700, textAlign: "right",
+                                  }}
+                                />
+                                {gain > 0 && (
+                                  <span style={{ fontSize: 10, color: "var(--muted)", whiteSpace: "nowrap" }}>
+                                    +${gain.toFixed(2)}
+                                  </span>
+                                )}
+                                {isCustom && (
+                                  <button onClick={() => setCustomPrices(prev => { const n = {...prev}; delete n[p.id]; return n; })}
+                                    title="Resetear al precio base"
+                                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "var(--muted)", padding: 0, lineHeight: 1 }}>↺</button>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td>
                           <span style={{ fontWeight: 700, color: p.qty > 10 ? "var(--green)" : p.qty > 0 ? "var(--amber)" : "var(--red)" }}>
