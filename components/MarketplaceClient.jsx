@@ -4341,7 +4341,7 @@ const CouponManager = ({ coupons, setCoupons, isSupport = false, maxDiscount = 1
 };
 
 // ─── ADMIN ORDERS ─────────────────────────────────────────────────────────────
-const AdminOrders = ({ orders, onConfirm, onDeliver, readOnly = false }) => {
+const AdminOrders = ({ orders, onConfirm, onDeliver, onCancel, readOnly = false }) => {
   const pending = orders.filter(o => o.status === "pending");
   const fileInputRef = useRef(null);
   const [targetId, setTargetId] = useState(null);
@@ -4390,7 +4390,20 @@ const AdminOrders = ({ orders, onConfirm, onDeliver, readOnly = false }) => {
                   <td>{o.txHash ? <code style={{ fontSize: 10, color: "var(--blue)" }}>{o.txHash.slice(0, 14)}...</code> : <span style={{ fontSize: 11, color: "var(--muted)" }}>—</span>}</td>
                   <td><StatusPill status={o.status} /></td>
                   {!readOnly && <>
-                    <td>{o.status === "pending" ? <button className="confirm-btn" onClick={() => onConfirm(o.id)}>✓ Confirmar pago</button> : <span className="confirmed-label">✓ Confirmado</span>}</td>
+                    <td>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                        {o.status === "pending"
+                          ? <button className="confirm-btn" onClick={() => onConfirm(o.id)}>✓ Confirmar pago</button>
+                          : <span className="confirmed-label">✓ Confirmado</span>
+                        }
+                        {o.status === "pending" && (
+                          <button
+                            onClick={() => { if (window.confirm(`¿Cancelar orden #${o.id.slice(-8)}?`)) onCancel?.(o.id); }}
+                            style={{ padding: "4px 10px", borderRadius: 7, border: "1px solid #ef4444", background: "rgba(239,68,68,0.08)", color: "#ef4444", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                          >✕ Cancelar</button>
+                        )}
+                      </div>
+                    </td>
                     <td>
                       {uploading === o.id
                         ? <span style={{ fontSize: 12, color: "var(--muted)" }}>Subiendo…</span>
@@ -5139,7 +5152,7 @@ const TeamManager = () => {
 };
 
 // ─── ADMIN PANEL ──────────────────────────────────────────────────────────────
-const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, coupons, setCoupons, products, setProducts, onThumbsChange, isSupport = false, userPermissions = {} }) => {
+const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, onCancelOrder, coupons, setCoupons, products, setProducts, onThumbsChange, isSupport = false, userPermissions = {} }) => {
   const [section, setSection] = useState(() => {
     const allowed = isSupport ? (userPermissions.sections || []) : null;
     try {
@@ -5277,7 +5290,7 @@ const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, coupons, setCoupon
       </div>
       <div className="admin-content">
         {section === "overview" && <AdminOverview orders={orders} products={products} onGoOrders={() => setSection("orders")} />}
-        {section === "orders" && <AdminOrders orders={orders} onConfirm={onConfirmOrder} onDeliver={onDeliverOrder} readOnly={isSupport} />}
+        {section === "orders" && <AdminOrders orders={orders} onConfirm={onConfirmOrder} onDeliver={onDeliverOrder} onCancel={onCancelOrder} readOnly={isSupport} />}
         {section === "coupons" && <CouponManager coupons={coupons} setCoupons={setCoupons} isSupport={isSupport} maxDiscount={couponMaxDiscount} maxUsesLimit={couponMaxUses} />}
         {section === "chat" && (
           <>
@@ -6675,6 +6688,14 @@ export default function App() {
     } catch {}
   };
 
+  const handleCancelOrder = async (orderId) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, { method: "DELETE" });
+      const updated = await res.json();
+      if (res.ok) setOrders(prev => prev.map(o => o.id === orderId ? updated : o));
+    } catch {}
+  };
+
   if (isStaff) {
     return (
       <div className={`app${darkMode ? " dark" : ""}`}>
@@ -6694,6 +6715,7 @@ export default function App() {
           orders={orders}
           onConfirmOrder={handleConfirmOrder}
           onDeliverOrder={handleDeliverOrder}
+          onCancelOrder={handleCancelOrder}
           coupons={coupons}
           setCoupons={setCoupons}
           products={products}
