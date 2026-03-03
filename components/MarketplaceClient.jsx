@@ -3864,7 +3864,7 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
                 <table>
                   <thead><tr><th>ID</th><th>Producto(s)</th><th>Red</th><th>Total</th><th>Estado</th><th>Pedido</th><th>Fecha</th></tr></thead>
                   <tbody>
-                    {myOrders.slice().reverse().map(o => {
+                    {myOrders.map(o => {
                       const isExpired = o.expiresAt && new Date() > new Date(o.expiresAt);
                       const canPay = o.status === "pending" && !isExpired;
                       return (
@@ -4966,7 +4966,7 @@ const AdminOrders = ({ orders, onConfirm, onDeliver, onCancel, readOnly = false 
           <table>
             <thead><tr><th>ID</th><th>Cliente</th><th>Productos</th><th>Red</th><th>Total</th><th>TX Hash</th><th>Estado</th>{!readOnly && <><th>Acción</th><th>Entrega</th></>}</tr></thead>
             <tbody>
-              {orders.slice().reverse().map(o => (
+              {orders.map(o => (
                 <tr key={o.id} style={{ background: o.status === "pending" ? "var(--amber-light)" : "transparent" }}>
                   <td><code style={{ fontSize: 11, color: "var(--purple)" }}>{o.id}</code></td>
                   <td><div style={{ fontSize: 13, fontWeight: 600 }}>{o.userName}</div><div style={{ fontSize: 11, color: "var(--muted)" }}>{o.userEmail}</div></td>
