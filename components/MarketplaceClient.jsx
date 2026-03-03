@@ -4433,6 +4433,11 @@ const ProductManager = ({ products, setProducts }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [reviewProductId, setReviewProductId] = useState(null);
+
+  // ── Filtros de la tabla ──────────────────────────────────────────────────────
+  const [filterSearch, setFilterSearch] = useState("");
+  const [filterCat,    setFilterCat]    = useState("all");
+  const [filterStock,  setFilterStock]  = useState("all"); // all | instock | nostock
   const setF = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
 
   const openNew = () => {
@@ -4652,17 +4657,54 @@ const ProductManager = ({ products, setProducts }) => {
       )}
 
       <div className="card">
-        <div className="card-title">Todos los productos ({products.length})</div>
+        {/* ── Filtros ── */}
+        <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
+          <input
+            className="form-input"
+            placeholder="🔍 Buscar por nombre..."
+            value={filterSearch}
+            onChange={e => setFilterSearch(e.target.value)}
+            style={{ flex: "1 1 200px", minWidth: 180 }}
+          />
+          <select className="form-input" value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ minWidth: 190 }}>
+            <option value="all">📂 Todas las categorías</option>
+            {PRODUCT_CATS.map(c => <option key={c.key} value={c.key}>{c.icon} {c.label}</option>)}
+          </select>
+          <select className="form-input" value={filterStock} onChange={e => setFilterStock(e.target.value)} style={{ minWidth: 150 }}>
+            <option value="all">📦 Todo el stock</option>
+            <option value="instock">✅ Con stock</option>
+            <option value="nostock">❌ Sin stock</option>
+          </select>
+          {(filterSearch || filterCat !== "all" || filterStock !== "all") && (
+            <button className="btn btn-outline btn-sm" onClick={() => { setFilterSearch(""); setFilterCat("all"); setFilterStock("all"); }}>✕ Limpiar</button>
+          )}
+        </div>
+
+        {(() => {
+          const filtered = products.filter(p => {
+            if (filterSearch && !p.name.toLowerCase().includes(filterSearch.toLowerCase())) return false;
+            if (filterCat !== "all" && p.category !== filterCat) return false;
+            if (filterStock === "instock" && p.stock <= 0) return false;
+            if (filterStock === "nostock" && p.stock > 0) return false;
+            return true;
+          });
+          return (
+        <>
+        <div className="card-title" style={{ marginBottom: 10 }}>
+          {filtered.length === products.length
+            ? `Todos los productos (${products.length})`
+            : `${filtered.length} de ${products.length} productos`}
+        </div>
         <div className="table-wrap">
           <table>
             <thead>
               <tr><th>Nombre</th><th>Detalles</th><th>Categoría</th><th>Venta</th><th>Costo</th><th>Ganancia</th><th>Stock</th><th>Ventas</th><th>Badge %</th><th>Estado</th><th>Acciones</th></tr>
             </thead>
             <tbody>
-              {products.length === 0 && (
-                <tr><td colSpan={7} style={{ textAlign: "center", padding: "30px 0", color: "var(--muted)" }}>No hay productos. Crea el primero.</td></tr>
+              {filtered.length === 0 && (
+                <tr><td colSpan={11} style={{ textAlign: "center", padding: "30px 0", color: "var(--muted)" }}>No hay productos que coincidan con los filtros.</td></tr>
               )}
-              {products.map(p => {
+              {filtered.map(p => {
                 const margin = p.cost > 0 ? (((p.price - p.cost) / p.cost) * 100).toFixed(0) : null;
                 return (
                 <tr key={p.id} style={{ opacity: p.isActive ? 1 : 0.5 }}>
@@ -4729,6 +4771,9 @@ const ProductManager = ({ products, setProducts }) => {
             </tbody>
           </table>
         </div>
+        </>
+          );
+        })()}
       </div>
 
       {reviewProductId && (() => {
