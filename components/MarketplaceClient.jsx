@@ -5151,6 +5151,97 @@ const TeamManager = () => {
   );
 };
 
+// ─── ADMIN USERS ──────────────────────────────────────────────────────────────
+const AdminUsers = () => {
+  const [users, setUsers] = useState(null);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    fetch("/api/admin/users").then(r => r.json()).then(setUsers).catch(() => setUsers([]));
+  }, []);
+
+  const filtered = (users || []).filter(u =>
+    u.email.toLowerCase().includes(search.toLowerCase()) ||
+    (u.name || "").toLowerCase().includes(search.toLowerCase())
+  );
+
+  const verified = (users || []).filter(u => u.emailVerified).length;
+  const total = (users || []).length;
+
+  return (
+    <div>
+      <div className="page-title">👤 Usuarios</div>
+
+      {/* Stats */}
+      <div style={{ display: "flex", gap: 14, marginBottom: 24, flexWrap: "wrap" }}>
+        {[
+          { label: "Total registrados", value: users ? total : "…", color: "var(--blue)" },
+          { label: "Verificados", value: users ? verified : "…", color: "var(--green)" },
+          { label: "Sin verificar", value: users ? total - verified : "…", color: "var(--amber)" },
+        ].map(s => (
+          <div key={s.label} style={{ background: "var(--surface)", border: "1.5px solid var(--border)", borderRadius: 12, padding: "14px 20px", minWidth: 140 }}>
+            <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{s.value}</div>
+            <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Search */}
+      <input
+        placeholder="🔍 Buscar por nombre o email…"
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        style={{ width: "100%", maxWidth: 380, padding: "9px 14px", borderRadius: 9, border: "1.5px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, marginBottom: 16, boxSizing: "border-box" }}
+      />
+
+      {/* Table */}
+      {!users ? (
+        <div style={{ color: "var(--muted)", fontSize: 14 }}>Cargando…</div>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Rol</th>
+                <th>Verificado</th>
+                <th>Órdenes</th>
+                <th>Crédito</th>
+                <th>Registrado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(u => (
+                <tr key={u.id}>
+                  <td style={{ fontWeight: 600, fontSize: 13 }}>{u.name || <span style={{ color: "var(--muted)" }}>—</span>}</td>
+                  <td style={{ fontSize: 12, color: "var(--blue)" }}>{u.email}</td>
+                  <td>
+                    <span style={{
+                      fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+                      background: u.role === "admin" ? "rgba(239,68,68,0.12)" : u.role === "support" ? "rgba(59,130,246,0.12)" : "rgba(156,163,175,0.12)",
+                      color: u.role === "admin" ? "var(--red)" : u.role === "support" ? "var(--blue)" : "var(--muted)",
+                    }}>{u.role}</span>
+                  </td>
+                  <td>{u.emailVerified ? <span style={{ color: "var(--green)", fontSize: 13, fontWeight: 700 }}>✓</span> : <span style={{ color: "var(--amber)", fontSize: 13 }}>⏳</span>}</td>
+                  <td style={{ textAlign: "center", fontWeight: 600 }}>{u._count?.orders ?? 0}</td>
+                  <td style={{ fontSize: 12, color: u.referralCredit > 0 ? "var(--green)" : "var(--muted)" }}>
+                    {u.referralCredit > 0 ? `$${u.referralCredit.toFixed(2)}` : "—"}
+                  </td>
+                  <td style={{ fontSize: 11, color: "var(--muted)" }}>{new Date(u.createdAt).toLocaleDateString("es-AR")}</td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr><td colSpan={7} style={{ textAlign: "center", color: "var(--muted)", padding: 30 }}>No se encontraron usuarios</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── ADMIN PANEL ──────────────────────────────────────────────────────────────
 const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, onCancelOrder, coupons, setCoupons, products, setProducts, onThumbsChange, isSupport = false, userPermissions = {} }) => {
   const [section, setSection] = useState(() => {
@@ -5268,6 +5359,7 @@ const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, onCancelOrder, cou
     { id: "products",   icon: "🛍", label: "Productos" },
     { id: "wallets",    icon: "💳", label: "Wallets" },
     { id: "thumbnails", icon: "🖼", label: "Miniaturas" },
+    { id: "users",      icon: "👤", label: "Usuarios", adminOnly: true },
     { id: "team",       icon: "👥", label: "Equipo", adminOnly: true },
     { id: "blog",       icon: "📝", label: "Blog",   adminOnly: true },
     { id: "bot",        icon: "🤖", label: "Bot IA", adminOnly: true },
@@ -5363,6 +5455,7 @@ const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, onCancelOrder, cou
         {section === "products" && <ProductManager products={products} setProducts={setProducts} />}
         {section === "wallets" && <WalletManager />}
         {section === "thumbnails" && <ThumbnailManager onThumbsChange={onThumbsChange} />}
+        {section === "users" && !isSupport && <AdminUsers />}
         {section === "team" && !isSupport && <TeamManager />}
         {section === "blog" && !isSupport && <BlogManager />}
         {section === "bot"  && !isSupport && <BotTrainer />}
