@@ -3121,6 +3121,13 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
   const L2withProds = activePlatform
     ? allL2withProds.filter(c => c.platform === activePlatform)
     : allL2withProds;
+  // Solo mostrar plataformas que tienen al menos 1 producto importado
+  const activePlatforms = ALL_PLATFORMS.filter(pl =>
+    products.some(p => {
+      const cat = PRODUCT_CATS.find(c => c.key === p.category);
+      return cat?.platform === pl.key;
+    })
+  );
   // L3: hijos de un L2 con productos
   const L3ofL2 = (l2Key) => PRODUCT_CATS.filter(c => c.parent === l2Key && products.some(p => p.category === c.key));
 
@@ -3298,24 +3305,23 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
           {/* ── SIDEBAR IZQUIERDO ── */}
           <div className="shop-sidebar-tree">
 
-            {/* Sección: Plataformas (lista vertical) */}
-            <div className="sidebar-section">
-              <div className="sidebar-section-hdr">Plataformas</div>
-              {ALL_PLATFORMS.map(pl => (
-                <div key={pl.key}
-                  className={`platform-list-row${activePlatform === pl.key ? " active" : ""}${pl.soon ? " soon" : ""}`}
-                  onClick={() => {
-                    if (!pl.soon) {
+            {/* Sección: Plataformas — solo las que tienen productos importados */}
+            {activePlatforms.length > 0 && (
+              <div className="sidebar-section">
+                <div className="sidebar-section-hdr">Plataformas</div>
+                {activePlatforms.map(pl => (
+                  <div key={pl.key}
+                    className={`platform-list-row${activePlatform === pl.key ? " active" : ""}`}
+                    onClick={() => {
                       if (activePlatform === pl.key) { setActivePlatform(null); setActiveL2(null); setActiveL3(null); }
                       else { setActivePlatform(pl.key); setActiveL2(null); setActiveL3(null); }
-                    }
-                  }}>
-                  <span className="pl-icon">{pl.fallback}</span>
-                  <span>{pl.label}</span>
-                  {pl.soon && <span className="pl-soon">Pronto</span>}
-                </div>
-              ))}
-            </div>
+                    }}>
+                    <span className="pl-icon">{pl.fallback}</span>
+                    <span>{pl.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Sección: Árbol de categorías (colapsable, L2 → L3) */}
             {L2withProds.length > 0 && (
