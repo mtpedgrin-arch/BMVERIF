@@ -1800,7 +1800,8 @@ const PaymentModal = ({ cart, user, coupon, finalTotal, userCredit = 0, onCredit
       const payData = await payRes.json();
       if (!payData.url) throw new Error(payData.error || "Error al generar pago");
       if (creditApplied > 0) onCreditUsed?.(creditApplied);
-      onOrderPending?.(newOrder); // only after confirmed URL
+      // Cryptomus: save order for cart-clearing on return (no widget — Cryptomus handles everything externally)
+      try { sessionStorage.setItem("bmveri_cryptomus_order", JSON.stringify(newOrder)); } catch {}
       window.location.href = payData.url;
     } catch (err) {
       alert(err.message || "Error al procesar pago con Cryptomus. Intentá de nuevo.");
@@ -2053,7 +2054,8 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
       const payRes = await fetch("/api/cryptomus/create-payment", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId: order.id }) });
       const payData = await payRes.json();
       if (!payData.url) throw new Error(payData.error || "Error al generar pago");
-      onOrderPending?.(order); // only after confirmed URL
+      // Cryptomus: save order for cart-clearing on return (no widget — Cryptomus handles everything externally)
+      try { sessionStorage.setItem("bmveri_cryptomus_order", JSON.stringify(order)); } catch {}
       window.location.href = payData.url;
     } catch (err) {
       alert(err.message || "Error al procesar pago con Cryptomus.");
@@ -6333,35 +6335,40 @@ export default function App() {
     } catch {}
   }, [globalPending?.id]);
   // On mount: if there's a pending order that's now paid, auto-clear cart + fire Purchase pixel event
-  // This handles the case where the user came back manually (browser back) and bypassed /payment/return
+  // Handles: (a) user hit back before /payment/return, (b) Cryptomus redirect bypassed
   useEffect(() => {
-    try {
-      const s = sessionStorage.getItem("bmveri_pending_order");
-      if (!s) return;
-      const o = JSON.parse(s);
-      if (!o?.id) return;
-      fetch(`/api/orders/${o.id}/check-payment`)
-        .then(r => r.json())
-        .then(data => {
-          if (data.paid) {
-            setCart([]);
-            try { localStorage.removeItem("bmveri_cart"); } catch {}
-            setGlobalPending(null);
-            // Fire client-side Purchase pixel event (deduped with CAPI via eventID)
-            try {
-              if (typeof window !== "undefined" && window.fbq) {
-                window.fbq("track", "Purchase", {
-                  value: data.amount ?? o.uniqueAmount ?? o.total ?? 0,
-                  currency: "USD",
-                  content_ids: (o.items || []).map(i => i.productId).filter(Boolean),
-                  num_items: (o.items || []).reduce((acc, i) => acc + (i.qty || 1), 0),
-                }, { eventID: `purchase_${o.id}` });
-              }
-            } catch {}
-          }
-        })
-        .catch(() => {});
-    } catch {}
+    const checkAndClear = (storageKey, isCryptomus) => {
+      try {
+        const s = sessionStorage.getItem(storageKey);
+        if (!s) return;
+        const o = JSON.parse(s);
+        if (!o?.id) return;
+        fetch(`/api/orders/${o.id}/check-payment`)
+          .then(r => r.json())
+          .then(data => {
+            if (data.paid) {
+              setCart([]);
+              try { localStorage.removeItem("bmveri_cart"); } catch {}
+              try { sessionStorage.removeItem(storageKey); } catch {}
+              if (!isCryptomus) setGlobalPending(null);
+              // Fire client-side Purchase pixel event (deduped with CAPI via eventID)
+              try {
+                if (typeof window !== "undefined" && window.fbq) {
+                  window.fbq("track", "Purchase", {
+                    value: data.amount ?? o.uniqueAmount ?? o.total ?? 0,
+                    currency: "USD",
+                    content_ids: (o.items || []).map(i => i.productId).filter(Boolean),
+                    num_items: (o.items || []).reduce((acc, i) => acc + (i.qty || 1), 0),
+                  }, { eventID: `purchase_${o.id}` });
+                }
+              } catch {}
+            }
+          })
+          .catch(() => {});
+      } catch {}
+    };
+    checkAndClear("bmveri_pending_order", false);   // direct USDT transfer
+    checkAndClear("bmveri_cryptomus_order", true);  // Cryptomus external payment
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [legalModal, setLegalModal] = useState(null); // null | "privacy" | "user-agreement" | "public-offer" | "replacement" | "rules" | "appendix1" | "appendix2"
   const [resetToken, setResetToken] = useState(null);
