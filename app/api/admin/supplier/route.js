@@ -3,30 +3,45 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../lib/authOptions";
 import { supplierGetProducts, supplierGetBalance, supplierGetProduct } from "../../../../lib/npprteam";
 
-// Clasifica un producto por subcategoría según su título
+// Clasifica un producto por categoría L3 según su título (alineado con PRODUCT_CATS)
 function getSubcat(titleEn) {
   if (!titleEn) return "other";
   const t = titleEn.toLowerCase();
-  if (t.includes("fan page"))                                         return "fan-pages";
-  if (t.includes("softreg") || t.includes("selfreg"))                return "softregs";
-  if (t.startsWith("ads account") || t.startsWith("facebook ads account") ||
-      t.startsWith("facebook ads account"))                          return "ads-accounts";
+  if (t.includes("fan page")) return "fan-pages";
+  if (t.includes("softreg") || t.includes("selfreg")) return "softregs";
+  if (t.startsWith("ads account") || t.startsWith("facebook ads account")) {
+    if (t.includes("usa") || t.includes("u.s.a")) return "ads-usa";
+    return "ads-general";
+  }
   if (t.startsWith("business manager facebook") ||
       t.startsWith("facebook business manager") ||
-      t.startsWith("account business manager"))                      return "business-managers";
+      t.startsWith("account business manager")) {
+    if (t.includes("balloon"))                                  return "bm-balloon";
+    if (t.includes("agenc"))                                    return "bm-agency";
+    if (t.includes("credit") || t.includes("line of credit") ||
+        t.includes("crédito") || t.includes("credito"))         return "bm-credit";
+    return "bm-verified";
+  }
   if (t.startsWith("facebook account") || t.startsWith("account facebook") ||
-      t.startsWith("accounts facebook") || t.startsWith("usa facebook account") ||
-      t.startsWith("account facebook"))                              return "accounts";
+      t.startsWith("accounts facebook") || t.startsWith("usa facebook account")) {
+    if (t.includes("usa") || t.startsWith("usa ")) return "accounts-usa";
+    return "accounts-general";
+  }
   return "other";
 }
 
 const SUBCAT_LABELS = {
-  "business-managers": "Business Managers",
-  "ads-accounts":      "Ads Accounts",
-  "fan-pages":         "Fan Pages",
-  "accounts":          "Cuentas Facebook",
-  "softregs":          "Softregs",
-  "other":             "Otros",
+  "bm-verified":    "✅ BMs Verificadas",
+  "bm-balloon":     "🎈 BM Balloon",
+  "bm-agency":      "🏛 BM Agencia",
+  "bm-credit":      "💳 BM Línea de Crédito",
+  "ads-usa":        "🇺🇸 Ads USA",
+  "ads-general":    "🌐 Ads General",
+  "fan-pages":      "📄 Fan Pages",
+  "accounts-usa":   "🇺🇸 Cuentas USA",
+  "accounts-general":"🌐 Cuentas General",
+  "softregs":       "🤖 Softregs",
+  "other":          "📦 Otros",
 };
 
 // GET /api/admin/supplier — saldo + productos Facebook (admin only)

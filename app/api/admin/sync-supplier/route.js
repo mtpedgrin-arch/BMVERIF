@@ -4,20 +4,42 @@ import { authOptions } from "../../../../lib/authOptions";
 import { prisma } from "../../../../lib/prisma";
 import { supplierGetProducts } from "../../../../lib/npprteam";
 
-// Mapea el título del producto a la subcategoría (igual que en /api/admin/supplier)
+// Mapea el título del producto a la categoría L3 más específica posible.
+// Mantiene consistencia con PRODUCT_CATS en MarketplaceClient.jsx.
 function getSubcat(titleEn) {
   if (!titleEn) return "other";
   const t = titleEn.toLowerCase();
-  if (t.includes("fan page"))                                         return "fan-pages";
-  if (t.includes("softreg") || t.includes("selfreg"))                return "softregs";
-  if (t.startsWith("ads account") || t.startsWith("facebook ads account"))
-                                                                      return "ads-accounts";
+
+  // Fan Pages
+  if (t.includes("fan page")) return "fan-pages";
+
+  // Softregs
+  if (t.includes("softreg") || t.includes("selfreg")) return "softregs";
+
+  // Ads Accounts → L3 según GEO
+  if (t.startsWith("ads account") || t.startsWith("facebook ads account")) {
+    if (t.includes("usa") || t.includes("u.s.a")) return "ads-usa";
+    return "ads-general";
+  }
+
+  // Business Managers → L3 por tipo
   if (t.startsWith("business manager facebook") ||
       t.startsWith("facebook business manager") ||
-      t.startsWith("account business manager"))                       return "business-managers";
+      t.startsWith("account business manager")) {
+    if (t.includes("balloon"))                                   return "bm-balloon";
+    if (t.includes("agenc"))                                     return "bm-agency";
+    if (t.includes("credit") || t.includes("line of credit") ||
+        t.includes("crédito") || t.includes("credito"))          return "bm-credit";
+    return "bm-verified"; // la mayoría son verificadas
+  }
+
+  // Cuentas Facebook → L3 por GEO
   if (t.startsWith("facebook account") || t.startsWith("account facebook") ||
-      t.startsWith("accounts facebook") || t.startsWith("usa facebook account"))
-                                                                      return "accounts";
+      t.startsWith("accounts facebook") || t.startsWith("usa facebook account")) {
+    if (t.includes("usa") || t.startsWith("usa ")) return "accounts-usa";
+    return "accounts-general";
+  }
+
   return "other";
 }
 

@@ -5,15 +5,29 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import { trackEvent, trackCustom, initPixelWithUser } from "../lib/pixel";
 
 // ─── CATEGORÍAS DE PRODUCTOS ──────────────────────────────────────────────────
-// Alineadas con las subcategorías del proveedor (npprteam.shop).
-// platform agrupa el menú jerárquico de la tienda.
+// 3 niveles: Platform → L2 (parent:null) → L3 (parent: L2 key)
+// El campo `category` en la DB almacena el key del nivel más específico asignado.
 const PRODUCT_CATS = [
-  { key: "business-managers", label: "Business Managers",   icon: "🏢", color: "#D4AF37", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
-  { key: "ads-accounts",      label: "Ads Accounts",        icon: "📢", color: "#1877F2", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
-  { key: "fan-pages",         label: "Fan Pages",           icon: "📄", color: "#A29BFE", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
-  { key: "accounts",          label: "Cuentas Facebook",    icon: "👤", color: "#74B9FF", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
-  { key: "softregs",          label: "Softregs",            icon: "🤖", color: "#00B894", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
-  { key: "other",             label: "Otros",               icon: "📦", color: "#636E72", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
+  // ── L2: Business Managers ──────────────────────────────────────────────
+  { key: "business-managers", label: "Business Managers",    icon: "🏢", color: "#D4AF37", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: null },
+  { key: "bm-verified",       label: "BMs Verificadas",      icon: "✅", color: "#22C55E", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: "business-managers" },
+  { key: "bm-balloon",        label: "BM Balloon",           icon: "🎈", color: "#9B7BFF", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: "business-managers" },
+  { key: "bm-agency",         label: "BM Agencia",           icon: "🏛", color: "#FDCB6E", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: "business-managers" },
+  { key: "bm-credit",         label: "BM Línea de Crédito",  icon: "💳", color: "#00B894", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: "business-managers" },
+  // ── L2: Ads Accounts ───────────────────────────────────────────────────
+  { key: "ads-accounts",      label: "Ads Accounts",         icon: "📢", color: "#1877F2", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: null },
+  { key: "ads-usa",           label: "Ads USA",              icon: "🇺🇸", color: "#E17055", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: "ads-accounts" },
+  { key: "ads-general",       label: "Ads General",          icon: "🌐", color: "#60A5FA", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: "ads-accounts" },
+  // ── L2: Fan Pages ──────────────────────────────────────────────────────
+  { key: "fan-pages",         label: "Fan Pages",            icon: "📄", color: "#A29BFE", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: null },
+  // ── L2: Cuentas Facebook ───────────────────────────────────────────────
+  { key: "accounts",          label: "Cuentas Facebook",     icon: "👤", color: "#74B9FF", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: null },
+  { key: "accounts-usa",      label: "Cuentas USA",          icon: "🇺🇸", color: "#E17055", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: "accounts" },
+  { key: "accounts-general",  label: "Cuentas General",      icon: "🌐", color: "#74B9FF", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: "accounts" },
+  // ── L2: Softregs ───────────────────────────────────────────────────────
+  { key: "softregs",          label: "Softregs",             icon: "🤖", color: "#00B894", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: null },
+  // ── L2: Otros ──────────────────────────────────────────────────────────
+  { key: "other",             label: "Otros",                icon: "📦", color: "#636E72", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: null },
 ];
 
 // ─── WALLETS ──────────────────────────────────────────────────────────────────
@@ -93,29 +107,16 @@ const css = `
   .shop-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .shop-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
   .shop-count { font-size: 13px; color: var(--muted); }
-  /* ── Sidebar layout ── */
-  .shop-layout { display: flex; gap: 20px; align-items: flex-start; }
-  .shop-sidebar { width: 200px; flex-shrink: 0; position: sticky; top: 80px; }
-  .shop-sidebar-title { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; padding: 0 4px; }
-  .shop-main { flex: 1; min-width: 0; }
-  .cat-filter { display: flex; flex-direction: column; gap: 2px; }
-  .cat-chip { display: flex; align-items: center; gap: 7px; padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid transparent; background: transparent; color: var(--muted); transition: all 0.12s; white-space: nowrap; width: 100%; text-align: left; }
-  .cat-chip:hover { background: var(--surface); color: var(--text); border-color: var(--border); }
-  .cat-chip.active { background: #EFF6FF; border-color: #BFDBFE; color: #1877F2; font-weight: 700; }
-  .cat-chip-sub { padding: 6px 10px 6px 14px; font-size: 12px; font-weight: 500; border-radius: 6px; }
-  .cat-chip-sub.active { background: #EFF6FF; border-color: #BFDBFE; color: #1877F2; font-weight: 700; }
-  .cat-platform-label { padding: 8px 12px 4px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 5px; width: 100%; border: none; background: none; cursor: pointer; }
-  .cat-platform-label:hover { color: var(--text); }
-  /* Mobile: sidebar arriba colapsado */
-  @media (max-width: 700px) {
-    .shop-layout { flex-direction: column; gap: 12px; }
-    .shop-sidebar { width: 100%; position: static; }
-    .cat-filter { flex-direction: row; flex-wrap: wrap; gap: 4px; }
-    .cat-chip { width: auto; padding: 5px 12px; font-size: 12px; border: 1.5px solid var(--border); }
-    .cat-chip.active { background: #1877F2; color: #fff; border-color: #1877F2; }
-    .cat-chip-sub { padding: 4px 10px; }
-    .cat-platform-label { width: auto; display: none; }
-  }
+  /* ── Filtro horizontal 3 niveles ── */
+  .cat-filter { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .cat-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .cat-row-l2 { padding-left: 4px; }
+  .cat-row-l3 { padding-left: 12px; border-left: 3px solid #1877F2; }
+  .cat-chip { display: flex; align-items: center; gap: 5px; padding: 6px 14px; border-radius: 50px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); transition: all 0.14s; white-space: nowrap; }
+  .cat-chip:hover { border-color: #1877F2; color: #1877F2; }
+  .cat-chip.active { background: #1877F2; border-color: #1877F2; color: #fff; box-shadow: 0 2px 10px rgba(24,119,242,0.3); }
+  .cat-chip-sub { padding: 5px 12px; font-size: 12px; font-weight: 500; border-radius: 20px; }
+  .cat-chip-sub.active { background: #1877F2; border-color: #1877F2; color: #fff; }
   .cat-section-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 10px; margin-top: 4px; padding-bottom: 8px; border-bottom: 2px solid #1877F2; display: inline-block; }
   .product-list { display: flex; flex-direction: column; background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
   .product-row { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); transition: background 0.12s; }
@@ -3040,8 +3041,7 @@ const ProductDetailPage = ({ product: p, cart, onBack, onAddToCartQty, onBuyNowQ
 
 // ─── SHOP PAGE ────────────────────────────────────────────────────────────────
 const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike, products, onProductClick, thumbs }) => {
-  const [activeCat, setActiveCat]           = useState("all");
-  const [expandedPlatforms, setExpandedPl]  = useState(new Set(["facebook"]));
+  const [activeCat, setActiveCat] = useState("all");
   const getQty = id => cart.find(i => i.id === id)?.qty || 0;
 
   // ── Featured product modal (appears after 4s) ──
@@ -3067,31 +3067,66 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
     try { sessionStorage.setItem("featured_modal_dismissed", "1"); } catch {}
   };
 
-  const getThumb = (cat) => cat === "ads-accounts" ? (thumbs?.ads || "/facebook-verificado.png") : (thumbs?.bm || "/facebook-verificado.png");
-  const CATS = PRODUCT_CATS;
-  // Solo mostrar categorías que tienen al menos 1 producto activo
-  const catsWithProducts = CATS.filter(c => products.some(p => (p.category || "business-managers") === c.key));
-  // visibleCats: "all" → todas, "platform:X" → todas las de esa plataforma, o clave específica
-  const visibleCats = activeCat === "all"
-    ? catsWithProducts
-    : activeCat.startsWith("platform:")
-      ? catsWithProducts.filter(c => c.platform === activeCat.replace("platform:", ""))
-      : catsWithProducts.filter(c => c.key === activeCat);
-  // Plataformas que tienen productos
-  const platformsWithProducts = [...new Map(
-    catsWithProducts.map(c => [c.platform, { platform: c.platform, label: c.platformLabel, icon: c.platformIcon }])
-  ).values()];
-  const togglePlatform = (pl) => setExpandedPl(prev => {
-    const next = new Set(prev);
-    next.has(pl) ? next.delete(pl) : next.add(pl);
-    return next;
-  });
+  const getThumb = (cat) => cat === "ads-accounts" || cat === "ads-usa" || cat === "ads-general" ? (thumbs?.ads || "/facebook-verificado.png") : (thumbs?.bm || "/facebook-verificado.png");
+
+  // ── Helpers de jerarquía ────────────────────────────────────────────────────
+  const catDef     = (key) => PRODUCT_CATS.find(c => c.key === key);
+  const childKeys  = (l2Key) => PRODUCT_CATS.filter(c => c.parent === l2Key).map(c => c.key);
+  // Cats con al menos 1 producto (considera L3 productos para el conteo del L2 padre)
+  const catHasProds = (key) => {
+    const children = childKeys(key);
+    return products.some(p => p.category === key || children.includes(p.category));
+  };
+  // L2: categorías sin padre con productos
+  const L2withProds = PRODUCT_CATS.filter(c => !c.parent && catHasProds(c.key));
+  // L3: hijos de un L2 con productos
+  const L3ofL2 = (l2Key) => PRODUCT_CATS.filter(c => c.parent === l2Key && products.some(p => p.category === c.key));
+
+  // Plataformas (sólo con productos)
+  const platforms = [...new Map(L2withProds.map(c => [c.platform, { platform: c.platform, label: c.platformLabel, icon: c.platformIcon }])).values()];
+
+  // L2 activo: si activeCat es L3 → su padre; si es L2 → el mismo; si all → null
+  const _def = catDef(activeCat);
+  const activeL2 = _def ? (_def.parent || activeCat) : null;
+
+  // Productos filtrados según nivel activo
+  const filteredProds = (() => {
+    if (activeCat === "all") return products;
+    if (_def?.parent) return products.filter(p => p.category === activeCat);
+    // L2 seleccionado: incluye sus L3 hijos
+    const kids = childKeys(activeCat);
+    return products.filter(p => p.category === activeCat || kids.includes(p.category));
+  })();
+
+  // Grupos para mostrar en pantalla
+  const groups = (() => {
+    if (activeCat === "all") {
+      // Agrupa por L2
+      return L2withProds.map(l2 => {
+        const kids = childKeys(l2.key);
+        const prods = [...products.filter(p => p.category === l2.key || kids.includes(p.category))];
+        return { ...l2, prods };
+      }).filter(g => g.prods.length);
+    }
+    if (_def?.parent) {
+      // L3 seleccionado: lista plana
+      return [{ ..._def, prods: filteredProds }];
+    }
+    // L2 seleccionado: agrupa por L3 hijos; sin hijo va al propio L2
+    const l3s = L3ofL2(activeCat);
+    if (l3s.length === 0) return [{ ..._def, prods: filteredProds }];
+    const result = l3s.map(l3 => ({ ...l3, prods: products.filter(p => p.category === l3.key) })).filter(g => g.prods.length);
+    const direct = products.filter(p => p.category === activeCat);
+    if (direct.length) result.unshift({ ..._def, label: _def?.label + " (general)", prods: direct });
+    return result;
+  })();
+
   const sortProds = arr => [...arr].sort((a, b) => {
     const effA = a.badgeDiscount > 0 ? a.price * (1 - a.badgeDiscount / 100) : a.price;
     const effB = b.badgeDiscount > 0 ? b.price * (1 - b.badgeDiscount / 100) : b.price;
     return effA - effB;
   });
-  const totalVisible = visibleCats.reduce((acc, c) => acc + products.filter(p => (p.category || "business-managers") === c.key).length, 0);
+  const totalVisible = filteredProds.length;
   return (
     <>
       {/* ── Featured product modal ── */}
@@ -3218,118 +3253,119 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
       </div>
 
       <div className="shop-wrap">
-        <div className="shop-layout">
-          {/* ── SIDEBAR IZQUIERDO ── */}
-          <aside className="shop-sidebar">
-            <div className="shop-sidebar-title">Categorías</div>
-            <nav className="cat-filter">
-              {/* Todo */}
-              <button
-                className={`cat-chip${activeCat === "all" ? " active" : ""}`}
-                onClick={() => setActiveCat("all")}
-              >
-                ▤ Todo <span style={{ marginLeft: "auto", fontSize: 11, opacity: 0.55, fontWeight: 400 }}>({products.length})</span>
-              </button>
+        {/* ── FILTRO HORIZONTAL 3 NIVELES ── */}
+        <div className="cat-filter">
+          {/* Fila 1: Todo + Plataformas */}
+          <div className="cat-row">
+            <button className={`cat-chip${activeCat === "all" ? " active" : ""}`} onClick={() => setActiveCat("all")}>
+              ▤ Todos <span style={{ fontSize: 11, opacity: 0.6, fontWeight: 400 }}>({products.length})</span>
+            </button>
+            {platforms.map(({ platform, label, icon }) => {
+              const isPlatformActive = activeCat !== "all" && L2withProds.some(c => c.platform === platform && (c.key === activeL2 || c.key === activeCat));
+              return (
+                <button key={platform} className={`cat-chip${isPlatformActive ? " active" : ""}`}
+                  onClick={() => setActiveCat("all")}>
+                  {icon} {label}
+                </button>
+              );
+            })}
+          </div>
 
-              {/* Plataformas con subcategorías */}
-              {platformsWithProducts.map(({ platform, label, icon }) => {
-                const subcats = catsWithProducts.filter(c => c.platform === platform);
-                const expanded = expandedPlatforms.has(platform);
+          {/* Fila 2: L2 categorías */}
+          {L2withProds.length > 0 && (
+            <div className="cat-row cat-row-l2">
+              {L2withProds.map(c => {
+                const kids = childKeys(c.key);
+                const count = products.filter(p => p.category === c.key || kids.includes(p.category)).length;
                 return (
-                  <div key={platform}>
-                    {/* Label de plataforma — clickeable para expand/collapse */}
-                    <button
-                      className="cat-platform-label"
-                      onClick={() => togglePlatform(platform)}
-                    >
-                      {icon} {label}
-                      <span style={{ marginLeft: "auto", fontSize: 10 }}>{expanded ? "▲" : "▼"}</span>
-                    </button>
-                    {/* Subcategorías */}
-                    {expanded && subcats.map(c => {
-                      const count = products.filter(p => (p.category || "business-managers") === c.key).length;
-                      return (
-                        <button
-                          key={c.key}
-                          className={`cat-chip cat-chip-sub${activeCat === c.key ? " active" : ""}`}
-                          onClick={() => setActiveCat(c.key)}
-                        >
-                          {c.icon} {c.label}
-                          <span style={{ marginLeft: "auto", fontSize: 10, opacity: 0.55, fontWeight: 400 }}>({count})</span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <button key={c.key} className={`cat-chip${activeL2 === c.key ? " active" : ""}`}
+                    onClick={() => setActiveCat(c.key)}>
+                    {c.icon} {c.label} <span style={{ fontSize: 11, opacity: 0.6, fontWeight: 400 }}>({count})</span>
+                  </button>
                 );
               })}
-            </nav>
-          </aside>
-
-          {/* ── CONTENIDO PRINCIPAL ── */}
-          <div className="shop-main">
-            <div className="shop-header">
-              <div className="shop-title">Productos disponibles</div>
-              <div className="shop-count">{totalVisible} productos</div>
             </div>
+          )}
+
+          {/* Fila 3: L3 subcategorías (solo cuando hay hijos para el L2 activo) */}
+          {activeL2 && L3ofL2(activeL2).length > 0 && (
+            <div className="cat-row cat-row-l3">
+              {L3ofL2(activeL2).map(c => {
+                const count = products.filter(p => p.category === c.key).length;
+                return (
+                  <button key={c.key} className={`cat-chip cat-chip-sub${activeCat === c.key ? " active" : ""}`}
+                    onClick={() => setActiveCat(c.key)}>
+                    {c.icon} {c.label} <span style={{ fontSize: 10, opacity: 0.6, fontWeight: 400 }}>({count})</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ── HEADER + PRODUCTOS ── */}
+        <div className="shop-header">
+          <div className="shop-title">
+            {activeCat === "all" ? "Productos disponibles" : (catDef(activeCat)?.label || "Productos")}
+          </div>
+          <div className="shop-count">{totalVisible} productos</div>
+        </div>
+
         {products.length === 0 && (
-          <div style={{ textAlign: "center", padding: "50px 20px", color: "var(--muted)" }}>
+          <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--muted)" }}>
             <div style={{ fontSize: 40, marginBottom: 10 }}>🛍</div>
-            <div style={{ fontWeight: 600 }}>Cargando productos...</div>
+            <div style={{ fontWeight: 600 }}>No hay productos disponibles aún</div>
+            <div style={{ fontSize: 12, marginTop: 6 }}>El catálogo se actualiza automáticamente desde el proveedor</div>
           </div>
         )}
-        {visibleCats.map(({ key, label }) => {
-          const catProducts = sortProds(products.filter(p => (p.category || "business-managers") === key));
-          if (catProducts.length === 0) return null;
-          return (
-            <div key={key} style={{ marginBottom: 28 }}>
-              <div className="cat-section-title">{label}</div>
-              <div className="product-list">
-                {catProducts.map(p => (
-                  <div key={p.id} className="product-row" onClick={() => onProductClick && onProductClick(p)}>
-                    <div className="prod-thumb">
-                      <div className="prod-thumb-inner"><img src={getThumb(p.category)} alt="" /></div>
-                      <div className="verified-badge">✓</div>
-                    </div>
-                    <div className="prod-info">
-                      <div className="prod-name">{p.name}</div>
-                      <div className="prod-details">{p.details}</div>
-                      <div className="prod-meta">
-                        {p.rating > 0 && <Stars rating={p.rating} reviews={p.reviews} />}
-                        <span className="chip chip-stock">In Stock: <strong>{p.stock} pcs.</strong></span>
-                        <span className="chip chip-sales">Sales: <strong>{p.sales} pcs.</strong></span>
-                      </div>
-                    </div>
-                    <div className="prod-right">
-                      {p.badgeDiscount > 0 ? (() => {
-                        const discountedPrice = p.price * (1 - p.badgeDiscount / 100);
-                        return (
-                          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <span style={{ fontSize: 11, fontWeight: 800, background: "var(--red)", color: "#fff", borderRadius: 6, padding: "2px 8px" }}>-{p.badgeDiscount}%</span>
-                              <span style={{ fontSize: 12, color: "var(--muted)", textDecoration: "line-through" }}>{fmtUSDT(p.price)}</span>
-                            </div>
-                            <div className="prod-price" style={{ marginTop: 0 }}>{fmtUSDT(discountedPrice)}</div>
-                          </div>
-                        );
-                      })() : <div className="prod-price">{fmtUSDT(p.price)}</div>}
-                      <div className="prod-actions">
-                        {p.stock === 0
-                          ? <button className="buy-btn" disabled>Sin stock</button>
-                          : <button className="buy-btn" onClick={e => { e.stopPropagation(); onBuyNow(p); }}>Buy now</button>
-                        }
-                        <button className="icon-btn" title="Agregar al carrito" onClick={e => { e.stopPropagation(); if (p.stock > 0) onAddToCart(p); }}>🛒</button>
-                        <button className={`icon-btn ${liked[p.id] ? "liked" : ""}`} onClick={e => { e.stopPropagation(); onToggleLike(p.id); }}>{liked[p.id] ? "❤️" : "🤍"}</button>
-                      </div>
+
+        {groups.map(({ key, label, icon, prods }) => (
+          <div key={key} style={{ marginBottom: 28 }}>
+            <div className="cat-section-title">{icon} {label}</div>
+            <div className="product-list">
+              {sortProds(prods).map(p => (
+                <div key={p.id} className="product-row" onClick={() => onProductClick && onProductClick(p)}>
+                  <div className="prod-thumb">
+                    <div className="prod-thumb-inner"><img src={getThumb(p.category)} alt="" /></div>
+                    <div className="verified-badge">✓</div>
+                  </div>
+                  <div className="prod-info">
+                    <div className="prod-name">{p.name}</div>
+                    <div className="prod-details">{p.details}</div>
+                    <div className="prod-meta">
+                      {p.rating > 0 && <Stars rating={p.rating} reviews={p.reviews} />}
+                      <span className="chip chip-stock">In Stock: <strong>{p.stock} pcs.</strong></span>
+                      <span className="chip chip-sales">Sales: <strong>{p.sales} pcs.</strong></span>
                     </div>
                   </div>
-                ))}
-              </div>
+                  <div className="prod-right">
+                    {p.badgeDiscount > 0 ? (() => {
+                      const discountedPrice = p.price * (1 - p.badgeDiscount / 100);
+                      return (
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ fontSize: 11, fontWeight: 800, background: "var(--red)", color: "#fff", borderRadius: 6, padding: "2px 8px" }}>-{p.badgeDiscount}%</span>
+                            <span style={{ fontSize: 12, color: "var(--muted)", textDecoration: "line-through" }}>{fmtUSDT(p.price)}</span>
+                          </div>
+                          <div className="prod-price" style={{ marginTop: 0 }}>{fmtUSDT(discountedPrice)}</div>
+                        </div>
+                      );
+                    })() : <div className="prod-price">{fmtUSDT(p.price)}</div>}
+                    <div className="prod-actions">
+                      {p.stock === 0
+                        ? <button className="buy-btn" disabled>Sin stock</button>
+                        : <button className="buy-btn" onClick={e => { e.stopPropagation(); onBuyNow(p); }}>Buy now</button>
+                      }
+                      <button className="icon-btn" title="Agregar al carrito" onClick={e => { e.stopPropagation(); if (p.stock > 0) onAddToCart(p); }}>🛒</button>
+                      <button className={`icon-btn ${liked[p.id] ? "liked" : ""}`} onClick={e => { e.stopPropagation(); onToggleLike(p.id); }}>{liked[p.id] ? "❤️" : "🤍"}</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          );
-        })}
-            </div>{/* /shop-main */}
-          </div>{/* /shop-layout */}
-        </div>{/* /shop-wrap */}
+          </div>
+        ))}
+      </div>
 
       <div className="info-section">
         <h2>¿Qué es un Facebook Business Manager verificado?</h2>
@@ -6361,13 +6397,23 @@ const LegalPrivacy = () => (
 
 // ─── ADMIN SUPPLIER CATALOG ───────────────────────────────────────────────────
 const SUPPLIER_SUBCATS = [
-  { key: "all",               label: "Todos" },
-  { key: "business-managers", label: "🏢 Business Managers" },
-  { key: "ads-accounts",      label: "📢 Ads Accounts" },
-  { key: "fan-pages",         label: "📄 Fan Pages" },
-  { key: "accounts",          label: "👤 Cuentas Facebook" },
-  { key: "softregs",          label: "🤖 Softregs" },
-  { key: "other",             label: "📦 Otros" },
+  { key: "all",              label: "Todos" },
+  // Business Managers L3
+  { key: "bm-verified",     label: "✅ BMs Verificadas" },
+  { key: "bm-balloon",      label: "🎈 BM Balloon" },
+  { key: "bm-agency",       label: "🏛 BM Agencia" },
+  { key: "bm-credit",       label: "💳 BM Crédito" },
+  // Ads Accounts L3
+  { key: "ads-usa",         label: "🇺🇸 Ads USA" },
+  { key: "ads-general",     label: "🌐 Ads General" },
+  // Fan Pages
+  { key: "fan-pages",       label: "📄 Fan Pages" },
+  // Cuentas Facebook L3
+  { key: "accounts-usa",    label: "🇺🇸 Cuentas USA" },
+  { key: "accounts-general",label: "🌐 Cuentas General" },
+  // Otros
+  { key: "softregs",        label: "🤖 Softregs" },
+  { key: "other",           label: "📦 Otros" },
 ];
 
 const AdminSupplierCatalog = () => {
@@ -6376,8 +6422,9 @@ const AdminSupplierCatalog = () => {
   const [products, setProducts] = useState(null);
   const [productsError, setPE]  = useState(null);
   const [search, setSearch]     = useState("");
-  const [subcatFilter, setSubcat] = useState("all");
-  const [onlyInStock, setInStock] = useState(true);
+  const [subcatFilter, setSubcat]       = useState("all");
+  const [onlyInStock, setInStock]       = useState(true);
+  const [previewMargin, setPreviewMarg] = useState("30"); // % para mostrar precio público en tabla
 
   // Búsqueda individual por ID
   const [lookupId, setLookupId]     = useState("");
@@ -6797,7 +6844,7 @@ const AdminSupplierCatalog = () => {
             ))}
           </div>
 
-          {/* Barra de búsqueda + toggle stock */}
+          {/* Barra de búsqueda + toggle stock + preview margen */}
           <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center", flexWrap: "wrap" }}>
             <input className="form-input" placeholder="🔍 Buscar por nombre o ID..."
               value={search} onChange={e => setSearch(e.target.value)}
@@ -6805,6 +6852,16 @@ const AdminSupplierCatalog = () => {
             <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--muted)", cursor: "pointer", whiteSpace: "nowrap" }}>
               <input type="checkbox" checked={onlyInStock} onChange={e => setInStock(e.target.checked)} />
               Solo con stock
+            </label>
+            {/* Preview de precio público */}
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap" }}>
+              % Ganancia:
+              <input
+                type="number" min="0" max="500" step="1"
+                value={previewMargin}
+                onChange={e => setPreviewMarg(e.target.value)}
+                style={{ width: 60, padding: "4px 8px", border: "1.5px solid var(--border)", borderRadius: 6, fontSize: 12, background: "var(--surface)", color: "var(--text)" }}
+              />
             </label>
             <span style={{ fontSize: 12, color: "var(--muted)" }}>{filtered.length} productos</span>
           </div>
@@ -6814,32 +6871,47 @@ const AdminSupplierCatalog = () => {
             <div className="table-wrap">
               <table>
                 <thead>
-                  <tr><th>ID</th><th>Producto</th><th>Subcategoría</th><th>Costo USD</th><th>Stock</th><th>Acción</th></tr>
+                  <tr>
+                    <th>ID</th><th>Producto</th><th>Categoría</th>
+                    <th>Costo</th>
+                    <th style={{ color: "#22C55E" }}>Precio público (+{previewMargin}%)</th>
+                    <th>Stock</th><th>Acción</th>
+                  </tr>
                 </thead>
                 <tbody>
                   {filtered.length === 0 && (
-                    <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--muted)", padding: "32px 0" }}>Sin resultados</td></tr>
+                    <tr><td colSpan={7} style={{ textAlign: "center", color: "var(--muted)", padding: "32px 0" }}>Sin resultados</td></tr>
                   )}
-                  {filtered.slice(0, 200).map(p => (
-                    <tr key={p.id} style={{ background: importing === p.id ? "rgba(38,161,123,0.06)" : undefined }}>
-                      <td><code style={{ fontSize: 11, color: "var(--purple)" }}>{p.id}</code></td>
-                      <td style={{ maxWidth: 320, fontSize: 12, lineHeight: 1.4 }}>{p.titleEn}</td>
-                      <td><span className="tag-network" style={{ fontSize: 10, whiteSpace: "nowrap" }}>{p.subcatLabel}</span></td>
-                      <td><strong style={{ color: "var(--usdt)" }}>${p.priceUsd?.toFixed(2)}</strong></td>
-                      <td>
-                        <span style={{ fontWeight: 700, color: p.qty > 10 ? "var(--green)" : p.qty > 0 ? "var(--amber)" : "var(--red)" }}>
-                          {p.qty}
-                        </span>
-                      </td>
-                      <td>
-                        <button className="btn btn-outline btn-sm" style={{ fontSize: 11, padding: "3px 10px" }}
-                          onClick={() => importing === p.id ? setImporting(null) : openImport(p)}
-                          disabled={p.qty === 0}>
-                          {importing === p.id ? "✕" : p.qty === 0 ? "Sin stock" : "📥 Importar"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {filtered.slice(0, 200).map(p => {
+                    const cost = parseFloat(p.priceUsd) || 0;
+                    const pubPrice = (cost * (1 + parseFloat(previewMargin || 0) / 100)).toFixed(2);
+                    return (
+                      <tr key={p.id} style={{ background: importing === p.id ? "rgba(38,161,123,0.06)" : undefined }}>
+                        <td><code style={{ fontSize: 11, color: "var(--purple)" }}>{p.id}</code></td>
+                        <td style={{ maxWidth: 300, fontSize: 12, lineHeight: 1.4 }}>{p.titleEn}</td>
+                        <td><span className="tag-network" style={{ fontSize: 10, whiteSpace: "nowrap" }}>{p.subcatLabel}</span></td>
+                        <td><strong style={{ color: "var(--usdt)" }}>${cost.toFixed(2)}</strong></td>
+                        <td>
+                          <span style={{ fontWeight: 700, color: "#22C55E", fontSize: 13 }}>${pubPrice}</span>
+                          <span style={{ fontSize: 10, color: "var(--muted)", marginLeft: 4 }}>
+                            (+${(parseFloat(pubPrice) - cost).toFixed(2)})
+                          </span>
+                        </td>
+                        <td>
+                          <span style={{ fontWeight: 700, color: p.qty > 10 ? "var(--green)" : p.qty > 0 ? "var(--amber)" : "var(--red)" }}>
+                            {p.qty}
+                          </span>
+                        </td>
+                        <td>
+                          <button className="btn btn-outline btn-sm" style={{ fontSize: 11, padding: "3px 10px" }}
+                            onClick={() => importing === p.id ? setImporting(null) : openImport(p)}
+                            disabled={p.qty === 0}>
+                            {importing === p.id ? "✕" : p.qty === 0 ? "Sin stock" : "📥 Importar"}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
