@@ -6332,6 +6332,37 @@ export default function App() {
       else sessionStorage.removeItem("bmveri_pending_order");
     } catch {}
   }, [globalPending?.id]);
+  // On mount: if there's a pending order that's now paid, auto-clear cart + fire Purchase pixel event
+  // This handles the case where the user came back manually (browser back) and bypassed /payment/return
+  useEffect(() => {
+    try {
+      const s = sessionStorage.getItem("bmveri_pending_order");
+      if (!s) return;
+      const o = JSON.parse(s);
+      if (!o?.id) return;
+      fetch(`/api/orders/${o.id}/check-payment`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.paid) {
+            setCart([]);
+            try { localStorage.removeItem("bmveri_cart"); } catch {}
+            setGlobalPending(null);
+            // Fire client-side Purchase pixel event (deduped with CAPI via eventID)
+            try {
+              if (typeof window !== "undefined" && window.fbq) {
+                window.fbq("track", "Purchase", {
+                  value: data.amount ?? o.uniqueAmount ?? o.total ?? 0,
+                  currency: "USD",
+                  content_ids: (o.items || []).map(i => i.productId).filter(Boolean),
+                  num_items: (o.items || []).reduce((acc, i) => acc + (i.qty || 1), 0),
+                }, { eventID: `purchase_${o.id}` });
+              }
+            } catch {}
+          }
+        })
+        .catch(() => {});
+    } catch {}
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [legalModal, setLegalModal] = useState(null); // null | "privacy" | "user-agreement" | "public-offer" | "replacement" | "rules" | "appendix1" | "appendix2"
   const [resetToken, setResetToken] = useState(null);
   const [verifyResult, setVerifyResult] = useState(null); // null | "success" | "error" | string(error msg)

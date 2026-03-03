@@ -31,6 +31,15 @@ function PaymentReturn() {
         setTxHash(data.txHash);
         setState("paid");
         if (pollRef.current) clearInterval(pollRef.current);
+        // Fire client-side Meta Purchase event (deduped with CAPI via eventID)
+        try {
+          if (typeof window !== "undefined" && window.fbq) {
+            window.fbq("track", "Purchase", {
+              value: data.amount ?? 0,
+              currency: "USD",
+            }, { eventID: `purchase_${orderId}` });
+          }
+        } catch {}
         return;
       }
       if (data.expired) {

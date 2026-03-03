@@ -80,7 +80,7 @@ export async function GET(req, { params }) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  if (order.status === "paid") return NextResponse.json({ paid: true, txHash: order.txHash });
+  if (order.status === "paid") return NextResponse.json({ paid: true, txHash: order.txHash, amount: order.uniqueAmount ?? order.total });
 
   if (order.expiresAt && new Date() > new Date(order.expiresAt)) {
     await prisma.order.update({ where: { id: order.id }, data: { status: "cancelled" } }).catch(() => {});
@@ -225,7 +225,7 @@ export async function GET(req, { params }) {
     }).catch(() => {});
     // Referral reward (non-blocking)
     handleReferralReward({ ...order, status: "paid" }).catch(() => {});
-    return NextResponse.json({ paid: true, txHash: foundTx.txHash });
+    return NextResponse.json({ paid: true, txHash: foundTx.txHash, amount: order.uniqueAmount ?? order.total });
   }
 
   return NextResponse.json({ paid: false });
