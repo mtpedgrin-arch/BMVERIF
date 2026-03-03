@@ -47,10 +47,22 @@ function getSubcat(titleEn) {
   return "other";
 }
 
+// Construye el array de tiers a partir del precio base y los porcentajes de descuento.
+// tierDisc5: % de descuento para 5 unidades (0 = sin tier)
+// tierDisc10: % de descuento para 10 unidades (0 = sin tier)
+function buildTiers(basePrice, tierDisc5, tierDisc10) {
+  const tiers = [];
+  if (!basePrice) return tiers;
+  if (tierDisc5  > 0 && tierDisc5  < 100) tiers.push({ qty: 5,  price: parseFloat((basePrice * (1 - tierDisc5  / 100)).toFixed(2)) });
+  if (tierDisc10 > 0 && tierDisc10 < 100) tiers.push({ qty: 10, price: parseFloat((basePrice * (1 - tierDisc10 / 100)).toFixed(2)) });
+  return tiers;
+}
+
 // POST /api/admin/sync-supplier
-// Body: { margin: number (default 30), deactivateMissing: boolean (default false) }
+// Body: { margin: number (default 30), deactivateMissing: boolean (default false),
+//         tierDisc5: number (0 = sin tier), tierDisc10: number (0 = sin tier) }
 // Sincroniza TODO el catálogo de Facebook del proveedor a nuestra DB.
-// - Si el producto ya existe (por supplierProductId): actualiza nombre, stock, costo, precio, categoría
+// - Si el producto ya existe (por supplierProductId): actualiza nombre, stock, costo, precio, categoría y tiers
 // - Si no existe: lo crea
 // - Si deactivateMissing=true: desactiva productos que ya no están en el catálogo
 export async function POST(req) {
@@ -68,11 +80,17 @@ export async function POST(req) {
 
   let margin = 30;
   let deactivateMissing = false;
+  let tierDisc5  = 0; // % de descuento para 5 unidades (0 = sin tier)
+  let tierDisc10 = 0; // % de descuento para 10 unidades (0 = sin tier)
   try {
     const body = await req.json();
     if (typeof body.margin === "number" && body.margin >= 0) margin = body.margin;
     if (typeof body.deactivateMissing === "boolean") deactivateMissing = body.deactivateMissing;
+    if (typeof body.tierDisc5  === "number" && body.tierDisc5  > 0 && body.tierDisc5  < 100) tierDisc5  = body.tierDisc5;
+    if (typeof body.tierDisc10 === "number" && body.tierDisc10 > 0 && body.tierDisc10 < 100) tierDisc10 = body.tierDisc10;
   } catch {}
+
+  const hasTiers = tierDisc5 > 0 || tierDisc10 > 0;
 
   // 1. Traer catálogo del proveedor
   let fbItems = [];
@@ -104,12 +122,13 @@ export async function POST(req) {
 
   // 3. Procesar cada producto del proveedor
   for (const sp of fbItems) {
-    const sid = String(sp.id);
+    const sid   = String(sp.id);
     const subcat = getSubcat(sp.titleEn);
     const cost   = parseFloat(sp.priceUsd) || 0;
     const price  = parseFloat((cost * (1 + margin / 100)).toFixed(2));
     const stock  = parseInt(sp.qty) || 0;
     const name   = sp.titleEn || sp.title || `Producto #${sid}`;
+    const tiers  = buildTiers(price, tierDisc5, tierDisc10);
     // Intentar varios nombres de campo para el conteo de ventas del proveedor
     const soldRaw = sp.sold ?? sp.totalSold ?? sp.soldCount ?? sp.total_sold ?? sp.qty_sold ?? sp.salesCount ?? null;
     const sales   = soldRaw !== null ? parseInt(soldRaw) || 0 : null; // null = no actualizar si no existe el campo
@@ -117,6 +136,7 @@ export async function POST(req) {
     try {
       if (existingMap.has(sid)) {
         // Actualizar — solo sobreescribimos sales si el proveedor devuelve el campo
+        // Solo actualizamos tiers si el admin configuró discuentos (hasTiers=true)
         await prisma.product.update({
           where: { id: existingMap.get(sid) },
           data: {
@@ -126,6 +146,7 @@ export async function POST(req) {
             stock,
             category: subcat,
             isActive: true,
+            ...(hasTiers ? { tiers } : {}),
             ...(sales !== null ? { sales } : {}),
           },
         });
@@ -138,12 +159,12 @@ export async function POST(req) {
             cost,
             price,
             stock,
+            tiers,
             category:          subcat,
             supplierProductId: sid,
             isActive:          true,
             sales:             sales ?? 0,
             badgeDiscount:     0,
-            tiers:             [],
           },
         });
         created++;
@@ -175,6 +196,8 @@ export async function POST(req) {
     skipped,
     deactivated,
     margin,
+    tierDisc5,
+    tierDisc10,
     errors: errors.slice(0, 10), // solo los primeros 10 para no saturar
   });
 }

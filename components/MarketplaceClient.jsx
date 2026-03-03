@@ -6562,6 +6562,12 @@ const AdminSupplierCatalog = () => {
   const [syncResult, setSyncResult]       = useState(null);
   const [syncDeactivate, setSyncDeact]    = useState(false);
 
+  // Tier discounts por volumen (compartidos entre import individual, masivo y sync)
+  const [tierEnabled5,  setTierEn5]    = useState(false);
+  const [tierDisc5,     setTierDisc5]  = useState("10");
+  const [tierEnabled10, setTierEn10]   = useState(false);
+  const [tierDisc10,    setTierDisc10] = useState("20");
+
   // Importar individual
   const [importing, setImporting]   = useState(null);
   const [importForm, setImportForm] = useState({ name: "", price: "", cost: "", margin: "30", category: "business-managers" });
@@ -6641,6 +6647,18 @@ const AdminSupplierCatalog = () => {
     setImportMsg(null);
   };
 
+  // Construye el array de tiers a partir del precio base y los descuentos configurados
+  const buildTiers = (basePrice) => {
+    const tiers = [];
+    const base = parseFloat(basePrice) || 0;
+    if (!base) return tiers;
+    const d5  = parseFloat(tierDisc5)  || 0;
+    const d10 = parseFloat(tierDisc10) || 0;
+    if (tierEnabled5  && d5  > 0 && d5  < 100) tiers.push({ qty: 5,  price: parseFloat((base * (1 - d5  / 100)).toFixed(2)) });
+    if (tierEnabled10 && d10 > 0 && d10 < 100) tiers.push({ qty: 10, price: parseFloat((base * (1 - d10 / 100)).toFixed(2)) });
+    return tiers;
+  };
+
   const doImport = async () => {
     if (!importForm.name.trim() || !importForm.price) { setImportMsg({ ok: false, text: "Nombre y precio de venta son obligatorios." }); return; }
     setImportSaving(true); setImportMsg(null);
@@ -6659,7 +6677,7 @@ const AdminSupplierCatalog = () => {
           stock: stockVal,
           category: importForm.category,
           supplierProductId: String(importing),
-          tiers: [],
+          tiers: buildTiers(parseFloat(importForm.price)),
           sales: salesVal,
         }),
       });
@@ -6685,7 +6703,12 @@ const AdminSupplierCatalog = () => {
       const res = await fetch("/api/admin/sync-supplier", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ margin: m, deactivateMissing: syncDeactivate }),
+        body: JSON.stringify({
+          margin: m,
+          deactivateMissing: syncDeactivate,
+          tierDisc5:  tierEnabled5  ? parseFloat(tierDisc5)  || 0 : 0,
+          tierDisc10: tierEnabled10 ? parseFloat(tierDisc10) || 0 : 0,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al sincronizar");
@@ -6727,7 +6750,7 @@ const AdminSupplierCatalog = () => {
             stock: p.qty ?? 0,
             category: bulkCategory,
             supplierProductId: String(id),
-            tiers: [], sales: 0,
+            tiers: buildTiers(price), sales: 0,
           }),
         });
         const result = await res.json();
@@ -6794,6 +6817,24 @@ const AdminSupplierCatalog = () => {
           >
             {syncRunning ? "⏳ Sincronizando..." : "🔄 Sincronizar todo"}
           </button>
+        </div>
+        {/* Tiers compartidos */}
+        <div style={{ marginTop: 10, background: "var(--surface2)", borderRadius: 8, padding: "8px 12px", border: "1px solid var(--border)" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>📊 Descuentos por volumen (se aplicarán a todos los productos)</div>
+          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", fontSize: 12 }}>
+              <input type="checkbox" checked={tierEnabled5} onChange={e => setTierEn5(e.target.checked)} />
+              <span>5 uds →</span>
+              <input type="number" min="1" max="99" step="1" className="form-input" style={{ width: 56, padding: "2px 6px", fontSize: 12, display: "inline-block" }} value={tierDisc5} onChange={e => setTierDisc5(e.target.value)} disabled={!tierEnabled5} />
+              <span style={{ color: "var(--muted)" }}>% desc.</span>
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", fontSize: 12 }}>
+              <input type="checkbox" checked={tierEnabled10} onChange={e => setTierEn10(e.target.checked)} />
+              <span>10 uds →</span>
+              <input type="number" min="1" max="99" step="1" className="form-input" style={{ width: 56, padding: "2px 6px", fontSize: 12, display: "inline-block" }} value={tierDisc10} onChange={e => setTierDisc10(e.target.value)} disabled={!tierEnabled10} />
+              <span style={{ color: "var(--muted)" }}>% desc.</span>
+            </label>
+          </div>
         </div>
         {syncResult && (
           <div style={{
@@ -6900,6 +6941,40 @@ const AdminSupplierCatalog = () => {
               💡 Costo ${parseFloat(importForm.cost || 0).toFixed(2)} + {importForm.margin}% = <strong style={{ color: "var(--usdt)" }}>${importForm.price}</strong> · Ganancia: <strong style={{ color: "var(--green)" }}>${(parseFloat(importForm.price || 0) - parseFloat(importForm.cost || 0)).toFixed(2)}</strong>
             </div>
           )}
+          {/* ── Tiers de descuento por volumen ── */}
+          <div style={{ marginTop: 12, background: "var(--surface2)", borderRadius: 8, padding: "10px 14px", border: "1px solid var(--border)" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+              📊 Descuentos por volumen (opcional)
+            </div>
+            <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", fontSize: 12 }}>
+                <input type="checkbox" checked={tierEnabled5} onChange={e => setTierEn5(e.target.checked)} />
+                <span>5 uds →</span>
+                <input type="number" min="1" max="99" step="1" className="form-input"
+                  style={{ width: 58, padding: "2px 6px", fontSize: 12, display: "inline-block" }}
+                  value={tierDisc5} onChange={e => setTierDisc5(e.target.value)} disabled={!tierEnabled5} />
+                <span style={{ color: "var(--muted)" }}>% desc.</span>
+                {tierEnabled5 && importForm.price > 0 && (
+                  <span style={{ color: "var(--usdt)", fontWeight: 700 }}>
+                    = ${(parseFloat(importForm.price || 0) * (1 - parseFloat(tierDisc5 || 0) / 100)).toFixed(2)}/u
+                  </span>
+                )}
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", fontSize: 12 }}>
+                <input type="checkbox" checked={tierEnabled10} onChange={e => setTierEn10(e.target.checked)} />
+                <span>10 uds →</span>
+                <input type="number" min="1" max="99" step="1" className="form-input"
+                  style={{ width: 58, padding: "2px 6px", fontSize: 12, display: "inline-block" }}
+                  value={tierDisc10} onChange={e => setTierDisc10(e.target.value)} disabled={!tierEnabled10} />
+                <span style={{ color: "var(--muted)" }}>% desc.</span>
+                {tierEnabled10 && importForm.price > 0 && (
+                  <span style={{ color: "var(--usdt)", fontWeight: 700 }}>
+                    = ${(parseFloat(importForm.price || 0) * (1 - parseFloat(tierDisc10 || 0) / 100)).toFixed(2)}/u
+                  </span>
+                )}
+              </label>
+            </div>
+          </div>
           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
             <button className="btn btn-primary" onClick={doImport} disabled={importSaving}>{importSaving ? "Importando..." : "✓ Importar a mi tienda"}</button>
             <button className="btn btn-outline" onClick={() => { setImporting(null); setImportMsg(null); }}>✕ Cancelar</button>
@@ -6937,6 +7012,24 @@ const AdminSupplierCatalog = () => {
               style={{ whiteSpace: "nowrap" }}>
               {bulkRunning ? "⏳ Importando..." : "🚀 Importar todos"}
             </button>
+          </div>
+        </div>
+        {/* Tiers compartidos */}
+        <div style={{ marginTop: 10, background: "var(--surface2)", borderRadius: 8, padding: "8px 12px", border: "1px solid var(--border)" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>📊 Descuentos por volumen</div>
+          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", fontSize: 12 }}>
+              <input type="checkbox" checked={tierEnabled5} onChange={e => setTierEn5(e.target.checked)} />
+              <span>5 uds →</span>
+              <input type="number" min="1" max="99" step="1" className="form-input" style={{ width: 56, padding: "2px 6px", fontSize: 12, display: "inline-block" }} value={tierDisc5} onChange={e => setTierDisc5(e.target.value)} disabled={!tierEnabled5} />
+              <span style={{ color: "var(--muted)" }}>% desc.</span>
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", fontSize: 12 }}>
+              <input type="checkbox" checked={tierEnabled10} onChange={e => setTierEn10(e.target.checked)} />
+              <span>10 uds →</span>
+              <input type="number" min="1" max="99" step="1" className="form-input" style={{ width: 56, padding: "2px 6px", fontSize: 12, display: "inline-block" }} value={tierDisc10} onChange={e => setTierDisc10(e.target.value)} disabled={!tierEnabled10} />
+              <span style={{ color: "var(--muted)" }}>% desc.</span>
+            </label>
           </div>
         </div>
         {bulkLog.length > 0 && (
