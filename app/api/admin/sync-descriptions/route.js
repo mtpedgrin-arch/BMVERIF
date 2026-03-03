@@ -129,7 +129,6 @@ Respondé SOLO con un JSON array sin markdown:
           role: "user",
           content: `Generá descripciones para estos ${products.length} productos:\n\n${productList}`,
         },
-      ],
     ]);
 
     const jsonStr = raw
