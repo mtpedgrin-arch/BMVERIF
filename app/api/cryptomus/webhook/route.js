@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
 import { sendPaymentConfirmedEmail, sendReferralRewardEmail, sendDeliveryEmail } from "../../../../lib/mailer";
 import { sendCapiEvent } from "../../../../lib/metaCapi";
-import { sendTelegramOrderNotification } from "../../../../lib/telegram";
-import { supplierCreateOrder } from "../../../../lib/npprteam";
+import { sendTelegramOrderNotification, sendTelegramOrderWithButton } from "../../../../lib/telegram";
+import { supplierCreateOrder, supplierGetBalance } from "../../../../lib/npprteam";
+
+const BASE_URL    = process.env.NEXTAUTH_URL || "https://bmverificada.space";
+const CRON_SECRET = process.env.CRON_SECRET  || "bmverif_cron_2026";
 import crypto from "crypto";
 
 async function handleReferralReward(order) {
@@ -128,6 +131,33 @@ export async function POST(req) {
           const allHaveSupplier = itemsWithProduct.every(i => productMap[i.productId]?.supplierProductId);
 
           if (allHaveSupplier) {
+            // ── Chequeo de saldo antes de comprar ────────────────────────────
+            let supplierBalance = Infinity; // si falla la consulta, intentamos igual
+            try {
+              const b = await supplierGetBalance();
+              supplierBalance = parseFloat(b.primaryBalance ?? b.totalBalance ?? 0);
+            } catch { /* no bloquear el flujo */ }
+
+            const totalCostNeeded = itemsWithProduct.reduce((sum, i) => {
+              return sum + (parseFloat(productMap[i.productId]?.cost || 0) * (i.qty ?? 1));
+            }, 0);
+
+            if (supplierBalance < totalCostNeeded * 0.9) {
+              // Saldo insuficiente — alertar con botón de retry
+              autoFulfillStatus = "failed_balance";
+              const retryUrl = `${BASE_URL}/api/admin/retry-fulfillment?orderId=${order.id}&secret=${CRON_SECRET}`;
+              sendTelegramOrderWithButton(
+                `🚨 <b>SALDO INSUFICIENTE — Fulfillment pendiente</b>\n\n` +
+                `🆔 Orden: #${order.id.slice(-8)}\n` +
+                `👤 ${order.userName || order.userEmail}\n` +
+                `💰 Saldo disponible: <b>$${supplierBalance.toFixed(2)}</b>\n` +
+                `🛒 Costo estimado: <b>$${totalCostNeeded.toFixed(2)}</b>\n\n` +
+                `Recargá el saldo en npprteam.shop y presioná el botón.`,
+                "✅ Saldo cargado · Reintentar ahora",
+                retryUrl
+              ).catch(() => {});
+            } else {
+
             let deliveryParts = [];
             let allCredentials = true;
 
@@ -184,6 +214,7 @@ export async function POST(req) {
                 data: { deliveryContent },
               });
             }
+            } // end else (saldo suficiente)
           } else {
             autoFulfillStatus = "no_supplier";
           }
@@ -208,11 +239,12 @@ export async function POST(req) {
         `💲 Subtotal original: $${order.subtotal.toFixed(2)}\n`
       : "";
     const fulfillLine =
-      autoFulfillStatus === "delivered" ? `✅ <b>AUTO-ENTREGADO</b> · Proveedor #${supplierOrderIds.join(", ")}\n` :
-      autoFulfillStatus === "partial"   ? `⚠️ <b>Comprado al proveedor #${supplierOrderIds.join(", ")} — entrega manual pendiente</b>\n` :
-      autoFulfillStatus === "no_supplier" ? `🔔 Sin proveedor configurado — <b>entregar manualmente</b>\n` :
-      autoFulfillStatus === "error"     ? `❌ Error en auto-fulfillment — <b>entregar manualmente</b>\n` :
-                                          `⚡️ <b>¡Ir a comprar al proveedor!</b>\n`;
+      autoFulfillStatus === "delivered"      ? `✅ <b>AUTO-ENTREGADO</b> · Proveedor #${supplierOrderIds.join(", ")}\n` :
+      autoFulfillStatus === "partial"        ? `⚠️ <b>Comprado al proveedor #${supplierOrderIds.join(", ")} — entrega manual pendiente</b>\n` :
+      autoFulfillStatus === "failed_balance" ? `🚨 <b>SALDO INSUFICIENTE — ver botón en mensaje anterior</b>\n` :
+      autoFulfillStatus === "no_supplier"    ? `🔔 Sin proveedor configurado — <b>entregar manualmente</b>\n` :
+      autoFulfillStatus === "error"          ? `❌ Error en auto-fulfillment — <b>entregar manualmente</b>\n` :
+                                              `⚡️ <b>¡Ir a comprar al proveedor!</b>\n`;
     sendTelegramOrderNotification(
       `💰 <b>PAGO CONFIRMADO</b>\n\n` +
       `👤 <b>${order.userName || order.userEmail}</b>\n` +
