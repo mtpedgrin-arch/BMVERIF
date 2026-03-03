@@ -6255,15 +6255,22 @@ const AdminSupplierCatalog = () => {
   const [search, setSearch]     = useState("");
   const [catFilter, setCat]     = useState("all");
 
-  // Búsqueda manual por ID
-  const [lookupId, setLookupId]   = useState("");
+  // Búsqueda individual por ID
+  const [lookupId, setLookupId]     = useState("");
   const [lookupData, setLookupData] = useState(null);
-  const [lookupLoading, setLL]    = useState(false);
+  const [lookupLoading, setLL]      = useState(false);
   const [lookupError, setLookupErr] = useState(null);
 
-  // Importar
-  const [importing, setImporting] = useState(null);
-  const [importForm, setImportForm] = useState({ name: "", price: "", cost: "", category: "bm" });
+  // Importación masiva (múltiples IDs)
+  const [bulkIds, setBulkIds]       = useState("");
+  const [bulkMargin, setBulkMargin] = useState("30");
+  const [bulkCategory, setBulkCat]  = useState("bm");
+  const [bulkRunning, setBulkRun]   = useState(false);
+  const [bulkLog, setBulkLog]       = useState([]); // [{ id, status, name }]
+
+  // Importar individual
+  const [importing, setImporting]   = useState(null);
+  const [importForm, setImportForm] = useState({ name: "", price: "", cost: "", margin: "30", category: "bm" });
   const [importMsg, setImportMsg]   = useState(null);
   const [importSaving, setImportSaving] = useState(false);
 
@@ -6301,14 +6308,24 @@ const AdminSupplierCatalog = () => {
     }
   };
 
+  // Calcula precio de venta dado costo y margen %
+  const calcPrice = (cost, margin) => {
+    const c = parseFloat(cost); const m = parseFloat(margin);
+    if (!c || isNaN(c) || isNaN(m)) return "";
+    return (c * (1 + m / 100)).toFixed(2);
+  };
+
   const openImport = (p) => {
+    const costVal = String(p.priceUsd ?? p.price ?? "");
+    const autoPrice = calcPrice(costVal, importForm.margin);
     setImporting(p.id ?? lookupId.trim());
-    setImportForm({
+    setImportForm(f => ({
       name: p.titleEn || p.title || "",
-      price: "",
-      cost: String(p.priceUsd ?? p.price ?? ""),
-      category: "bm",
-    });
+      price: autoPrice,
+      cost: costVal,
+      margin: f.margin,
+      category: f.category,
+    }));
     setImportMsg(null);
   };
 
@@ -6333,13 +6350,52 @@ const AdminSupplierCatalog = () => {
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Error al importar");
-      setImportMsg({ ok: true, text: `✅ Importado correctamente (ID interno: ${result.id?.slice(-8)})` });
+      setImportMsg({ ok: true, text: `✅ Importado (ID: ${result.id?.slice(-8)}) — Precio: $${importForm.price}` });
       setTimeout(() => { setImporting(null); setImportMsg(null); setLookupData(null); setLookupId(""); }, 2500);
     } catch (err) {
       setImportMsg({ ok: false, text: err.message });
     } finally {
       setImportSaving(false);
     }
+  };
+
+  // Importación masiva: lee lista de IDs, busca cada uno, importa con margen
+  const doBulkImport = async () => {
+    const ids = bulkIds.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+    if (!ids.length) return;
+    setBulkRun(true); setBulkLog([]);
+    for (const id of ids) {
+      setBulkLog(l => [...l, { id, status: "⏳ buscando..." }]);
+      try {
+        // Buscar producto
+        const r = await fetch(`/api/admin/supplier?productId=${encodeURIComponent(id)}`);
+        const d = await r.json();
+        if (!d.ok) throw new Error(d.data?.message || "Producto no encontrado");
+        const p = d.data;
+        const cost  = parseFloat(p.priceUsd ?? p.price ?? 0);
+        const price = parseFloat(calcPrice(cost, bulkMargin));
+        const name  = p.titleEn || p.title || `Producto ${id}`;
+        // Importar
+        const res = await fetch("/api/products", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name, price, cost,
+            stock: p.qty ?? 0,
+            category: bulkCategory,
+            supplierProductId: String(id),
+            tiers: [], sales: 0,
+          }),
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || "Error al crear producto");
+        setBulkLog(l => l.map(x => x.id === id ? { id, status: `✅ importado — $${price}`, name } : x));
+      } catch (e) {
+        setBulkLog(l => l.map(x => x.id === id ? { id, status: `❌ ${e.message}`, name: "" } : x));
+      }
+      await new Promise(r => setTimeout(r, 400)); // pequeña pausa entre requests
+    }
+    setBulkRun(false);
   };
 
   return (
@@ -6366,21 +6422,16 @@ const AdminSupplierCatalog = () => {
         )}
       </div>
 
-      {/* Búsqueda manual por ID */}
+      {/* Búsqueda individual por ID */}
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-title">🔎 Buscar producto por ID</div>
         <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 10 }}>
-          Ingresá el ID del producto desde <a href="https://npprteam.shop" target="_blank" rel="noopener" style={{ color: "var(--accent)" }}>npprteam.shop</a> para ver sus detalles e importarlo.
+          Encontrá el ID en <a href="https://npprteam.shop" target="_blank" rel="noopener" style={{ color: "var(--accent)" }}>npprteam.shop</a> → ingresalo acá para ver precio y stock.
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <input
-            className="form-input"
-            placeholder="Ej: 123"
-            value={lookupId}
-            onChange={e => setLookupId(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && doLookup()}
-            style={{ maxWidth: 160 }}
-          />
+          <input className="form-input" placeholder="ID del producto (ej: 123)" value={lookupId}
+            onChange={e => setLookupId(e.target.value)} onKeyDown={e => e.key === "Enter" && doLookup()}
+            style={{ maxWidth: 200 }} />
           <button className="btn btn-primary" onClick={doLookup} disabled={lookupLoading || !lookupId.trim()}>
             {lookupLoading ? "..." : "Buscar"}
           </button>
@@ -6391,30 +6442,45 @@ const AdminSupplierCatalog = () => {
             <div>
               <div style={{ fontWeight: 700, fontSize: 14 }}>{lookupData.titleEn || lookupData.title}</div>
               <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 3 }}>
-                ID: {lookupData.id} · Precio: <strong style={{ color: "var(--usdt)" }}>${lookupData.priceUsd ?? lookupData.price}</strong> · Stock: <strong style={{ color: (lookupData.qty ?? 0) > 0 ? "var(--green)" : "var(--red)" }}>{lookupData.qty ?? "?"}</strong>
+                ID: {lookupData.id} · Costo proveedor: <strong style={{ color: "var(--usdt)" }}>${lookupData.priceUsd ?? lookupData.price}</strong>
+                · Con {importForm.margin}% margen: <strong style={{ color: "var(--accent)" }}>${calcPrice(lookupData.priceUsd ?? lookupData.price, importForm.margin)}</strong>
+                · Stock: <strong style={{ color: (lookupData.qty ?? 0) > 0 ? "var(--green)" : "var(--red)" }}>{lookupData.qty ?? "?"}</strong>
               </div>
             </div>
-            <button className="btn btn-primary btn-sm" onClick={() => openImport(lookupData)}>📥 Importar este producto</button>
+            <button className="btn btn-primary btn-sm" onClick={() => openImport(lookupData)}>📥 Importar</button>
           </div>
         )}
       </div>
 
-      {/* Import form */}
+      {/* Import form individual */}
       {importing && (
         <div className="card" style={{ marginBottom: 16, border: "2px solid var(--usdt)", background: "rgba(38,161,123,0.05)" }}>
           <div className="card-title">📥 Importar producto — ID proveedor: <code style={{ color: "var(--purple)" }}>{importing}</code></div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
             <div className="form-group" style={{ margin: 0, gridColumn: "1 / -1" }}>
               <label className="form-label">Nombre en tu tienda</label>
               <input className="form-input" value={importForm.name} onChange={e => setImportForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej: BM Verificada · Facebook USA" />
             </div>
             <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label">Precio de venta USDT *</label>
-              <input className="form-input" type="number" step="0.01" min="0" value={importForm.price} onChange={e => setImportForm(f => ({ ...f, price: e.target.value }))} placeholder="Tu precio al cliente" />
+              <label className="form-label">Costo proveedor $</label>
+              <input className="form-input" type="number" step="0.01" min="0" value={importForm.cost}
+                onChange={e => {
+                  const cost = e.target.value;
+                  setImportForm(f => ({ ...f, cost, price: calcPrice(cost, f.margin) }));
+                }} placeholder="Precio proveedor" />
             </div>
             <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label">Costo real USDT</label>
-              <input className="form-input" type="number" step="0.01" min="0" value={importForm.cost} onChange={e => setImportForm(f => ({ ...f, cost: e.target.value }))} placeholder="Precio proveedor" />
+              <label className="form-label">% Ganancia</label>
+              <input className="form-input" type="number" step="1" min="0" max="500" value={importForm.margin}
+                onChange={e => {
+                  const margin = e.target.value;
+                  setImportForm(f => ({ ...f, margin, price: calcPrice(f.cost, margin) }));
+                }} placeholder="30" />
+            </div>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label">Precio de venta $ <span style={{ color: "var(--usdt)", fontSize: 10 }}>(editable)</span></label>
+              <input className="form-input" type="number" step="0.01" min="0" value={importForm.price}
+                onChange={e => setImportForm(f => ({ ...f, price: e.target.value }))} placeholder="Auto-calculado" />
             </div>
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label">Categoría</label>
@@ -6425,6 +6491,11 @@ const AdminSupplierCatalog = () => {
               </select>
             </div>
           </div>
+          {importForm.cost && importForm.margin && (
+            <div style={{ marginTop: 8, fontSize: 12, color: "var(--muted)", background: "var(--surface2)", padding: "6px 12px", borderRadius: 6, display: "inline-block" }}>
+              💡 Costo ${parseFloat(importForm.cost || 0).toFixed(2)} + {importForm.margin}% = <strong style={{ color: "var(--usdt)" }}>${importForm.price}</strong> · Ganancia: <strong style={{ color: "var(--green)" }}>${(parseFloat(importForm.price || 0) - parseFloat(importForm.cost || 0)).toFixed(2)}</strong>
+            </div>
+          )}
           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
             <button className="btn btn-primary" onClick={doImport} disabled={importSaving}>{importSaving ? "Importando..." : "✓ Importar a mi tienda"}</button>
             <button className="btn btn-outline" onClick={() => { setImporting(null); setImportMsg(null); }}>✕ Cancelar</button>
@@ -6434,6 +6505,50 @@ const AdminSupplierCatalog = () => {
           )}
         </div>
       )}
+
+      {/* Importación masiva */}
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-title">📦 Importación masiva de Facebook</div>
+        <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12 }}>
+          Pegá los IDs de los productos de Facebook (uno por línea o separados por coma). Se importan todos con el mismo margen de ganancia.
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto auto", gap: 10, alignItems: "start" }}>
+          <textarea className="form-input" rows={4} placeholder={"101\n102\n103\nó bien: 101, 102, 103"}
+            value={bulkIds} onChange={e => setBulkIds(e.target.value)}
+            style={{ resize: "vertical", fontFamily: "monospace", fontSize: 13 }} />
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label">% Ganancia</label>
+            <input className="form-input" type="number" step="1" min="0" max="500" value={bulkMargin}
+              onChange={e => setBulkMargin(e.target.value)} style={{ width: 80 }} />
+          </div>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label">Categoría</label>
+            <select className="form-input" value={bulkCategory} onChange={e => setBulkCat(e.target.value)} style={{ width: 140 }}>
+              <option value="bm">BM Verificada</option>
+              <option value="ads-account">Cuenta Ads</option>
+              <option value="bm-balloon">BM Balloon</option>
+            </select>
+          </div>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label">&nbsp;</label>
+            <button className="btn btn-primary" onClick={doBulkImport} disabled={bulkRunning || !bulkIds.trim()}
+              style={{ whiteSpace: "nowrap" }}>
+              {bulkRunning ? "⏳ Importando..." : "🚀 Importar todos"}
+            </button>
+          </div>
+        </div>
+        {bulkLog.length > 0 && (
+          <div style={{ marginTop: 12, background: "var(--surface2)", borderRadius: 8, padding: "10px 14px", fontSize: 12, fontFamily: "monospace", maxHeight: 200, overflowY: "auto" }}>
+            {bulkLog.map((l, i) => (
+              <div key={i} style={{ marginBottom: 3 }}>
+                <span style={{ color: "var(--purple)" }}>ID {l.id}</span>
+                {l.name && <span style={{ color: "var(--muted)" }}> · {l.name}</span>}
+                <span style={{ marginLeft: 8 }}>{l.status}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Catálogo — si está disponible */}
       {productsError ? (
