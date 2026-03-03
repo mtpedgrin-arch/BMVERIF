@@ -121,35 +121,39 @@ const css = `
   .shop-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
   .shop-count { font-size: 13px; color: var(--muted); }
   /* ── Layout sidebar + productos ── */
-  .shop-with-sidebar { display: flex; gap: 20px; align-items: flex-start; }
-  .shop-sidebar-tree { width: 220px; flex-shrink: 0; position: sticky; top: 72px; }
+  .shop-with-sidebar { display: flex; gap: 22px; align-items: flex-start; }
+  .shop-sidebar-tree { width: 234px; flex-shrink: 0; position: sticky; top: 72px; display: flex; flex-direction: column; gap: 8px; }
   .shop-products-area { flex: 1; min-width: 0; }
-  /* Platform grid */
-  .platform-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 12px; }
-  .platform-tile { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--surface); cursor: pointer; font-size: 12px; font-weight: 600; color: var(--muted); transition: all 0.13s; }
-  .platform-tile:hover { border-color: #D92B2B; color: var(--text); }
-  .platform-tile.active { border-color: #D92B2B; background: #FFF1F1; color: #D92B2B; }
-  .platform-tile.soon { opacity: 0.45; cursor: default; }
-  .platform-tile img { width: 18px; height: 18px; object-fit: contain; border-radius: 4px; }
-  /* Sidebar tree */
+  /* Sidebar section (shared box style) */
+  .sidebar-section { background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .sidebar-section-hdr { padding: 9px 14px; font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); background: var(--surface2); }
+  /* Platform list (vertical) */
+  .platform-list-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.12s; user-select: none; }
+  .platform-list-row:last-child { border-bottom: none; }
+  .platform-list-row:hover:not(.soon) { background: rgba(217,43,43,0.07); color: var(--text); }
+  .platform-list-row.active { background: rgba(217,43,43,0.12); color: var(--red); font-weight: 700; }
+  .platform-list-row.soon { opacity: 0.35; cursor: default; }
+  .pl-icon { font-size: 17px; width: 24px; text-align: center; flex-shrink: 0; line-height: 1; }
+  .pl-soon { margin-left: auto; font-size: 9px; font-weight: 700; background: var(--border); color: var(--muted); padding: 2px 5px; border-radius: 3px; letter-spacing: .04em; }
+  /* Category tree */
   .sidebar-tree-box { background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; }
-  .sidebar-tree-header { padding: 10px 14px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); }
-  .sidebar-tree-row { display: flex; align-items: center; gap: 9px; padding: 9px 14px; font-size: 13px; color: var(--text); cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.11s; user-select: none; }
+  .sidebar-tree-header { padding: 9px 14px; font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); background: var(--surface2); }
+  .sidebar-tree-row { display: flex; align-items: center; gap: 9px; padding: 10px 14px; font-size: 13px; color: var(--text); cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.11s; user-select: none; }
   .sidebar-tree-row:last-child { border-bottom: none; }
-  .sidebar-tree-row:hover { background: rgba(217,43,43,0.05); }
-  .sidebar-tree-row.active { background: #FFF1F1; color: #D92B2B; font-weight: 700; }
-  .sidebar-tree-row.l3 { padding-left: 28px; font-size: 12px; color: var(--muted); }
-  .sidebar-tree-row.l3:hover { color: var(--text); }
-  .sidebar-tree-row.l3.active { color: #D92B2B; font-weight: 600; }
-  .tree-dot { width: 9px; height: 9px; border-radius: 50%; border: 2px solid #ccc; flex-shrink: 0; transition: all 0.12s; }
-  .sidebar-tree-row.active .tree-dot, .sidebar-tree-row.l3.active .tree-dot { background: #D92B2B; border-color: #D92B2B; }
-  .tree-count { margin-left: auto; font-size: 11px; font-weight: 400; opacity: 0.5; }
-  .tree-arrow { margin-left: auto; font-size: 10px; opacity: 0.5; }
-  @media (max-width: 700px) {
+  .sidebar-tree-row:hover { background: rgba(217,43,43,0.06); }
+  .sidebar-tree-row.active { background: rgba(217,43,43,0.12); color: var(--red); font-weight: 700; }
+  .sidebar-tree-row.l3 { padding-left: 30px; font-size: 12px; color: var(--muted); }
+  .sidebar-tree-row.l3:hover { background: rgba(217,43,43,0.05); color: var(--text); }
+  .sidebar-tree-row.l3.active { background: rgba(217,43,43,0.09); color: var(--red); font-weight: 600; }
+  .tree-dot { width: 7px; height: 7px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; transition: all 0.12s; }
+  .sidebar-tree-row.active .tree-dot, .sidebar-tree-row.l3.active .tree-dot { background: var(--red); border-color: var(--red); }
+  .tree-count { margin-left: auto; font-size: 11px; font-weight: 400; opacity: 0.45; }
+  .tree-arrow { font-size: 10px; opacity: 0.45; }
+  @media (max-width: 760px) {
     .shop-with-sidebar { flex-direction: column; }
     .shop-sidebar-tree { width: 100%; position: static; }
-    .platform-grid { grid-template-columns: repeat(4, 1fr); }
     .sidebar-tree-box { display: none; }
+    .sidebar-section { display: none; }
   }
   .cat-section-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 10px; margin-top: 4px; padding-bottom: 8px; border-bottom: 2px solid #1877F2; display: inline-block; }
   .product-list { display: flex; flex-direction: column; background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
@@ -3075,7 +3079,7 @@ const ProductDetailPage = ({ product: p, cart, onBack, onAddToCartQty, onBuyNowQ
 
 // ─── SHOP PAGE ────────────────────────────────────────────────────────────────
 const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike, products, onProductClick, thumbs }) => {
-  const [activePlatform, setActivePlatform] = useState(null); // null = todas las plataformas
+  const [activePlatform, setActivePlatform] = useState("facebook"); // facebook por defecto
   const [activeL2, setActiveL2] = useState(null);
   const [activeL3, setActiveL3] = useState(null);
   const getQty = id => cart.find(i => i.id === id)?.qty || 0;
@@ -3291,27 +3295,29 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
 
       <div className="shop-wrap">
         <div className="shop-with-sidebar">
-          {/* ── SIDEBAR IZQUIERDO: plataformas + árbol de categorías ── */}
+          {/* ── SIDEBAR IZQUIERDO ── */}
           <div className="shop-sidebar-tree">
-            {/* Grid de plataformas */}
-            <div className="platform-grid">
+
+            {/* Sección: Plataformas (lista vertical) */}
+            <div className="sidebar-section">
+              <div className="sidebar-section-hdr">Plataformas</div>
               {ALL_PLATFORMS.map(pl => (
                 <div key={pl.key}
-                  className={`platform-tile${activePlatform === pl.key ? " active" : ""}${pl.soon ? " soon" : ""}`}
+                  className={`platform-list-row${activePlatform === pl.key ? " active" : ""}${pl.soon ? " soon" : ""}`}
                   onClick={() => {
                     if (!pl.soon) {
                       if (activePlatform === pl.key) { setActivePlatform(null); setActiveL2(null); setActiveL3(null); }
                       else { setActivePlatform(pl.key); setActiveL2(null); setActiveL3(null); }
                     }
                   }}>
-                  <span style={{ fontSize: 16 }}>{pl.fallback}</span>
+                  <span className="pl-icon">{pl.fallback}</span>
                   <span>{pl.label}</span>
-                  {pl.soon && <span style={{ fontSize: 9, marginLeft: "auto", opacity: 0.6 }}>Soon</span>}
+                  {pl.soon && <span className="pl-soon">Pronto</span>}
                 </div>
               ))}
             </div>
 
-            {/* Árbol L2 + L3 (solo si hay L2 con productos para la plataforma activa) */}
+            {/* Sección: Árbol de categorías (colapsable, L2 → L3) */}
             {L2withProds.length > 0 && (
               <div className="sidebar-tree-box">
                 <div className="sidebar-tree-header">Categorías</div>
@@ -3347,6 +3353,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
                 })}
               </div>
             )}
+
           </div>
 
           {/* ── ÁREA DE PRODUCTOS ── */}
