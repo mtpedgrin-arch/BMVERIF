@@ -2582,18 +2582,18 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
             <div style={{ fontSize: 16, fontWeight: 800, fontFamily: "Syne", marginBottom: 16, color: "var(--text)" }}>
               También te puede interesar
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: `repeat(${recs.length}, 1fr)`, gap: 14 }}>
+            <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "thin" }}>
               {recs.map(p => (
-                <div key={p.id} style={{ background: "var(--surface)", border: "1.5px solid var(--border)", borderRadius: 14, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                <div key={p.id} style={{ background: "var(--surface)", border: "1.5px solid var(--border)", borderRadius: 14, overflow: "hidden", display: "flex", flexDirection: "column", minWidth: 190, maxWidth: 190, flexShrink: 0 }}>
                   {/* Color bar */}
                   <div style={{ height: 4, background: p.cat.color, opacity: 0.7 }} />
                   <div style={{ padding: "14px 16px", flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
                     {/* Icon + category */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                       <div style={{ width: 36, height: 36, borderRadius: 9, background: p.cat.color + "22", border: `1px solid ${p.cat.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
                         {p.cat.icon}
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: p.cat.color, textTransform: "uppercase", letterSpacing: "0.04em" }}>{p.cat.label}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: p.cat.color, textTransform: "uppercase", letterSpacing: "0.04em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.cat.label}</span>
                     </div>
                     {/* Name */}
                     <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
@@ -2601,12 +2601,12 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
                     </div>
                     {/* Price + tier */}
                     <div style={{ marginTop: "auto" }}>
-                      <div style={{ fontSize: 20, fontWeight: 800, fontFamily: "Syne", color: "var(--usdt)" }}>
+                      <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "Syne", color: "var(--usdt)", whiteSpace: "nowrap" }}>
                         ${p.price.toFixed(2)} <span style={{ fontSize: 12, fontWeight: 400, color: "var(--muted)" }}>USDT</span>
                       </div>
                       {p.bestTier && p.pct > 0 && (
-                        <div style={{ fontSize: 11, color: "#4ade80", marginTop: 3 }}>
-                          ×{p.bestTier.qty} unidades → ${p.bestTier.price.toFixed(2)}/u (−{p.pct}%)
+                        <div style={{ fontSize: 11, color: "#4ade80", marginTop: 3, whiteSpace: "nowrap" }}>
+                          ×{p.bestTier.qty} uds → ${p.bestTier.price.toFixed(2)}/u (−{p.pct}%)
                         </div>
                       )}
                     </div>
