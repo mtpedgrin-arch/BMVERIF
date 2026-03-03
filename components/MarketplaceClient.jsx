@@ -4326,6 +4326,27 @@ const ProductManager = ({ products, setProducts }) => {
     } catch {}
   };
 
+  const clearAllProducts = async () => {
+    const total = products.length;
+    if (total === 0) { alert("No hay productos para borrar."); return; }
+    const confirmed = confirm(`⚠️ ¿Borrar los ${total} productos existentes?\n\nEsta acción no se puede deshacer. Los datos de órdenes previas NO se borran.`);
+    if (!confirmed) return;
+    const confirmed2 = confirm("Confirmación final: ¿Estás seguro? Se borrarán TODOS los productos.");
+    if (!confirmed2) return;
+    try {
+      const res = await fetch("/api/admin/clear-products", { method: "POST" });
+      const data = await res.json();
+      if (data.ok) {
+        setProducts([]);
+        alert(`✅ ${data.deleted.products} productos borrados correctamente.`);
+      } else {
+        alert("Error: " + (data.error || "No se pudo borrar."));
+      }
+    } catch (e) {
+      alert("Error de conexión: " + e.message);
+    }
+  };
+
   const toggleActive = async (p) => {
     try {
       const res = await fetch(`/api/products/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive: !p.isActive }) });
@@ -4357,7 +4378,14 @@ const ProductManager = ({ products, setProducts }) => {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div className="page-title" style={{ margin: 0 }}>🛍 Productos</div>
-        <button className="btn btn-primary btn-sm" onClick={openNew}>+ Agregar producto</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {products.length > 0 && (
+            <button className="btn btn-sm" style={{ background: "#c0392b", color: "#fff", border: "none" }} onClick={clearAllProducts}>
+              🗑 Borrar todo ({products.length})
+            </button>
+          )}
+          <button className="btn btn-primary btn-sm" onClick={openNew}>+ Agregar producto</button>
+        </div>
       </div>
 
       {showForm && (
