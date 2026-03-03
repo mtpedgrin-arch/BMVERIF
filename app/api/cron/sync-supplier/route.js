@@ -6,7 +6,7 @@ const CRON_SECRET = process.env.CRON_SECRET || "bmverif_cron_2026";
 
 // Extrae la cantidad mínima de compra del producto del proveedor.
 function extractMinQty(sp) {
-  const direct = parseInt(sp.minQty || sp.min_qty || sp.minOrder || sp.min_order || sp.minimum || 0);
+  const direct = parseInt(sp.minimalOrder || sp.minQty || sp.min_qty || sp.minOrder || sp.min_order || sp.minimum || 0);
   if (direct > 1) return direct;
   const title = sp.titleEn || sp.title || "";
   const m = title.match(/[Ff]rom\s+(\d+)\s+[Pp][Cc][Ss]?/);
