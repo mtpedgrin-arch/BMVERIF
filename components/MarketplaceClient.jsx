@@ -93,12 +93,29 @@ const css = `
   .shop-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .shop-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
   .shop-count { font-size: 13px; color: var(--muted); }
-  .cat-filter { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 18px; }
-  .cat-chip { display: flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 50px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); transition: all 0.15s; white-space: nowrap; }
-  .cat-chip:hover { border-color: #1877F2; color: #1877F2; }
-  .cat-chip.active { background: #1877F2; border-color: #1877F2; color: #fff; box-shadow: 0 2px 10px rgba(24,119,242,0.35); }
-  .cat-chip-sub { padding: 5px 12px; font-size: 12px; font-weight: 500; border-radius: 8px; }
-  .cat-chip-sub.active { background: #1877F2; border-color: #1877F2; color: #fff; }
+  /* ── Sidebar layout ── */
+  .shop-layout { display: flex; gap: 20px; align-items: flex-start; }
+  .shop-sidebar { width: 200px; flex-shrink: 0; position: sticky; top: 80px; }
+  .shop-sidebar-title { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; padding: 0 4px; }
+  .shop-main { flex: 1; min-width: 0; }
+  .cat-filter { display: flex; flex-direction: column; gap: 2px; }
+  .cat-chip { display: flex; align-items: center; gap: 7px; padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid transparent; background: transparent; color: var(--muted); transition: all 0.12s; white-space: nowrap; width: 100%; text-align: left; }
+  .cat-chip:hover { background: var(--surface); color: var(--text); border-color: var(--border); }
+  .cat-chip.active { background: #EFF6FF; border-color: #BFDBFE; color: #1877F2; font-weight: 700; }
+  .cat-chip-sub { padding: 6px 10px 6px 14px; font-size: 12px; font-weight: 500; border-radius: 6px; }
+  .cat-chip-sub.active { background: #EFF6FF; border-color: #BFDBFE; color: #1877F2; font-weight: 700; }
+  .cat-platform-label { padding: 8px 12px 4px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 5px; width: 100%; border: none; background: none; cursor: pointer; }
+  .cat-platform-label:hover { color: var(--text); }
+  /* Mobile: sidebar arriba colapsado */
+  @media (max-width: 700px) {
+    .shop-layout { flex-direction: column; gap: 12px; }
+    .shop-sidebar { width: 100%; position: static; }
+    .cat-filter { flex-direction: row; flex-wrap: wrap; gap: 4px; }
+    .cat-chip { width: auto; padding: 5px 12px; font-size: 12px; border: 1.5px solid var(--border); }
+    .cat-chip.active { background: #1877F2; color: #fff; border-color: #1877F2; }
+    .cat-chip-sub { padding: 4px 10px; }
+    .cat-platform-label { width: auto; display: none; }
+  }
   .cat-section-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 10px; margin-top: 4px; padding-bottom: 8px; border-bottom: 2px solid #1877F2; display: inline-block; }
   .product-list { display: flex; flex-direction: column; background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
   .product-row { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); transition: background 0.12s; }
@@ -3201,61 +3218,59 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
       </div>
 
       <div className="shop-wrap">
-        <div className="shop-header">
-          <div className="shop-title">Productos disponibles</div>
-          <div className="shop-count">{totalVisible} productos</div>
-        </div>
-        <div className="cat-filter">
-          {/* Botón "Todo" */}
-          <button
-            className={`cat-chip${activeCat === "all" ? " active" : ""}`}
-            onClick={() => setActiveCat("all")}
-          >
-            ▤ Todo
-          </button>
+        <div className="shop-layout">
+          {/* ── SIDEBAR IZQUIERDO ── */}
+          <aside className="shop-sidebar">
+            <div className="shop-sidebar-title">Categorías</div>
+            <nav className="cat-filter">
+              {/* Todo */}
+              <button
+                className={`cat-chip${activeCat === "all" ? " active" : ""}`}
+                onClick={() => setActiveCat("all")}
+              >
+                ▤ Todo <span style={{ marginLeft: "auto", fontSize: 11, opacity: 0.55, fontWeight: 400 }}>({products.length})</span>
+              </button>
 
-          {/* Plataformas con sus subcategorías */}
-          {platformsWithProducts.map(({ platform, label, icon }) => {
-            const subcats = catsWithProducts.filter(c => c.platform === platform);
-            const expanded = expandedPlatforms.has(platform);
-            const platformActive = activeCat === `platform:${platform}` || subcats.some(c => c.key === activeCat);
-            return (
-              <div key={platform} style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-start", verticalAlign: "top" }}>
-                {/* Plataforma padre */}
-                <button
-                  className={`cat-chip${platformActive ? " active" : ""}`}
-                  style={{ display: "flex", alignItems: "center", gap: 5 }}
-                  onClick={() => {
-                    togglePlatform(platform);
-                    setActiveCat(`platform:${platform}`);
-                  }}
-                >
-                  {icon} {label}
-                  <span style={{ fontSize: 9, marginLeft: 2, opacity: 0.8 }}>{expanded ? "▲" : "▼"}</span>
-                </button>
-                {/* Subcategorías — solo si expandido */}
-                {expanded && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 4, marginLeft: 8, paddingLeft: 8, borderLeft: "2px solid var(--border)" }}>
-                    {subcats.map(c => {
+              {/* Plataformas con subcategorías */}
+              {platformsWithProducts.map(({ platform, label, icon }) => {
+                const subcats = catsWithProducts.filter(c => c.platform === platform);
+                const expanded = expandedPlatforms.has(platform);
+                return (
+                  <div key={platform}>
+                    {/* Label de plataforma — clickeable para expand/collapse */}
+                    <button
+                      className="cat-platform-label"
+                      onClick={() => togglePlatform(platform)}
+                    >
+                      {icon} {label}
+                      <span style={{ marginLeft: "auto", fontSize: 10 }}>{expanded ? "▲" : "▼"}</span>
+                    </button>
+                    {/* Subcategorías */}
+                    {expanded && subcats.map(c => {
                       const count = products.filter(p => (p.category || "business-managers") === c.key).length;
                       return (
                         <button
                           key={c.key}
                           className={`cat-chip cat-chip-sub${activeCat === c.key ? " active" : ""}`}
                           onClick={() => setActiveCat(c.key)}
-                          style={{ textAlign: "left", justifyContent: "flex-start" }}
                         >
                           {c.icon} {c.label}
-                          <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.6, fontWeight: 400 }}>({count})</span>
+                          <span style={{ marginLeft: "auto", fontSize: 10, opacity: 0.55, fontWeight: 400 }}>({count})</span>
                         </button>
                       );
                     })}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                );
+              })}
+            </nav>
+          </aside>
+
+          {/* ── CONTENIDO PRINCIPAL ── */}
+          <div className="shop-main">
+            <div className="shop-header">
+              <div className="shop-title">Productos disponibles</div>
+              <div className="shop-count">{totalVisible} productos</div>
+            </div>
         {products.length === 0 && (
           <div style={{ textAlign: "center", padding: "50px 20px", color: "var(--muted)" }}>
             <div style={{ fontSize: 40, marginBottom: 10 }}>🛍</div>
@@ -3312,7 +3327,9 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
             </div>
           );
         })}
-      </div>
+            </div>{/* /shop-main */}
+          </div>{/* /shop-layout */}
+        </div>{/* /shop-wrap */}
 
       <div className="info-section">
         <h2>¿Qué es un Facebook Business Manager verificado?</h2>
