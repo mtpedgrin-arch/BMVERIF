@@ -30,6 +30,26 @@ export async function GET(req) {
     return new Response("❌ orderId requerido", { status: 400, headers: { "Content-Type": "text/plain" } });
   }
 
+  try {
+  return await _runRetry(orderId);
+  } catch (err) {
+    console.error("retry-fulfillment fatal error:", err);
+    return new Response(
+      `❌ Error inesperado: ${err?.message || String(err)}\n\nRevisá los logs de Vercel para más detalle.`,
+      { status: 500, headers: { "Content-Type": "text/plain" } }
+    );
+  }
+}
+
+async function _runRetry(orderId) {
+  // Diagnóstico de API key
+  if (!process.env.NPPRTEAM_API_KEY) {
+    return new Response(
+      "❌ NPPRTEAM_API_KEY no está configurada en las variables de entorno de Vercel.\nAgrégala en Vercel → Settings → Environment Variables.",
+      { headers: { "Content-Type": "text/plain" } }
+    );
+  }
+
   const order = await prisma.order.findUnique({ where: { id: orderId } });
   if (!order) return new Response("❌ Orden no encontrada", { status: 404, headers: { "Content-Type": "text/plain" } });
   if (order.status === "delivered") {
@@ -41,11 +61,12 @@ export async function GET(req) {
 
   // Verificar saldo antes de intentar
   let balance = 0;
+  let balanceError = null;
   try {
     const b = await supplierGetBalance();
     // Usamos totalBalance (primary + cashback) para no bloquear compras cuando el cashback alcanza
     balance = parseFloat(b.totalBalance ?? b.primaryBalance ?? 0);
-  } catch { /* continuar igual */ }
+  } catch (e) { balanceError = e?.message || "error desconocido"; }
 
   // Obtener items y productos
   const orderItems = await prisma.orderItem.findMany({ where: { orderId: order.id } });
@@ -67,6 +88,12 @@ export async function GET(req) {
 
   // Chequeo de saldo
   const totalCost = itemsWithProduct.reduce((sum, i) => sum + (parseFloat(productMap[i.productId]?.cost || 0) * (i.qty ?? 1)), 0);
+  if (balanceError && totalCost > 0) {
+    return new Response(
+      `❌ No se pudo consultar el saldo del proveedor.\nError: ${balanceError}\n\nVerificá que NPPRTEAM_API_KEY sea válida en Vercel.`,
+      { headers: { "Content-Type": "text/plain" } }
+    );
+  }
   if (balance < totalCost * 0.9) { // margen de 10% por diferencias de precio
     const retryUrl = `${BASE_URL}/api/admin/retry-fulfillment?orderId=${order.id}&secret=${CRON_SECRET}`;
     sendTelegramOrderWithButton(
