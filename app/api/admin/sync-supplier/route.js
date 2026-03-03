@@ -80,12 +80,14 @@ export async function POST(req) {
 
   let margin = 30;
   let deactivateMissing = false;
-  let tierDisc5  = 0; // % de descuento para 5 unidades (0 = sin tier)
-  let tierDisc10 = 0; // % de descuento para 10 unidades (0 = sin tier)
+  let onlyNew    = false; // true = solo crear nuevos, no tocar los ya importados
+  let tierDisc5  = 0;
+  let tierDisc10 = 0;
   try {
     const body = await req.json();
     if (typeof body.margin === "number" && body.margin >= 0) margin = body.margin;
     if (typeof body.deactivateMissing === "boolean") deactivateMissing = body.deactivateMissing;
+    if (typeof body.onlyNew    === "boolean") onlyNew    = body.onlyNew;
     if (typeof body.tierDisc5  === "number" && body.tierDisc5  > 0 && body.tierDisc5  < 100) tierDisc5  = body.tierDisc5;
     if (typeof body.tierDisc10 === "number" && body.tierDisc10 > 0 && body.tierDisc10 < 100) tierDisc10 = body.tierDisc10;
   } catch {}
@@ -135,22 +137,26 @@ export async function POST(req) {
 
     try {
       if (existingMap.has(sid)) {
-        // Actualizar — solo sobreescribimos sales si el proveedor devuelve el campo
-        // Solo actualizamos tiers si el admin configuró discuentos (hasTiers=true)
-        await prisma.product.update({
-          where: { id: existingMap.get(sid) },
-          data: {
-            name,
-            cost,
-            price,
-            stock,
-            category: subcat,
-            isActive: true,
-            ...(hasTiers ? { tiers } : {}),
-            ...(sales !== null ? { sales } : {}),
-          },
-        });
-        updated++;
+        if (onlyNew) {
+          // Modo "solo nuevos" — no tocar los ya importados
+          skipped++;
+        } else {
+          // Actualizar precio, stock, costo. Solo tiers si el admin los configuró.
+          await prisma.product.update({
+            where: { id: existingMap.get(sid) },
+            data: {
+              name,
+              cost,
+              price,
+              stock,
+              category: subcat,
+              isActive: true,
+              ...(hasTiers ? { tiers } : {}),
+              ...(sales !== null ? { sales } : {}),
+            },
+          });
+          updated++;
+        }
       } else {
         // Crear — usar ventas del proveedor si las trae, sino 0
         await prisma.product.create({

@@ -6561,6 +6561,7 @@ const AdminSupplierCatalog = () => {
   const [syncRunning, setSyncRunning]     = useState(false);
   const [syncResult, setSyncResult]       = useState(null);
   const [syncDeactivate, setSyncDeact]    = useState(false);
+  const [syncOnlyNew,   setSyncOnlyNew]  = useState(true);  // default: no tocar existentes
 
   // Tier discounts por volumen (compartidos entre import individual, masivo y sync)
   const [tierEnabled5,  setTierEn5]    = useState(false);
@@ -6696,7 +6697,13 @@ const AdminSupplierCatalog = () => {
   const doSync = async () => {
     const m = parseFloat(syncMargin);
     if (isNaN(m) || m < 0) { alert("Ingresá un margen válido (0 o más)."); return; }
-    const ok = confirm(`¿Sincronizar TODO el catálogo de Facebook con ${m}% de margen?\n\nSe crearán y actualizarán todos los productos del proveedor.${syncDeactivate ? "\n\nLos productos que ya no estén en el catálogo serán DESACTIVADOS." : ""}`);
+    const ok = confirm(
+      `¿Sincronizar TODO el catálogo de Facebook?\n\n` +
+      (syncOnlyNew
+        ? `✅ Modo seguro: solo se CREAN productos nuevos — los ya importados NO se tocan.`
+        : `⚠️ Se actualizarán precio, stock y categoría de todos los existentes con ${m}% de margen.`) +
+      (syncDeactivate ? `\n\nLos productos que ya no estén en el catálogo serán DESACTIVADOS.` : "")
+    );
     if (!ok) return;
     setSyncRunning(true); setSyncResult(null);
     try {
@@ -6706,6 +6713,7 @@ const AdminSupplierCatalog = () => {
         body: JSON.stringify({
           margin: m,
           deactivateMissing: syncDeactivate,
+          onlyNew:    syncOnlyNew,
           tierDisc5:  tierEnabled5  ? parseFloat(tierDisc5)  || 0 : 0,
           tierDisc10: tierEnabled10 ? parseFloat(tierDisc10) || 0 : 0,
         }),
@@ -6805,6 +6813,10 @@ const AdminSupplierCatalog = () => {
               style={{ width: 80, display: "inline-block" }}
             />
           </div>
+          <label style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 5, cursor: "pointer", color: syncOnlyNew ? "var(--green)" : "inherit", fontWeight: syncOnlyNew ? 600 : 400 }}>
+            <input type="checkbox" checked={syncOnlyNew} onChange={e => setSyncOnlyNew(e.target.checked)} />
+            ✅ Solo agregar nuevos (no tocar los ya importados)
+          </label>
           <label style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
             <input type="checkbox" checked={syncDeactivate} onChange={e => setSyncDeact(e.target.checked)} />
             Desactivar productos que ya no estén en el catálogo
