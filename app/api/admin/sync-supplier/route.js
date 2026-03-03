@@ -30,7 +30,9 @@ function getSubcat(titleEn) {
     if (t.includes("agenc"))                                     return "bm-agency";
     if (t.includes("credit") || t.includes("line of credit") ||
         t.includes("crédito") || t.includes("credito"))          return "bm-credit";
-    return "bm-verified"; // la mayoría son verificadas
+    // Solo "verified" si el título lo dice explícitamente
+    if (t.includes("verified") || t.includes("verificad"))      return "bm-verified";
+    return "bm-ads"; // BM para publicidad (no verificada)
   }
 
   // Cuentas Facebook → L3 por GEO

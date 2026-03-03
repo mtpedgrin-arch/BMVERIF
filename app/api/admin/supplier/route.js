@@ -20,7 +20,9 @@ function getSubcat(titleEn) {
     if (t.includes("agenc"))                                    return "bm-agency";
     if (t.includes("credit") || t.includes("line of credit") ||
         t.includes("crédito") || t.includes("credito"))         return "bm-credit";
-    return "bm-verified";
+    // Solo "verified" si el título lo dice explícitamente
+    if (t.includes("verified") || t.includes("verificad"))     return "bm-verified";
+    return "bm-ads"; // BM para publicidad (no verificada)
   }
   if (t.startsWith("facebook account") || t.startsWith("account facebook") ||
       t.startsWith("accounts facebook") || t.startsWith("usa facebook account")) {
@@ -32,6 +34,7 @@ function getSubcat(titleEn) {
 
 const SUBCAT_LABELS = {
   "bm-verified":    "✅ BMs Verificadas",
+  "bm-ads":         "📢 BM para Publicidad",
   "bm-balloon":     "🎈 BM Balloon",
   "bm-agency":      "🏛 BM Agencia",
   "bm-credit":      "💳 BM Línea de Crédito",

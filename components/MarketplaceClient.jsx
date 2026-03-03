@@ -23,6 +23,7 @@ const PRODUCT_CATS = [
   // ── L2: Business Managers ──────────────────────────────────────────────
   { key: "business-managers", label: "Business Managers",    icon: "🏢", color: "#D4AF37", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: null },
   { key: "bm-verified",       label: "BMs Verificadas",      icon: "✅", color: "#22C55E", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: "business-managers" },
+  { key: "bm-ads",            label: "BM para Publicidad",   icon: "📢", color: "#1877F2", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: "business-managers" },
   { key: "bm-balloon",        label: "BM Balloon",           icon: "🎈", color: "#9B7BFF", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: "business-managers" },
   { key: "bm-agency",         label: "BM Agencia",           icon: "🏛", color: "#FDCB6E", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: "business-managers" },
   { key: "bm-credit",         label: "BM Línea de Crédito",  icon: "💳", color: "#00B894", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: "business-managers" },
@@ -6451,6 +6452,7 @@ const SUPPLIER_SUBCATS = [
   { key: "all",              label: "Todos" },
   // Business Managers L3
   { key: "bm-verified",     label: "✅ BMs Verificadas" },
+  { key: "bm-ads",          label: "📢 BM para Publicidad" },
   { key: "bm-balloon",      label: "🎈 BM Balloon" },
   { key: "bm-agency",       label: "🏛 BM Agencia" },
   { key: "bm-credit",       label: "💳 BM Crédito" },
