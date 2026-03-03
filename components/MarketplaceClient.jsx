@@ -6961,23 +6961,6 @@ const AdminSupplierCatalog = () => {
         <div style={{ textAlign: "center", padding: "40px 0", color: "var(--muted)" }}>⏳ Cargando catálogo...</div>
       ) : (
         <>
-          {/* ── DEBUG: campos raw del primer producto (temporal) ── */}
-          {products[0] && (
-            <details style={{ marginBottom: 12, fontSize: 11, fontFamily: "monospace" }}>
-              <summary style={{ cursor: "pointer", color: "var(--muted)", fontFamily: "inherit" }}>
-                🔍 Campos API (primer producto · ID {products[0].id})
-              </summary>
-              <div style={{ marginTop: 8, background: "var(--surface2)", borderRadius: 8, padding: "10px 14px", maxHeight: 220, overflowY: "auto" }}>
-                {Object.entries(products[0]).map(([k, v]) => (
-                  <div key={k} style={{ marginBottom: 3 }}>
-                    <span style={{ color: "var(--purple)", fontWeight: 700 }}>{k}</span>
-                    <span style={{ color: "var(--muted)" }}>: </span>
-                    <span style={{ color: "var(--text)" }}>{String(v)}</span>
-                  </div>
-                ))}
-              </div>
-            </details>
-          )}
           {/* ── Filtros en cascada: plataforma → categoría → subcategoría ── */}
           <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
             {/* Dropdown 1: Plataforma */}
@@ -7055,7 +7038,7 @@ const AdminSupplierCatalog = () => {
                     <th>ID</th><th>Producto</th><th>Categoría</th>
                     <th>Costo</th>
                     <th style={{ color: "#22C55E" }}>Mi precio de venta <span style={{ fontWeight: 400, fontSize: 10, opacity: 0.7 }}>(base +{previewMargin}% · editable)</span></th>
-                    <th>Stock</th><th title="Ventas registradas en el catálogo del proveedor">Ventas 🏆</th><th>Acción</th>
+                    <th>Stock</th><th>Acción</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -7109,15 +7092,6 @@ const AdminSupplierCatalog = () => {
                           <span style={{ fontWeight: 700, color: p.qty > 10 ? "var(--green)" : p.qty > 0 ? "var(--amber)" : "var(--red)" }}>
                             {p.qty}
                           </span>
-                        </td>
-                        <td>
-                          {(() => {
-                            // Intentar varios nombres de campo que usan APIs de proveedores
-                            const s = p.sold ?? p.totalSold ?? p.soldCount ?? p.total_sold ?? p.qty_sold ?? p.salesCount ?? null;
-                            return s !== null
-                              ? <span style={{ fontWeight: 700, color: "var(--purple)" }}>{Number(s).toLocaleString()}</span>
-                              : <span style={{ color: "var(--muted)", fontSize: 11 }}>—</span>;
-                          })()}
                         </td>
                         <td>
                           <button className="btn btn-outline btn-sm" style={{ fontSize: 11, padding: "3px 10px" }}
