@@ -5,17 +5,15 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import { trackEvent, trackCustom, initPixelWithUser } from "../lib/pixel";
 
 // ─── CATEGORÍAS DE PRODUCTOS ──────────────────────────────────────────────────
-// Única fuente de verdad para categorías. platform agrupa el menú jerárquico.
+// Alineadas con las subcategorías del proveedor (npprteam.shop).
+// platform agrupa el menú jerárquico de la tienda.
 const PRODUCT_CATS = [
-  { key: "bm",               label: "BMs Verificadas",          icon: "🏢", color: "#D4AF37", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
-  { key: "bm-nacional",      label: "BMs Nacionales",           icon: "🇦🇷", color: "#74B9FF", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
-  { key: "bm-internacional", label: "BMs Internacionales",      icon: "🌎", color: "#6C5CE7", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
-  { key: "bm-credito",       label: "BM Línea de Crédito",      icon: "💳", color: "#00B894", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
-  { key: "bm-agencia",       label: "BM Agencia",               icon: "🏛", color: "#FDCB6E", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
-  { key: "ads-account",      label: "Cuentas para Publicidad",  icon: "📢", color: "#1877F2", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
-  { key: "ads-usa",          label: "Cuentas Ads USA",          icon: "🇺🇸", color: "#E17055", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
-  { key: "fan-page",         label: "Fan Pages",                icon: "📄", color: "#A29BFE", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
-  { key: "bm-balloon",       label: "BM Balloon",               icon: "🎈", color: "#9B7BFF", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
+  { key: "business-managers", label: "Business Managers",   icon: "🏢", color: "#D4AF37", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
+  { key: "ads-accounts",      label: "Ads Accounts",        icon: "📢", color: "#1877F2", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
+  { key: "fan-pages",         label: "Fan Pages",           icon: "📄", color: "#A29BFE", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
+  { key: "accounts",          label: "Cuentas Facebook",    icon: "👤", color: "#74B9FF", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
+  { key: "softregs",          label: "Softregs",            icon: "🤖", color: "#00B894", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
+  { key: "other",             label: "Otros",               icon: "📦", color: "#636E72", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
 ];
 
 // ─── WALLETS ──────────────────────────────────────────────────────────────────
@@ -2487,7 +2485,7 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
         const CATS = PRODUCT_CATS;
         const cartIds = new Set(cart.map(i => i.id));
         const recs = CATS.flatMap(cat => {
-          const pool = products.filter(p => (p.category || "bm") === cat.key && !cartIds.has(p.id));
+          const pool = products.filter(p => (p.category || "business-managers") === cat.key && !cartIds.has(p.id));
           if (!pool.length) return [];
           const p = pool[Math.floor(Math.random() * pool.length)];
           const sortedTiers = (p.tiers || []).filter(t => t.qty > 0 && t.price > 0).sort((a, b) => a.qty - b.qty);
@@ -3052,10 +3050,10 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
     try { sessionStorage.setItem("featured_modal_dismissed", "1"); } catch {}
   };
 
-  const getThumb = (cat) => cat === "ads-account" ? (thumbs?.ads || "/facebook-verificado.png") : cat === "bm-balloon" ? (thumbs?.balloon || "/facebook-verificado.png") : (thumbs?.bm || "/facebook-verificado.png");
+  const getThumb = (cat) => cat === "ads-accounts" ? (thumbs?.ads || "/facebook-verificado.png") : (thumbs?.bm || "/facebook-verificado.png");
   const CATS = PRODUCT_CATS;
   // Solo mostrar categorías que tienen al menos 1 producto activo
-  const catsWithProducts = CATS.filter(c => products.some(p => (p.category || "bm") === c.key));
+  const catsWithProducts = CATS.filter(c => products.some(p => (p.category || "business-managers") === c.key));
   // visibleCats: "all" → todas, "platform:X" → todas las de esa plataforma, o clave específica
   const visibleCats = activeCat === "all"
     ? catsWithProducts
@@ -3076,7 +3074,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
     const effB = b.badgeDiscount > 0 ? b.price * (1 - b.badgeDiscount / 100) : b.price;
     return effA - effB;
   });
-  const totalVisible = visibleCats.reduce((acc, c) => acc + products.filter(p => (p.category || "bm") === c.key).length, 0);
+  const totalVisible = visibleCats.reduce((acc, c) => acc + products.filter(p => (p.category || "business-managers") === c.key).length, 0);
   return (
     <>
       {/* ── Featured product modal ── */}
@@ -3239,7 +3237,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
                 {expanded && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 4, marginLeft: 8, paddingLeft: 8, borderLeft: "2px solid var(--border)" }}>
                     {subcats.map(c => {
-                      const count = products.filter(p => (p.category || "bm") === c.key).length;
+                      const count = products.filter(p => (p.category || "business-managers") === c.key).length;
                       return (
                         <button
                           key={c.key}
@@ -3265,7 +3263,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
           </div>
         )}
         {visibleCats.map(({ key, label }) => {
-          const catProducts = sortProds(products.filter(p => (p.category || "bm") === key));
+          const catProducts = sortProds(products.filter(p => (p.category || "business-managers") === key));
           if (catProducts.length === 0) return null;
           return (
             <div key={key} style={{ marginBottom: 28 }}>
@@ -4265,7 +4263,7 @@ const AdminReviewPanel = ({ product, onClose, onRatingChange }) => {
 const ProductManager = ({ products, setProducts }) => {
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
-  const [form, setForm] = useState({ name: "", details: "", price: "", cost: "", stock: "", sales: "", tiers: [], category: "bm", supplierProductId: "" });
+  const [form, setForm] = useState({ name: "", details: "", price: "", cost: "", stock: "", sales: "", tiers: [], category: "business-managers", supplierProductId: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [reviewProductId, setReviewProductId] = useState(null);
@@ -4273,14 +4271,14 @@ const ProductManager = ({ products, setProducts }) => {
 
   const openNew = () => {
     setEditProduct(null);
-    setForm({ name: "", details: "", price: "", cost: "", stock: "", sales: "", tiers: [], category: "bm", supplierProductId: "" });
+    setForm({ name: "", details: "", price: "", cost: "", stock: "", sales: "", tiers: [], category: "business-managers", supplierProductId: "" });
     setError("");
     setShowForm(true);
   };
 
   const openEdit = (p) => {
     setEditProduct(p);
-    setForm({ name: p.name, details: p.details || "", price: p.price, cost: p.cost || "", stock: p.stock, sales: p.sales ?? "", tiers: Array.isArray(p.tiers) ? p.tiers.map(t => ({ qty: t.qty, price: t.price })) : [], category: p.category || "bm", supplierProductId: p.supplierProductId || "" });
+    setForm({ name: p.name, details: p.details || "", price: p.price, cost: p.cost || "", stock: p.stock, sales: p.sales ?? "", tiers: Array.isArray(p.tiers) ? p.tiers.map(t => ({ qty: t.qty, price: t.price })) : [], category: p.category || "business-managers", supplierProductId: p.supplierProductId || "" });
     setError("");
     setShowForm(true);
   };
@@ -4299,7 +4297,7 @@ const ProductManager = ({ products, setProducts }) => {
         .map(t => ({ qty: parseInt(t.qty), price: parseFloat(t.price) }))
         .filter(t => t.qty > 0 && t.price > 0)
         .sort((a, b) => a.qty - b.qty);
-      const body = { name: form.name, details: form.details, price: parseFloat(form.price), cost: parseFloat(form.cost) || 0, tiers: cleanTiers, stock: parseInt(form.stock) || 0, category: form.category || "bm", sales: parseInt(form.sales) || 0, supplierProductId: form.supplierProductId?.trim() || null };
+      const body = { name: form.name, details: form.details, price: parseFloat(form.price), cost: parseFloat(form.cost) || 0, tiers: cleanTiers, stock: parseInt(form.stock) || 0, category: form.category || "business-managers", sales: parseInt(form.sales) || 0, supplierProductId: form.supplierProductId?.trim() || null };
       if (editProduct) {
         res = await fetch(`/api/products/${editProduct.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       } else {
@@ -4506,12 +4504,13 @@ const ProductManager = ({ products, setProducts }) => {
                   <td style={{ maxWidth: 180, fontSize: 11, color: "var(--muted)" }}>{p.details || "—"}</td>
                   <td>
                     <span className="chip" style={{
-                      background: (p.category || "bm") === "ads-account" ? "#EFF6FF" : (p.category === "bm-balloon" ? "#FFF7ED" : "#F0FDF4"),
-                      color: (p.category || "bm") === "ads-account" ? "#1D4ED8" : (p.category === "bm-balloon" ? "#C2410C" : "#15803D"),
-                      border: `1px solid ${(p.category || "bm") === "ads-account" ? "#BFDBFE" : (p.category === "bm-balloon" ? "#FED7AA" : "#BBF7D0")}`,
+                      background: { "ads-accounts": "#EFF6FF", "fan-pages": "#F5F3FF", "accounts": "#EFF6FF", "softregs": "#F0FDF4", "other": "#F9FAFB" }[p.category] || "#FFFBEB",
+                      color: { "ads-accounts": "#1D4ED8", "fan-pages": "#7C3AED", "accounts": "#1D4ED8", "softregs": "#15803D", "other": "#374151" }[p.category] || "#92400E",
+                      border: `1px solid ${{ "ads-accounts": "#BFDBFE", "fan-pages": "#DDD6FE", "accounts": "#BFDBFE", "softregs": "#BBF7D0", "other": "#E5E7EB" }[p.category] || "#FDE68A"}`,
                       whiteSpace: "nowrap", fontSize: 10
                     }}>
-                      {(p.category || "bm") === "ads-account" ? "Cuentas Ads" : (p.category === "bm-balloon" ? "BM Balloon" : "BM Verificada")}
+                      {PRODUCT_CATS.find(c => c.key === (p.category || "business-managers"))?.icon || "📦"}{" "}
+                      {PRODUCT_CATS.find(c => c.key === (p.category || "business-managers"))?.label || p.category || "BM"}
                     </span>
                   </td>
                   <td><strong style={{ color: "var(--usdt)" }}>{fmtUSDT(p.price)}</strong></td>
@@ -6372,13 +6371,19 @@ const AdminSupplierCatalog = () => {
   // Importación masiva (múltiples IDs)
   const [bulkIds, setBulkIds]       = useState("");
   const [bulkMargin, setBulkMargin] = useState("30");
-  const [bulkCategory, setBulkCat]  = useState("bm");
+  const [bulkCategory, setBulkCat]  = useState("business-managers");
   const [bulkRunning, setBulkRun]   = useState(false);
   const [bulkLog, setBulkLog]       = useState([]); // [{ id, status, name }]
 
+  // Sincronización automática del catálogo completo
+  const [syncMargin, setSyncMargin]       = useState("30");
+  const [syncRunning, setSyncRunning]     = useState(false);
+  const [syncResult, setSyncResult]       = useState(null);
+  const [syncDeactivate, setSyncDeact]    = useState(false);
+
   // Importar individual
   const [importing, setImporting]   = useState(null);
-  const [importForm, setImportForm] = useState({ name: "", price: "", cost: "", margin: "30", category: "bm" });
+  const [importForm, setImportForm] = useState({ name: "", price: "", cost: "", margin: "30", category: "business-managers" });
   const [importMsg, setImportMsg]   = useState(null);
   const [importSaving, setImportSaving] = useState(false);
 
@@ -6474,6 +6479,34 @@ const AdminSupplierCatalog = () => {
     }
   };
 
+  // Sincronización automática: importa TODO el catálogo del proveedor de una vez
+  const doSync = async () => {
+    const m = parseFloat(syncMargin);
+    if (isNaN(m) || m < 0) { alert("Ingresá un margen válido (0 o más)."); return; }
+    const ok = confirm(`¿Sincronizar TODO el catálogo de Facebook con ${m}% de margen?\n\nSe crearán y actualizarán todos los productos del proveedor.${syncDeactivate ? "\n\nLos productos que ya no estén en el catálogo serán DESACTIVADOS." : ""}`);
+    if (!ok) return;
+    setSyncRunning(true); setSyncResult(null);
+    try {
+      const res = await fetch("/api/admin/sync-supplier", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ margin: m, deactivateMissing: syncDeactivate }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al sincronizar");
+      setSyncResult(data);
+      // Recargar productos del proveedor para reflejar stock actualizado
+      fetch("/api/admin/supplier").then(r => r.json()).then(d => {
+        setProducts(d.products || null);
+        setPE(d.productsError || null);
+      }).catch(() => {});
+    } catch (err) {
+      setSyncResult({ ok: false, error: err.message });
+    } finally {
+      setSyncRunning(false);
+    }
+  };
+
   // Importación masiva: lee lista de IDs, busca cada uno, importa con margen
   const doBulkImport = async () => {
     const ids = bulkIds.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
@@ -6533,6 +6566,69 @@ const AdminSupplierCatalog = () => {
               <div style={{ fontSize: 11, color: "var(--muted)" }}>+${balance.cashbackBalance?.toFixed(2)} cashback</div>
             )}
             <div style={{ fontSize: 11, color: "var(--muted)" }}>{balance.currency}</div>
+          </div>
+        )}
+      </div>
+
+      {/* ─── SINCRONIZACIÓN AUTOMÁTICA TOTAL ─── */}
+      <div className="card" style={{ marginBottom: 16, border: "2px solid #1877F2" }}>
+        <div className="card-title">🔄 Sincronizar catálogo completo</div>
+        <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12 }}>
+          Importa y actualiza automáticamente <strong>todos los productos de Facebook</strong> del proveedor. No necesitás seleccionar nada — se crean y actualizan solos con el margen que elijas.
+        </div>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 600, marginRight: 6 }}>% Ganancia</label>
+            <input
+              className="form-input"
+              type="number" min="0" max="500" step="1"
+              value={syncMargin}
+              onChange={e => setSyncMargin(e.target.value)}
+              style={{ width: 80, display: "inline-block" }}
+            />
+          </div>
+          <label style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
+            <input type="checkbox" checked={syncDeactivate} onChange={e => setSyncDeact(e.target.checked)} />
+            Desactivar productos que ya no estén en el catálogo
+          </label>
+          <button
+            className="btn btn-primary"
+            onClick={doSync}
+            disabled={syncRunning}
+            style={{ background: "#1877F2" }}
+          >
+            {syncRunning ? "⏳ Sincronizando..." : "🔄 Sincronizar todo"}
+          </button>
+        </div>
+        {syncResult && (
+          <div style={{
+            marginTop: 14,
+            padding: "10px 14px",
+            borderRadius: 8,
+            background: syncResult.ok ? "#F0FDF4" : "#FEF2F2",
+            border: `1px solid ${syncResult.ok ? "#BBF7D0" : "#FCA5A5"}`,
+            fontSize: 13,
+          }}>
+            {syncResult.ok ? (
+              <>
+                <strong style={{ color: "#15803D" }}>✅ Sincronización completada</strong>
+                <div style={{ marginTop: 6, display: "flex", gap: 16, flexWrap: "wrap" }}>
+                  <span>📦 Total proveedor: <strong>{syncResult.supplierTotal}</strong></span>
+                  <span style={{ color: "#15803D" }}>✨ Creados: <strong>{syncResult.created}</strong></span>
+                  <span style={{ color: "#1877F2" }}>🔁 Actualizados: <strong>{syncResult.updated}</strong></span>
+                  {syncResult.deactivated > 0 && <span style={{ color: "#DC2626" }}>🚫 Desactivados: <strong>{syncResult.deactivated}</strong></span>}
+                  {syncResult.skipped > 0 && <span style={{ color: "#D97706" }}>⚠️ Errores: <strong>{syncResult.skipped}</strong></span>}
+                  <span>💹 Margen: <strong>{syncResult.margin}%</strong></span>
+                </div>
+                {syncResult.errors?.length > 0 && (
+                  <div style={{ marginTop: 6, fontSize: 11, color: "#DC2626" }}>
+                    {syncResult.errors.map((e, i) => <div key={i}>#{e.id}: {e.error}</div>)}
+                  </div>
+                )}
+              </>
+            ) : (
+              <span style={{ color: "#DC2626" }}>❌ Error: {syncResult.error}</span>
+            )}
           </div>
         )}
       </div>
