@@ -6,24 +6,43 @@ import { prisma } from "../../../lib/prisma";
 // GET /api/products — activos (público) o todos (admin con ?all=true)
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
-  const all = searchParams.get("all") === "true";
+  const all   = searchParams.get("all")   === "true";
+  const count = searchParams.get("count") === "true"; // diagnóstico: solo contar
 
-  if (all) {
-    const session = await getServerSession(authOptions);
-    if (session?.user?.role !== "admin") {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  try {
+    if (all) {
+      const session = await getServerSession(authOptions);
+      if (session?.user?.role !== "admin") {
+        return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+      }
+      if (count) {
+        const n = await prisma.product.count();
+        return NextResponse.json({ count: n });
+      }
+      const products = await prisma.product.findMany({ orderBy: { createdAt: "desc" } });
+      return NextResponse.json(products);
     }
-    const products = await prisma.product.findMany({ orderBy: { createdAt: "desc" } });
-    return NextResponse.json(products);
-  }
 
-  // Solo mostrar productos del proveedor (con supplierProductId)
-  // Los productos manuales sin supplierProductId no aparecen en la tienda pública
-  const products = await prisma.product.findMany({
-    where: { isActive: true, supplierProductId: { not: null }, stock: { gt: 0 } },
-    orderBy: { createdAt: "asc" },
-  });
-  return NextResponse.json(products);
+    // Solo mostrar productos del proveedor activos con stock
+    if (count) {
+      const n = await prisma.product.count({
+        where: { isActive: true, supplierProductId: { not: null }, stock: { gt: 0 } },
+      });
+      return NextResponse.json({ count: n });
+    }
+    const products = await prisma.product.findMany({
+      where: { isActive: true, supplierProductId: { not: null }, stock: { gt: 0 } },
+      orderBy: { createdAt: "asc" },
+    });
+    return NextResponse.json(products);
+
+  } catch (err) {
+    console.error("[GET /api/products] Error:", err);
+    return NextResponse.json(
+      { error: err?.message || String(err) },
+      { status: 500 }
+    );
+  }
 }
 
 // POST /api/products — crear producto (admin)
