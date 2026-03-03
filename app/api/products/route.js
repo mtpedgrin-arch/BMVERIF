@@ -17,8 +17,10 @@ export async function GET(req) {
     return NextResponse.json(products);
   }
 
+  // Solo mostrar productos del proveedor (con supplierProductId)
+  // Los productos manuales sin supplierProductId no aparecen en la tienda pública
   const products = await prisma.product.findMany({
-    where: { isActive: true },
+    where: { isActive: true, supplierProductId: { not: null } },
     orderBy: { createdAt: "asc" },
   });
   return NextResponse.json(products);
@@ -46,7 +48,7 @@ export async function POST(req) {
       rating: 0,
       reviews: 0,
       isActive: true,
-      category: category || "bm",
+      category: category || "business-managers",
       supplierProductId: supplierProductId ? String(supplierProductId).trim() : null,
     },
   });
