@@ -110,10 +110,13 @@ export async function POST(req) {
     const price  = parseFloat((cost * (1 + margin / 100)).toFixed(2));
     const stock  = parseInt(sp.qty) || 0;
     const name   = sp.titleEn || sp.title || `Producto #${sid}`;
+    // Intentar varios nombres de campo para el conteo de ventas del proveedor
+    const soldRaw = sp.sold ?? sp.totalSold ?? sp.soldCount ?? sp.total_sold ?? sp.qty_sold ?? sp.salesCount ?? null;
+    const sales   = soldRaw !== null ? parseInt(soldRaw) || 0 : null; // null = no actualizar si no existe el campo
 
     try {
       if (existingMap.has(sid)) {
-        // Actualizar
+        // Actualizar — solo sobreescribimos sales si el proveedor devuelve el campo
         await prisma.product.update({
           where: { id: existingMap.get(sid) },
           data: {
@@ -123,11 +126,12 @@ export async function POST(req) {
             stock,
             category: subcat,
             isActive: true,
+            ...(sales !== null ? { sales } : {}),
           },
         });
         updated++;
       } else {
-        // Crear
+        // Crear — usar ventas del proveedor si las trae, sino 0
         await prisma.product.create({
           data: {
             name,
@@ -137,7 +141,7 @@ export async function POST(req) {
             category:          subcat,
             supplierProductId: sid,
             isActive:          true,
-            sales:             0,
+            sales:             sales ?? 0,
             badgeDiscount:     0,
             tiers:             [],
           },
