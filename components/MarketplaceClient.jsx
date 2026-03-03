@@ -6252,13 +6252,24 @@ const LegalPrivacy = () => (
 );
 
 // ─── ADMIN SUPPLIER CATALOG ───────────────────────────────────────────────────
+const SUPPLIER_SUBCATS = [
+  { key: "all",               label: "Todos" },
+  { key: "business-managers", label: "🏢 Business Managers" },
+  { key: "ads-accounts",      label: "📢 Ads Accounts" },
+  { key: "fan-pages",         label: "📄 Fan Pages" },
+  { key: "accounts",          label: "👤 Cuentas Facebook" },
+  { key: "softregs",          label: "🤖 Softregs" },
+  { key: "other",             label: "📦 Otros" },
+];
+
 const AdminSupplierCatalog = () => {
   const [balance, setBalance]   = useState(null);
   const [balanceLoading, setBL] = useState(true);
   const [products, setProducts] = useState(null);
   const [productsError, setPE]  = useState(null);
   const [search, setSearch]     = useState("");
-  const [catFilter, setCat]     = useState("all");
+  const [subcatFilter, setSubcat] = useState("all");
+  const [onlyInStock, setInStock] = useState(true);
 
   // Búsqueda individual por ID
   const [lookupId, setLookupId]     = useState("");
@@ -6291,12 +6302,19 @@ const AdminSupplierCatalog = () => {
       .finally(() => setBL(false));
   }, []);
 
-  const allCats = products ? [...new Set(products.map(p => p.category))].sort() : [];
   const filtered = (products || []).filter(p => {
-    const matchCat  = catFilter === "all" || p.category === catFilter;
+    const matchSubcat = subcatFilter === "all" || p.subcat === subcatFilter;
     const matchSearch = !search || p.titleEn?.toLowerCase().includes(search.toLowerCase()) || String(p.id).includes(search);
-    return matchCat && matchSearch;
+    const matchStock  = !onlyInStock || (p.qty ?? 0) > 0;
+    return matchSubcat && matchSearch && matchStock;
   });
+
+  const subcatCounts = SUPPLIER_SUBCATS.reduce((acc, s) => {
+    acc[s.key] = s.key === "all"
+      ? (products || []).filter(p => !onlyInStock || (p.qty ?? 0) > 0).length
+      : (products || []).filter(p => p.subcat === s.key && (!onlyInStock || (p.qty ?? 0) > 0)).length;
+    return acc;
+  }, {});
 
   const doLookup = async () => {
     if (!lookupId.trim()) return;
@@ -6551,48 +6569,67 @@ const AdminSupplierCatalog = () => {
         )}
       </div>
 
-      {/* Catálogo — si está disponible */}
+      {/* Catálogo Facebook */}
       {productsError ? (
         <div className="card" style={{ background: "rgba(255,100,0,0.05)", border: "1px solid rgba(255,100,0,0.2)" }}>
-          <div style={{ fontSize: 13, color: "var(--muted)" }}>
-            ⚠️ El catálogo completo no está disponible ahora (error en npprteam.shop). Usá el buscador de arriba para encontrar productos por ID.
-          </div>
+          <div style={{ fontSize: 13, color: "var(--muted)" }}>⚠️ {productsError}. Usá el buscador de arriba para encontrar productos por ID.</div>
         </div>
-      ) : products && (
+      ) : !products ? (
+        <div style={{ textAlign: "center", padding: "40px 0", color: "var(--muted)" }}>⏳ Cargando catálogo...</div>
+      ) : (
         <>
-          <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-            <input
-              className="form-input"
-              placeholder="🔍 Buscar por nombre o ID..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{ flex: "1 1 200px", maxWidth: 320 }}
-            />
-            <select className="form-input" value={catFilter} onChange={e => setCat(e.target.value)} style={{ width: "auto" }}>
-              <option value="all">Todas las categorías ({products.length})</option>
-              {allCats.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+          {/* Tabs subcategorías */}
+          <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+            {SUPPLIER_SUBCATS.map(s => (
+              <button key={s.key}
+                className={`btn ${subcatFilter === s.key ? "btn-primary" : "btn-outline"} btn-sm`}
+                style={{ fontSize: 12 }}
+                onClick={() => setSubcat(s.key)}
+                disabled={subcatCounts[s.key] === 0}
+              >
+                {s.label} <span style={{ opacity: 0.7, fontSize: 11 }}>({subcatCounts[s.key] ?? 0})</span>
+              </button>
+            ))}
           </div>
-          <div className="card">
+
+          {/* Barra de búsqueda + toggle stock */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center", flexWrap: "wrap" }}>
+            <input className="form-input" placeholder="🔍 Buscar por nombre o ID..."
+              value={search} onChange={e => setSearch(e.target.value)}
+              style={{ flex: "1 1 200px", maxWidth: 340 }} />
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--muted)", cursor: "pointer", whiteSpace: "nowrap" }}>
+              <input type="checkbox" checked={onlyInStock} onChange={e => setInStock(e.target.checked)} />
+              Solo con stock
+            </label>
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>{filtered.length} productos</span>
+          </div>
+
+          {/* Tabla */}
+          <div className="card" style={{ padding: 0 }}>
             <div className="table-wrap">
               <table>
                 <thead>
-                  <tr><th>ID</th><th>Producto</th><th>Categoría</th><th>Precio proveedor</th><th>Stock</th><th>Acción</th></tr>
+                  <tr><th>ID</th><th>Producto</th><th>Subcategoría</th><th>Costo USD</th><th>Stock</th><th>Acción</th></tr>
                 </thead>
                 <tbody>
                   {filtered.length === 0 && (
-                    <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--muted)", padding: "24px 0" }}>Sin resultados</td></tr>
+                    <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--muted)", padding: "32px 0" }}>Sin resultados</td></tr>
                   )}
-                  {filtered.map(p => (
-                    <tr key={p.id}>
+                  {filtered.slice(0, 200).map(p => (
+                    <tr key={p.id} style={{ background: importing === p.id ? "rgba(38,161,123,0.06)" : undefined }}>
                       <td><code style={{ fontSize: 11, color: "var(--purple)" }}>{p.id}</code></td>
-                      <td style={{ maxWidth: 280, fontSize: 12, lineHeight: 1.4 }}>{p.titleEn}</td>
-                      <td><span className="tag-network" style={{ textTransform: "capitalize" }}>{p.category}</span></td>
+                      <td style={{ maxWidth: 320, fontSize: 12, lineHeight: 1.4 }}>{p.titleEn}</td>
+                      <td><span className="tag-network" style={{ fontSize: 10, whiteSpace: "nowrap" }}>{p.subcatLabel}</span></td>
                       <td><strong style={{ color: "var(--usdt)" }}>${p.priceUsd?.toFixed(2)}</strong></td>
-                      <td><span style={{ color: p.qty > 10 ? "var(--green)" : p.qty > 0 ? "var(--amber)" : "var(--red)", fontWeight: 700 }}>{p.qty}</span></td>
                       <td>
-                        <button className="btn btn-outline btn-sm" style={{ fontSize: 11, padding: "4px 10px" }}
-                          onClick={() => importing === p.id ? setImporting(null) : openImport(p)} disabled={p.qty === 0}>
+                        <span style={{ fontWeight: 700, color: p.qty > 10 ? "var(--green)" : p.qty > 0 ? "var(--amber)" : "var(--red)" }}>
+                          {p.qty}
+                        </span>
+                      </td>
+                      <td>
+                        <button className="btn btn-outline btn-sm" style={{ fontSize: 11, padding: "3px 10px" }}
+                          onClick={() => importing === p.id ? setImporting(null) : openImport(p)}
+                          disabled={p.qty === 0}>
                           {importing === p.id ? "✕" : p.qty === 0 ? "Sin stock" : "📥 Importar"}
                         </button>
                       </td>
@@ -6601,6 +6638,11 @@ const AdminSupplierCatalog = () => {
                 </tbody>
               </table>
             </div>
+            {filtered.length > 200 && (
+              <div style={{ padding: "10px 16px", fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
+                Mostrando 200 de {filtered.length} — usá la búsqueda para filtrar más
+              </div>
+            )}
           </div>
         </>
       )}
