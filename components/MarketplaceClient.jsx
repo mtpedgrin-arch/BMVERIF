@@ -5641,7 +5641,8 @@ const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, onCancelOrder, cou
     { id: "users",      icon: "👤", label: "Usuarios", adminOnly: true },
     { id: "team",       icon: "👥", label: "Equipo", adminOnly: true },
     { id: "blog",       icon: "📝", label: "Blog",   adminOnly: true },
-    { id: "bot",        icon: "🤖", label: "Bot IA", adminOnly: true },
+    { id: "bot",        icon: "🤖", label: "Bot IA",    adminOnly: true },
+    { id: "supplier",   icon: "🏪", label: "Proveedor", adminOnly: true },
   ];
 
   const sideItems = isSupport
@@ -5737,7 +5738,8 @@ const AdminPanel = ({ orders, onConfirmOrder, onDeliverOrder, onCancelOrder, cou
         {section === "users" && !isSupport && <AdminUsers />}
         {section === "team" && !isSupport && <TeamManager />}
         {section === "blog" && !isSupport && <BlogManager />}
-        {section === "bot"  && !isSupport && <BotTrainer />}
+        {section === "bot"      && !isSupport && <BotTrainer />}
+        {section === "supplier" && !isSupport && <AdminSupplierCatalog />}
       </div>
     </div>
   );
@@ -6243,6 +6245,201 @@ const LegalPrivacy = () => (
     </ul>
   </div>
 );
+
+// ─── ADMIN SUPPLIER CATALOG ───────────────────────────────────────────────────
+const AdminSupplierCatalog = () => {
+  const [data, setData]         = useState(null);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState(null);
+  const [search, setSearch]     = useState("");
+  const [catFilter, setCat]     = useState("all");
+  const [importing, setImporting] = useState(null); // supplierProductId being imported
+  const [importForm, setImportForm] = useState({ name: "", price: "", cost: "", category: "bm" });
+  const [importMsg, setImportMsg]   = useState(null);
+  const [importSaving, setImportSaving] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/admin/supplier")
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) setError(d.error);
+        else setData(d);
+      })
+      .catch(() => setError("Error de red al conectar con el proveedor"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const allCats = data ? [...new Set(data.products.map(p => p.category))].sort() : [];
+
+  const filtered = (data?.products || []).filter(p => {
+    const matchCat  = catFilter === "all" || p.category === catFilter;
+    const matchSearch = !search || p.titleEn?.toLowerCase().includes(search.toLowerCase()) || String(p.id).includes(search);
+    return matchCat && matchSearch;
+  });
+
+  const openImport = (p) => {
+    setImporting(p.id);
+    setImportForm({
+      name: p.titleEn || "",
+      price: "",
+      cost: String(p.priceUsd || ""),
+      category: p.category === "facebook" ? "bm" : p.category === "google" ? "ads-account" : "bm",
+    });
+    setImportMsg(null);
+  };
+
+  const doImport = async () => {
+    if (!importForm.name.trim() || !importForm.price) { setImportMsg({ ok: false, text: "Nombre y precio de venta son obligatorios." }); return; }
+    setImportSaving(true); setImportMsg(null);
+    try {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: importForm.name.trim(),
+          price: parseFloat(importForm.price),
+          cost: parseFloat(importForm.cost) || 0,
+          stock: filtered.find(p => p.id === importing)?.qty || 0,
+          category: importForm.category,
+          supplierProductId: String(importing),
+          tiers: [],
+          sales: 0,
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Error al importar");
+      setImportMsg({ ok: true, text: `✅ Producto importado correctamente (ID: ${result.id?.slice(-8)})` });
+      setTimeout(() => { setImporting(null); setImportMsg(null); }, 2500);
+    } catch (err) {
+      setImportMsg({ ok: false, text: err.message });
+    } finally {
+      setImportSaving(false);
+    }
+  };
+
+  if (loading) return <div className="page" style={{ textAlign: "center", padding: "60px 0", color: "var(--muted)" }}>⏳ Conectando con el proveedor...</div>;
+  if (error)   return <div className="page"><div className="card" style={{ color: "var(--red)", padding: "20px" }}>❌ {error}</div></div>;
+
+  return (
+    <div className="page">
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <div style={{ fontFamily: "Syne", fontSize: 20, fontWeight: 800 }}>🏪 Catálogo del Proveedor</div>
+          <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 3 }}>npprteam.shop · {filtered.length} productos</div>
+        </div>
+        {data?.balance && (
+          <div className="stat-card" style={{ minWidth: 160 }}>
+            <div className="stat-label">💰 Saldo proveedor</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: data.balance.primaryBalance > 50 ? "var(--usdt)" : "var(--red)", margin: "4px 0 2px" }}>
+              ${data.balance.primaryBalance?.toFixed(2)}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--muted)" }}>{data.balance.currency}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Filters */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        <input
+          className="form-input"
+          placeholder="🔍 Buscar por nombre o ID..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{ flex: "1 1 200px", maxWidth: 340 }}
+        />
+        <select className="form-input" value={catFilter} onChange={e => setCat(e.target.value)} style={{ width: "auto" }}>
+          <option value="all">Todas las categorías</option>
+          {allCats.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+
+      {/* Import form */}
+      {importing && (
+        <div className="card" style={{ marginBottom: 16, border: "2px solid var(--usdt)", background: "rgba(38,161,123,0.05)" }}>
+          <div className="card-title">📥 Importar producto — ID proveedor: {importing}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: 10, alignItems: "end" }}>
+            <div className="form-group" style={{ margin: 0, gridColumn: "1 / -1" }}>
+              <label className="form-label">Nombre en tu tienda</label>
+              <input className="form-input" value={importForm.name} onChange={e => setImportForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej: BM Verificada · Facebook USA" />
+            </div>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label">Precio de venta USDT *</label>
+              <input className="form-input" type="number" step="0.01" min="0" value={importForm.price} onChange={e => setImportForm(f => ({ ...f, price: e.target.value }))} placeholder="Tu precio al cliente" />
+            </div>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label">Costo real USDT</label>
+              <input className="form-input" type="number" step="0.01" min="0" value={importForm.cost} onChange={e => setImportForm(f => ({ ...f, cost: e.target.value }))} placeholder="Precio proveedor" />
+            </div>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label">Categoría</label>
+              <select className="form-input" value={importForm.category} onChange={e => setImportForm(f => ({ ...f, category: e.target.value }))}>
+                <option value="bm">BM Verificada</option>
+                <option value="ads-account">Cuenta Ads</option>
+                <option value="bm-balloon">BM Balloon</option>
+              </select>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="btn btn-primary" onClick={doImport} disabled={importSaving}>{importSaving ? "..." : "✓ Importar"}</button>
+              <button className="btn btn-outline" onClick={() => { setImporting(null); setImportMsg(null); }}>✕</button>
+            </div>
+          </div>
+          {importMsg && (
+            <div style={{ marginTop: 10, fontSize: 13, color: importMsg.ok ? "var(--green)" : "var(--red)", fontWeight: 600 }}>{importMsg.text}</div>
+          )}
+        </div>
+      )}
+
+      {/* Product table */}
+      <div className="card">
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Producto</th>
+                <th>Categoría</th>
+                <th>Precio proveedor</th>
+                <th>Stock</th>
+                <th>Mín. orden</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 && (
+                <tr><td colSpan={7} style={{ textAlign: "center", color: "var(--muted)", padding: "24px 0" }}>Sin resultados</td></tr>
+              )}
+              {filtered.map(p => (
+                <tr key={p.id} style={{ background: importing === p.id ? "rgba(38,161,123,0.06)" : undefined }}>
+                  <td><code style={{ fontSize: 11, color: "var(--purple)" }}>{p.id}</code></td>
+                  <td style={{ maxWidth: 300, fontSize: 12, lineHeight: 1.4 }}>{p.titleEn}</td>
+                  <td><span className="tag-network" style={{ textTransform: "capitalize" }}>{p.category}</span></td>
+                  <td><strong style={{ color: "var(--usdt)" }}>${p.priceUsd?.toFixed(2)}</strong></td>
+                  <td>
+                    <span style={{ color: p.qty > 10 ? "var(--green)" : p.qty > 0 ? "var(--amber)" : "var(--red)", fontWeight: 700 }}>
+                      {p.qty}
+                    </span>
+                  </td>
+                  <td style={{ color: "var(--muted)", fontSize: 12 }}>×{p.minimalOrder}</td>
+                  <td>
+                    <button
+                      className="btn btn-outline btn-sm"
+                      style={{ fontSize: 11, padding: "4px 10px" }}
+                      onClick={() => importing === p.id ? setImporting(null) : openImport(p)}
+                      disabled={p.qty === 0}
+                    >
+                      {importing === p.id ? "✕ Cancelar" : p.qty === 0 ? "Sin stock" : "📥 Importar"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ─── BOT TRAINER ──────────────────────────────────────────────────────────────
 const TOPICS = ["Entregas", "Pagos", "Productos", "Soporte", "Garantías", "Registro", "General"];
