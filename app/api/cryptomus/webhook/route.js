@@ -135,7 +135,8 @@ export async function POST(req) {
             let supplierBalance = Infinity; // si falla la consulta, intentamos igual
             try {
               const b = await supplierGetBalance();
-              supplierBalance = parseFloat(b.primaryBalance ?? b.totalBalance ?? 0);
+              // Usamos totalBalance (primary + cashback) para no bloquear compras cuando el cashback alcanza
+              supplierBalance = parseFloat(b.totalBalance ?? b.primaryBalance ?? 0);
             } catch { /* no bloquear el flujo */ }
 
             const totalCostNeeded = itemsWithProduct.reduce((sum, i) => {

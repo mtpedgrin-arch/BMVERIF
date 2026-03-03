@@ -6829,13 +6829,14 @@ const AdminSupplierCatalog = () => {
           <div style={{ color: "var(--muted)", fontSize: 13 }}>⏳ Cargando saldo...</div>
         ) : balance && (
           <div className="stat-card" style={{ minWidth: 160 }}>
-            <div className="stat-label">💰 Saldo disponible</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: (balance.primaryBalance ?? 0) > 20 ? "var(--usdt)" : "var(--red)", margin: "4px 0 2px" }}>
-              ${(balance.primaryBalance ?? 0).toFixed(2)}
+            <div className="stat-label">💰 Saldo total disponible</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: (balance.totalBalance ?? balance.primaryBalance ?? 0) > 20 ? "var(--usdt)" : "var(--red)", margin: "4px 0 2px" }}>
+              ${(balance.totalBalance ?? balance.primaryBalance ?? 0).toFixed(2)}
             </div>
-            {(balance.cashbackBalance ?? 0) > 0 && (
-              <div style={{ fontSize: 11, color: "var(--muted)" }}>+${balance.cashbackBalance?.toFixed(2)} cashback</div>
-            )}
+            <div style={{ fontSize: 11, color: "var(--muted)" }}>
+              Principal: ${(balance.primaryBalance ?? 0).toFixed(2)}
+              {(balance.cashbackBalance ?? 0) > 0 && ` · Cashback: $${balance.cashbackBalance.toFixed(2)}`}
+            </div>
             <div style={{ fontSize: 11, color: "var(--muted)" }}>{balance.currency}</div>
           </div>
         )}

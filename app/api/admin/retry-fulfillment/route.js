@@ -43,7 +43,8 @@ export async function GET(req) {
   let balance = 0;
   try {
     const b = await supplierGetBalance();
-    balance = parseFloat(b.primaryBalance ?? b.totalBalance ?? 0);
+    // Usamos totalBalance (primary + cashback) para no bloquear compras cuando el cashback alcanza
+    balance = parseFloat(b.totalBalance ?? b.primaryBalance ?? 0);
   } catch { /* continuar igual */ }
 
   // Obtener items y productos
