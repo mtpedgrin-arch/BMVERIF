@@ -927,12 +927,12 @@ const ChatWidget = ({ user, open, onClose }) => {
   const endRef = useRef(null);
   const pollRef = useRef(null);
 
-  // Working hours: Mon–Fri 09:00–20:00 (local time)
+  // Working hours: Mon–Fri 08:00–23:00 (local time)
   const isOnline = () => {
     const now = new Date();
     const day = now.getDay(); // 0=Dom, 6=Sáb
     const hour = now.getHours();
-    return day >= 1 && day <= 5 && hour >= 9 && hour < 20;
+    return day >= 1 && day <= 5 && hour >= 8 && hour < 23;
   };
   const online = isOnline();
 
@@ -980,7 +980,7 @@ const ChatWidget = ({ user, open, onClose }) => {
             <div>
               <div className="agent-nm">Soporte</div>
               <div className="agent-st">{online ? "● En línea" : "● Fuera de horario"}</div>
-              <div className="chat-hours">Lun – Vie · 09:00 – 20:00</div>
+              <div className="chat-hours">Lun – Vie · 08:00 – 23:00</div>
             </div>
           </div>
           <button className="chat-x" onClick={onClose}>✕</button>
@@ -6039,7 +6039,7 @@ const FAQ_ITEMS = [
   ["¿Necesito una cuenta personal de Facebook?", "No es necesario asociar tu cuenta personal de Facebook al BM que adquirís. El BM viene listo para usar de forma independiente."],
   ["¿Cómo me registro en BM Verificada?", "Hacé clic en «Registrarse» en la barra superior, completá tu email y contraseña, y ya podés comenzar a comprar. No se requiere información adicional para el registro."],
   ["¿Qué pasa si Meta revoca la verificación?", "Aunque es poco frecuente, en caso de que Meta revoque la verificación de la cuenta adquirida dentro del período de soporte, nuestro equipo evaluará la situación y buscará la mejor solución para vos."],
-  ["¿Cómo contacto al soporte?", "Podés contactarnos por el chat interno del sitio (ícono 🎧 en la barra superior), por Telegram a @bmverificada_support o por email a soporte@bmverificada.com. El horario de atención es de lunes a viernes de 9 a 18 hs (GMT-3)."],
+  ["¿Cómo contacto al soporte?", "Podés contactarnos por el chat interno del sitio (ícono 🎧 en la barra superior). El horario de atención es de lunes a viernes de 8 a 23 hs (GMT-3)."],
 ];
 
 const FAQView = ({ onGoShop }) => {
