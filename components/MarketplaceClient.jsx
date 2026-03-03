@@ -3849,7 +3849,7 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
                       placeholder="Monto mín. $20 USDT"
                       value={topupAmount}
                       onChange={e => { setTopupAmount(e.target.value); setTopupMsg(null); }}
-                      style={{ flex: 1, padding: "9px 12px", borderRadius: 9, border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 14, outline: "none" }}
+                      style={{ flex: 1, padding: "9px 12px", borderRadius: 9, border: `1.5px solid ${topupAmount && parseFloat(topupAmount) < 20 ? "var(--red)" : "var(--border)"}`, background: "var(--bg)", color: "var(--text)", fontSize: 14, outline: "none" }}
                       min="20"
                       step="1"
                     />
@@ -3878,6 +3878,11 @@ const UserAccount = ({ user, userOrders, liked, onToggleLike, onGoShop, products
                       {topupLoading ? "..." : "Recargar →"}
                     </button>
                   </div>
+                  {topupAmount && parseFloat(topupAmount) < 20 && (
+                    <div style={{ fontSize: 12, color: "var(--red)", marginBottom: 6, fontWeight: 600 }}>
+                      ⚠ Carga mínima 20 USDT
+                    </div>
+                  )}
                   {topupMsg && (
                     <div style={{ fontSize: 12, color: topupMsg.ok ? "var(--green)" : "var(--red)", marginBottom: 8 }}>
                       {topupMsg.text}
