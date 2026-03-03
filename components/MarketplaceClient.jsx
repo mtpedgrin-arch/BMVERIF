@@ -1038,6 +1038,10 @@ const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSent, setForgotSent] = useState(false);
   const [verifyPending, setVerifyPending] = useState(false); // after register
+  // Fix: no cerrar el modal si el drag empezó adentro (ej: seleccionar texto en inputs)
+  const overlayMouseDown = useRef(false);
+  const handleOverlayMouseDown = (e) => { overlayMouseDown.current = e.target === e.currentTarget; };
+  const handleOverlayClick = () => { if (overlayMouseDown.current) onClose(); };
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSent, setResendSent] = useState(false);
   const [totpStep, setTotpStep] = useState(false);
@@ -1147,7 +1151,7 @@ const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
 
   // ── 2FA CODE STEP ──────────────────────────────────────────────────────────
   if (totpStep) return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div style={{ fontSize: 40, marginBottom: 10 }}>🔐</div>
         <div className="modal-title">Verificación en 2 pasos</div>
@@ -1185,7 +1189,7 @@ const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
 
   // ── VERIFY PENDING SCREEN (after register) ────────────────────────────────
   if (verifyPending) return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div style={{ fontSize: 40, marginBottom: 10 }}>📧</div>
         <div className="modal-title">¡Cuenta creada!</div>
@@ -1203,7 +1207,7 @@ const AuthModal = ({ onClose, onSuccess, initialTab = "login" }) => {
   const modalSub  = tab === "login" ? "Ingresá para continuar con tu compra" : tab === "register" ? "Registrate para poder comprar" : "Te enviaremos un enlace para restablecer tu contraseña";
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div style={{ fontSize: 32, marginBottom: 10 }}>{tab === "forgot" ? "🔐" : "🛒"}</div>
         <div className="modal-title">{modalTitle}</div>
