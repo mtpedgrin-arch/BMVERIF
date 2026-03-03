@@ -4,6 +4,20 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { trackEvent, trackCustom, initPixelWithUser } from "../lib/pixel";
 
+// ─── CATEGORÍAS DE PRODUCTOS ──────────────────────────────────────────────────
+// Única fuente de verdad para categorías en toda la app
+const PRODUCT_CATS = [
+  { key: "bm",               label: "BM Verificada",            icon: "🏢", color: "#D4AF37" },
+  { key: "bm-nacional",      label: "BM Nacional",              icon: "🇦🇷", color: "#74B9FF" },
+  { key: "bm-internacional", label: "BM Internacional",         icon: "🌎", color: "#6C5CE7" },
+  { key: "bm-credito",       label: "BM Línea de Crédito",      icon: "💳", color: "#00B894" },
+  { key: "bm-agencia",       label: "BM Agencia",               icon: "🏛", color: "#FDCB6E" },
+  { key: "ads-account",      label: "Cuenta Publicitaria",      icon: "📢", color: "#1877F2" },
+  { key: "ads-usa",          label: "Cuenta Ads USA",           icon: "🇺🇸", color: "#E17055" },
+  { key: "fan-page",         label: "Fan Page",                 icon: "📄", color: "#A29BFE" },
+  { key: "bm-balloon",       label: "BM Balloon",               icon: "🎈", color: "#9B7BFF" },
+];
+
 // ─── WALLETS ──────────────────────────────────────────────────────────────────
 const WALLETS = {
   TRC20: { addr: "TN3W4T6ATGBY9yGGxSUxxsLSzKWp1Aqbnk", network: "TRON (TRC20)", fee: "~1 USDT", time: "1–3 min", color: "#E84142", logo: "🔴" },
@@ -2468,11 +2482,7 @@ const CheckoutPage = ({ cart, onQty, onRemove, user, onGoShop, onSuccess, onShow
 
       {/* ── Productos recomendados ── */}
       {(() => {
-        const CATS = [
-          { key: "ads-account", label: "Cuentas Ads",       icon: "📢", color: "#1877F2" },
-          { key: "bm",          label: "Business Manager",  icon: "🏢", color: "#D4AF37" },
-          { key: "bm-balloon",  label: "BM Balloon",        icon: "🎈", color: "#9B7BFF" },
-        ];
+        const CATS = PRODUCT_CATS;
         const cartIds = new Set(cart.map(i => i.id));
         const recs = CATS.flatMap(cat => {
           const pool = products.filter(p => (p.category || "bm") === cat.key && !cartIds.has(p.id));
@@ -3040,11 +3050,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
   };
 
   const getThumb = (cat) => cat === "ads-account" ? (thumbs?.ads || "/facebook-verificado.png") : cat === "bm-balloon" ? (thumbs?.balloon || "/facebook-verificado.png") : (thumbs?.bm || "/facebook-verificado.png");
-  const CATS = [
-    { key: "ads-account", label: "Cuentas para Publicidad" },
-    { key: "bm-balloon", label: "BM Balloon" },
-    { key: "bm", label: "BMs Verificadas" },
-  ];
+  const CATS = PRODUCT_CATS;
   const visibleCats = activeCat === "all" ? CATS : CATS.filter(c => c.key === activeCat);
   const sortProds = arr => [...arr].sort((a, b) => {
     const effA = a.badgeDiscount > 0 ? a.price * (1 - a.badgeDiscount / 100) : a.price;
@@ -3058,8 +3064,9 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
       {featuredOpen && featuredProduct && (() => {
         const fp = featuredProduct;
         const sortedTiers = (fp.tiers || []).filter(t => t.qty > 0 && t.price > 0).sort((a, b) => a.qty - b.qty);
-        const catIcon = fp.category === "bm-balloon" ? "🎈" : fp.category === "ads-account" ? "📢" : "🏢";
-        const catLabel = fp.category === "bm-balloon" ? "BM Balloon" : fp.category === "ads-account" ? "Ads Account" : "Business Manager";
+        const catInfo = PRODUCT_CATS.find(c => c.key === fp.category) || PRODUCT_CATS[0];
+        const catIcon = catInfo.icon;
+        const catLabel = catInfo.label;
         return (
           <>
             <div className="featured-overlay" onClick={closeFeatured} />
@@ -4323,9 +4330,7 @@ const ProductManager = ({ products, setProducts }) => {
             <div className="form-group">
               <label className="form-label">Categoría</label>
               <select className="form-input" value={form.category} onChange={setF("category")}>
-                <option value="ads-account">Cuenta para Publicidad</option>
-                <option value="bm-balloon">BM Balloon</option>
-                <option value="bm">BM Verificada</option>
+                {PRODUCT_CATS.map(c => <option key={c.key} value={c.key}>{c.icon} {c.label}</option>)}
               </select>
             </div>
           </div>
@@ -6485,9 +6490,7 @@ const AdminSupplierCatalog = () => {
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label">Categoría</label>
               <select className="form-input" value={importForm.category} onChange={e => setImportForm(f => ({ ...f, category: e.target.value }))}>
-                <option value="bm">BM Verificada</option>
-                <option value="ads-account">Cuenta Ads</option>
-                <option value="bm-balloon">BM Balloon</option>
+                {PRODUCT_CATS.map(c => <option key={c.key} value={c.key}>{c.icon} {c.label}</option>)}
               </select>
             </div>
           </div>
@@ -6523,10 +6526,8 @@ const AdminSupplierCatalog = () => {
           </div>
           <div className="form-group" style={{ margin: 0 }}>
             <label className="form-label">Categoría</label>
-            <select className="form-input" value={bulkCategory} onChange={e => setBulkCat(e.target.value)} style={{ width: 140 }}>
-              <option value="bm">BM Verificada</option>
-              <option value="ads-account">Cuenta Ads</option>
-              <option value="bm-balloon">BM Balloon</option>
+            <select className="form-input" value={bulkCategory} onChange={e => setBulkCat(e.target.value)} style={{ width: 160 }}>
+              {PRODUCT_CATS.map(c => <option key={c.key} value={c.key}>{c.icon} {c.label}</option>)}
             </select>
           </div>
           <div className="form-group" style={{ margin: 0 }}>
