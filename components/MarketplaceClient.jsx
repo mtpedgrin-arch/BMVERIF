@@ -3447,6 +3447,7 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
                           {p.rating > 0 && <Stars rating={p.rating} reviews={p.reviews} />}
                           <span className="chip chip-stock">In Stock: <strong>{p.stock} pcs.</strong></span>
                           <span className="chip chip-sales">Sales: <strong>{p.sales} pcs.</strong></span>
+                          {(p.minQty ?? 1) > 1 && <span className="chip" style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444", fontWeight: 700 }}>Mín. {p.minQty} uds</span>}
                         </div>
                       </div>
                       <div className="prod-right">
@@ -7949,16 +7950,18 @@ export default function App() {
   const totalItems = cart.reduce((s, i) => s + i.qty, 0);
 
   const addToCart = p => {
+    const min = Math.max(1, p.minQty ?? 1);
     setCart(prev => {
       const idx = prev.findIndex(i => i.id === p.id);
       let next;
       if (idx === -1) {
         const base = p.basePrice ?? p.price;
-        next = [...prev, { ...p, basePrice: base, qty: 1 }];
+        next = [...prev, { ...p, basePrice: base, qty: min }];
       } else {
         // Also refresh tiers/cost from the live product so stale localStorage items get updated
+        const newQty = Math.max(prev[idx].qty + min, min);
         next = prev.map(i => i.id === p.id
-          ? { ...i, qty: i.qty + 1, tiers: p.tiers ?? i.tiers ?? [], basePrice: i.basePrice ?? p.price, cost: p.cost ?? i.cost ?? 0 }
+          ? { ...i, qty: newQty, tiers: p.tiers ?? i.tiers ?? [], basePrice: i.basePrice ?? p.price, cost: p.cost ?? i.cost ?? 0 }
           : i);
       }
       return rebalanceTiers(next);
@@ -7979,12 +7982,14 @@ export default function App() {
   };
   const removeFromCart = id => setCart(prev => rebalanceTiers(prev.filter(i => i.id !== id)));
   const addToCartQty = (p, qty) => {
+    const min = Math.max(1, p.minQty ?? 1);
+    const safeQty = Math.max(qty, min);
     setCart(prev => {
       const idx = prev.findIndex(i => i.id === p.id);
       const base = p.basePrice ?? p.price;
       const next = idx === -1
-        ? [...prev, { ...p, basePrice: base, qty }]
-        : prev.map(i => i.id === p.id ? { ...i, qty: i.qty + qty, tiers: p.tiers ?? i.tiers ?? [], basePrice: i.basePrice ?? base, cost: p.cost ?? i.cost ?? 0 } : i);
+        ? [...prev, { ...p, basePrice: base, qty: safeQty }]
+        : prev.map(i => i.id === p.id ? { ...i, qty: Math.max(i.qty + safeQty, min), tiers: p.tiers ?? i.tiers ?? [], basePrice: i.basePrice ?? base, cost: p.cost ?? i.cost ?? 0 } : i);
       return rebalanceTiers(next);
     });
     setLastAdded(p);

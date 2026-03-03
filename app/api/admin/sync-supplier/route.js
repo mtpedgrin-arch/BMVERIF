@@ -47,6 +47,17 @@ function getSubcat(titleEn) {
   return "other";
 }
 
+// Extrae la cantidad mínima de compra del producto del proveedor.
+// Intenta varios nombres de campo y luego busca "From X PCS" en el título.
+function extractMinQty(sp) {
+  const direct = parseInt(sp.minQty || sp.min_qty || sp.minOrder || sp.min_order || sp.minimum || 0);
+  if (direct > 1) return direct;
+  const title = sp.titleEn || sp.title || "";
+  const m = title.match(/[Ff]rom\s+(\d+)\s+[Pp][Cc][Ss]?/);
+  if (m) return Math.max(1, parseInt(m[1]));
+  return 1;
+}
+
 // Construye el array de tiers a partir del precio base y los porcentajes de descuento.
 // tierDisc5: % de descuento para 5 unidades (0 = sin tier)
 // tierDisc10: % de descuento para 10 unidades (0 = sin tier)
@@ -124,13 +135,14 @@ export async function POST(req) {
 
   // 3. Procesar cada producto del proveedor
   for (const sp of fbItems) {
-    const sid   = String(sp.id);
+    const sid    = String(sp.id);
     const subcat = getSubcat(sp.titleEn);
     const cost   = parseFloat(sp.priceUsd) || 0;
     const price  = parseFloat((cost * (1 + margin / 100)).toFixed(2));
     const stock  = parseInt(sp.qty) || 0;
     const name   = sp.titleEn || sp.title || `Producto #${sid}`;
     const tiers  = buildTiers(price, tierDisc5, tierDisc10);
+    const minQty = extractMinQty(sp);
     // Intentar varios nombres de campo para el conteo de ventas del proveedor
     const soldRaw = sp.sold ?? sp.totalSold ?? sp.soldCount ?? sp.total_sold ?? sp.qty_sold ?? sp.salesCount ?? null;
     const sales   = soldRaw !== null ? parseInt(soldRaw) || 0 : null; // null = no actualizar si no existe el campo
@@ -149,6 +161,7 @@ export async function POST(req) {
               cost,
               price,
               stock,
+              minQty,
               category: subcat,
               isActive: true,
               ...(hasTiers ? { tiers } : {}),
@@ -165,6 +178,7 @@ export async function POST(req) {
             cost,
             price,
             stock,
+            minQty,
             tiers,
             category:          subcat,
             supplierProductId: sid,

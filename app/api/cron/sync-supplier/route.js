@@ -4,9 +4,19 @@ import { supplierGetProducts } from "../../../../lib/npprteam";
 
 const CRON_SECRET = process.env.CRON_SECRET || "bmverif_cron_2026";
 
+// Extrae la cantidad mínima de compra del producto del proveedor.
+function extractMinQty(sp) {
+  const direct = parseInt(sp.minQty || sp.min_qty || sp.minOrder || sp.min_order || sp.minimum || 0);
+  if (direct > 1) return direct;
+  const title = sp.titleEn || sp.title || "";
+  const m = title.match(/[Ff]rom\s+(\d+)\s+[Pp][Cc][Ss]?/);
+  if (m) return Math.max(1, parseInt(m[1]));
+  return 1;
+}
+
 // GET /api/cron/sync-supplier?secret=<CRON_SECRET>
 // Configura en cron-job.org para que corra cada X horas.
-// Solo actualiza el STOCK de los productos ya importados — nunca toca precio, tiers ni nombre.
+// Actualiza STOCK y MINQTY de los productos ya importados — nunca toca precio, tiers ni nombre.
 // Si aparecen productos nuevos en el catálogo, los crea automáticamente.
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
@@ -39,15 +49,16 @@ export async function GET(req) {
   let errors       = 0;
 
   for (const sp of fbItems) {
-    const sid   = String(sp.id);
-    const stock = parseInt(sp.qty) || 0;
+    const sid    = String(sp.id);
+    const stock  = parseInt(sp.qty) || 0;
+    const minQty = extractMinQty(sp);
 
     try {
       if (existingMap.has(sid)) {
-        // Solo actualizar stock — nunca tocar precio, tiers, nombre ni categoría
+        // Actualizar stock y minQty — nunca tocar precio, tiers, nombre ni categoría
         await prisma.product.update({
           where: { id: existingMap.get(sid) },
-          data: { stock },
+          data: { stock, minQty },
         });
         stockUpdated++;
       } else {
@@ -60,6 +71,7 @@ export async function GET(req) {
             cost,
             price:             cost, // sin margen — el admin lo ajusta
             stock,
+            minQty,
             tiers:             [],
             category:          "other",
             supplierProductId: sid,

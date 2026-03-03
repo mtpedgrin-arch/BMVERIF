@@ -125,7 +125,7 @@ export async function POST(req) {
         if (itemsWithProduct.length > 0 && itemsWithProduct.length === orderItems.length) {
           const products = await prisma.product.findMany({
             where: { id: { in: itemsWithProduct.map(i => i.productId) } },
-            select: { id: true, supplierProductId: true },
+            select: { id: true, supplierProductId: true, minQty: true },
           });
           const productMap = Object.fromEntries(products.map(p => [p.id, p]));
           const allHaveSupplier = itemsWithProduct.every(i => productMap[i.productId]?.supplierProductId);
@@ -170,8 +170,9 @@ export async function POST(req) {
             let allCredentials = true;
 
             for (const item of itemsWithProduct) {
-              const spId = productMap[item.productId].supplierProductId;
-              const { ok, data } = await supplierCreateOrder(spId, item.qty);
+              const spId   = productMap[item.productId].supplierProductId;
+              const minQty = productMap[item.productId].minQty ?? 1;
+              const { ok, data } = await supplierCreateOrder(spId, Math.max(item.qty ?? 1, minQty));
 
               if (ok && data.orderId) {
                 supplierOrderIds.push(data.orderId);

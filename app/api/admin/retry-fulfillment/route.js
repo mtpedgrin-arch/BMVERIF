@@ -77,7 +77,7 @@ async function _runRetry(orderId) {
 
   const products = await prisma.product.findMany({
     where: { id: { in: itemsWithProduct.map(i => i.productId) } },
-    select: { id: true, supplierProductId: true, cost: true },
+    select: { id: true, supplierProductId: true, cost: true, minQty: true },
   });
   const productMap = Object.fromEntries(products.map(p => [p.id, p]));
   const allHaveSupplier = itemsWithProduct.every(i => productMap[i.productId]?.supplierProductId);
@@ -117,8 +117,9 @@ async function _runRetry(orderId) {
   let supplierOrderIds = [];
 
   for (const item of itemsWithProduct) {
-    const spId = productMap[item.productId].supplierProductId;
-    const { ok, data } = await supplierCreateOrder(spId, item.qty ?? 1);
+    const spId   = productMap[item.productId].supplierProductId;
+    const minQty = productMap[item.productId].minQty ?? 1;
+    const { ok, data } = await supplierCreateOrder(spId, Math.max(item.qty ?? 1, minQty));
     if (ok && data.orderId) {
       supplierOrderIds.push(data.orderId);
       const realItems = (data.items || []).filter(x => x && x !== "Please contact website admin");
