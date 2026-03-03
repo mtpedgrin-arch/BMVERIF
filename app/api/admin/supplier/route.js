@@ -20,9 +20,11 @@ function getSubcat(titleEn) {
     if (t.includes("agenc"))                                    return "bm-agency";
     if (t.includes("credit") || t.includes("line of credit") ||
         t.includes("crédito") || t.includes("credito"))         return "bm-credit";
-    // Solo "verified" si el título lo dice explícitamente
-    if (t.includes("verified") || t.includes("verificad"))     return "bm-verified";
-    return "bm-ads"; // BM para publicidad (no verificada)
+    // Solo "verified" en el sentido Meta (no "verified email/e-mail")
+    const hasVerified = t.includes("verified") || t.includes("verificad");
+    const hasEmail    = t.includes("email") || t.includes("e-mail") || t.includes("mail");
+    if (hasVerified && !hasEmail)                               return "bm-verified";
+    return "bm-ads"; // BM para publicidad (no verificada por Meta)
   }
   if (t.startsWith("facebook account") || t.startsWith("account facebook") ||
       t.startsWith("accounts facebook") || t.startsWith("usa facebook account")) {
