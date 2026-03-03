@@ -2,9 +2,20 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../lib/authOptions";
 import { prisma } from "../../../../lib/prisma";
-import OpenAI from "openai";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Usa fetch directo (sin SDK de OpenAI) igual que el resto del proyecto
+async function callOpenAI(messages) {
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({ model: "gpt-4o-mini", temperature: 0.2, messages }),
+  });
+  if (!res.ok) throw new Error(`OpenAI error: ${res.status}`);
+  const data = await res.json();
+  return data.choices[0]?.message?.content?.trim() || "";
+}
 
 // POST /api/admin/sync-descriptions
 // Body: { limit: 20, offset: 0, overwrite: false }
@@ -59,10 +70,7 @@ export async function POST(req) {
 
   let descriptions = [];
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.2,
-      messages: [
+    const raw = await callOpenAI([
         {
           role: "system",
           content: `Sos redactor de una tienda argentina que vende cuentas y herramientas de Facebook/Meta.
@@ -122,9 +130,8 @@ Respondé SOLO con un JSON array sin markdown:
           content: `Generá descripciones para estos ${products.length} productos:\n\n${productList}`,
         },
       ],
-    });
+    ]);
 
-    const raw = completion.choices[0]?.message?.content?.trim() || "[]";
     const jsonStr = raw
       .replace(/^```json\s*/i, "")
       .replace(/^```\s*/i, "")
