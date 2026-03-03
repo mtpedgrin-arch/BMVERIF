@@ -28,11 +28,11 @@ const PRODUCT_CATS = [
   { key: "bm-agency",         label: "BM Agencia",           icon: "🏛", color: "#FDCB6E", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: "business-managers" },
   { key: "bm-credit",         label: "BM Línea de Crédito",  icon: "💳", color: "#00B894", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: "business-managers" },
   // ── L2: Ads Accounts ───────────────────────────────────────────────────
-  { key: "ads-accounts",      label: "Ads Accounts",         icon: "📢", color: "#1877F2", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: null },
-  { key: "ads-usa",           label: "Ads USA",              icon: "🇺🇸", color: "#E17055", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: "ads-accounts" },
-  { key: "ads-general",       label: "Ads General",          icon: "🌐", color: "#60A5FA", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: "ads-accounts" },
+  { key: "ads-accounts",      label: "Cuentas para Publicidad", icon: "📢", color: "#1877F2", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: null },
+  { key: "ads-usa",           label: "Cuentas Ads · USA",       icon: "🇺🇸", color: "#E17055", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: "ads-accounts" },
+  { key: "ads-general",       label: "Cuentas Ads · General",   icon: "🌐", color: "#60A5FA", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: "ads-accounts" },
   // ── L2: Fan Pages ──────────────────────────────────────────────────────
-  { key: "fan-pages",         label: "Fan Pages",            icon: "📄", color: "#A29BFE", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: null },
+  { key: "fan-pages",         label: "Páginas de Fans",         icon: "📄", color: "#A29BFE", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: null },
   // ── L2: Cuentas Facebook ───────────────────────────────────────────────
   { key: "accounts",          label: "Cuentas Facebook",     icon: "👤", color: "#74B9FF", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: null },
   { key: "accounts-usa",      label: "Cuentas USA",          icon: "🇺🇸", color: "#E17055", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵", parent: "accounts" },
@@ -149,11 +149,33 @@ const css = `
   .sidebar-tree-row.active .tree-dot, .sidebar-tree-row.l3.active .tree-dot { background: var(--red); border-color: var(--red); }
   .tree-count { margin-left: auto; font-size: 11px; font-weight: 400; opacity: 0.45; }
   .tree-arrow { font-size: 10px; opacity: 0.45; }
+  /* ── Sidebar menú unificado (plataforma → L2 → L3 en un solo box) ── */
+  .sidebar-menu { background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .sidebar-plat-row { display: flex; align-items: center; gap: 10px; padding: 11px 14px; font-size: 12px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--text); background: var(--surface2); border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; transition: background .12s; }
+  .sidebar-plat-row:hover { background: rgba(217,43,43,0.06); }
+  .sidebar-plat-row.active { color: var(--red); }
+  .sidebar-plat-icon { font-size: 16px; line-height: 1; flex-shrink: 0; }
+  .sidebar-l2 { display: flex; align-items: center; gap: 9px; padding: 10px 14px; font-size: 13px; color: var(--muted); cursor: pointer; border-bottom: 1px solid var(--border); transition: background .11s; user-select: none; }
+  .sidebar-l2:last-child { border-bottom: none; }
+  .sidebar-l2:hover { background: rgba(217,43,43,0.06); color: var(--text); }
+  .sidebar-l2.open { color: var(--red); font-weight: 600; background: rgba(217,43,43,0.04); }
+  .sidebar-l2-dot { width: 9px; height: 9px; border-radius: 50%; border: 2px solid currentColor; flex-shrink: 0; transition: all .15s; }
+  .sidebar-l2.open .sidebar-l2-dot { background: var(--red); border-color: var(--red); }
+  .sidebar-arrow { font-size: 9px; margin-left: auto; opacity: .4; transition: transform .2s; }
+  .sidebar-l2.open .sidebar-arrow { transform: rotate(90deg); opacity: .7; }
+  .sidebar-l3 { display: flex; align-items: center; gap: 8px; padding: 8px 14px 8px 32px; font-size: 12px; color: var(--muted); cursor: pointer; border-bottom: 1px solid var(--border); transition: background .1s; user-select: none; }
+  .sidebar-l3:last-child { border-bottom: none; }
+  .sidebar-l3:hover { background: rgba(217,43,43,0.05); color: var(--text); }
+  .sidebar-l3.sel { background: rgba(217,43,43,0.09); color: var(--red); font-weight: 600; }
+  .sidebar-l3-dot { width: 6px; height: 6px; border-radius: 50%; border: 1.5px solid currentColor; flex-shrink: 0; }
+  .sidebar-l3.sel .sidebar-l3-dot { background: var(--red); border-color: var(--red); }
+  .sidebar-l3-count { margin-left: auto; font-size: 11px; font-weight: 400; opacity: .35; }
   @media (max-width: 760px) {
     .shop-with-sidebar { flex-direction: column; }
     .shop-sidebar-tree { width: 100%; position: static; }
     .sidebar-tree-box { display: none; }
     .sidebar-section { display: none; }
+    .sidebar-menu { display: none; }
   }
   .cat-section-title { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 12px; margin-top: 6px; padding-bottom: 10px; border-bottom: 1.5px solid var(--border); }
   .cat-section-badge { width: 30px; height: 30px; border-radius: 50%; background: #1877F2; display: flex; align-items: center; justify-Content: center; font-size: 14px; flex-shrink: 0; }
@@ -3310,68 +3332,73 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
           {/* ── SIDEBAR IZQUIERDO ── */}
           <div className="shop-sidebar-tree">
 
-            {/* Sección: Plataformas — solo las que tienen productos importados */}
+            {/* ── Menú unificado: Plataforma → L2 → L3 en un solo box ── */}
             {activePlatforms.length > 0 && (
-              <div className="sidebar-section">
-                <div className="sidebar-section-hdr">Plataformas</div>
+              <div className="sidebar-menu">
                 {activePlatforms.map(pl => (
-                  <div key={pl.key}
-                    className={`platform-list-row${activePlatform === pl.key ? " active" : ""}`}
-                    onClick={() => {
-                      if (activePlatform === pl.key) { setActivePlatform(null); setActiveL2(null); setActiveL3(null); }
-                      else { setActivePlatform(pl.key); setActiveL2(null); setActiveL3(null); }
-                    }}>
-                    <span className="pl-icon">{pl.fallback}</span>
-                    <span>{pl.label}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+                  <React.Fragment key={pl.key}>
+                    {/* Header de plataforma */}
+                    <div
+                      className={`sidebar-plat-row${activePlatform === pl.key ? " active" : ""}`}
+                      onClick={() => {
+                        if (activePlatform === pl.key) { setActivePlatform(null); setActiveL2(null); setActiveL3(null); }
+                        else { setActivePlatform(pl.key); setActiveL2(null); setActiveL3(null); }
+                      }}>
+                      <span className="sidebar-plat-icon">{pl.fallback}</span>
+                      <span>{pl.label}</span>
+                    </div>
 
-            {/* Sección: Árbol de categorías (colapsable, L2 → L3) */}
-            {L2withProds.length > 0 && (
-              <div className="sidebar-tree-box">
-                <div className="sidebar-tree-header">Categorías</div>
-                {L2withProds.map(l2 => {
-                  const l3s = L3ofL2(l2.key);
-                  const kids = childKeys(l2.key);
-                  const count = products.filter(p => p.category === l2.key || kids.includes(p.category)).length;
-                  const isOpen = activeL2 === l2.key;
-                  return (
-                    <React.Fragment key={l2.key}>
-                      <div
-                        className={`sidebar-tree-row${isOpen ? " active" : ""}`}
-                        onClick={() => { setActiveL2(isOpen ? null : l2.key); setActiveL3(null); }}>
-                        <div className="tree-dot" />
-                        <span>{l2.icon} {l2.label}</span>
-                        <span className="tree-count">{count}</span>
-                        {l3s.length > 0 && <span className="tree-arrow">{isOpen ? "▾" : "▸"}</span>}
-                      </div>
-                      {isOpen && l3s.length > 0 && (
-                        <div
-                          className={`sidebar-tree-row l3${!activeL3 ? " active" : ""}`}
-                          onClick={() => setActiveL3(null)}
-                          style={{ fontStyle: "italic" }}>
-                          <div className="tree-dot" />
-                          <span>Todos</span>
-                          <span className="tree-count">{count}</span>
-                        </div>
-                      )}
-                      {isOpen && l3s.map(l3 => {
-                        const l3count = products.filter(p => p.category === l3.key).length;
-                        return (
-                          <div key={l3.key}
-                            className={`sidebar-tree-row l3${activeL3 === l3.key ? " active" : ""}`}
-                            onClick={() => setActiveL3(activeL3 === l3.key ? null : l3.key)}>
-                            <div className="tree-dot" />
-                            <span>{l3.icon} {l3.label}</span>
-                            <span className="tree-count">{l3count}</span>
+                    {/* L2 bajo esta plataforma (solo si está activa) */}
+                    {activePlatform === pl.key && L2withProds.map(l2 => {
+                      const l3s = L3ofL2(l2.key);
+                      const kids = childKeys(l2.key);
+                      const count = products.filter(p => p.category === l2.key || kids.includes(p.category)).length;
+                      const isOpen = activeL2 === l2.key;
+                      return (
+                        <React.Fragment key={l2.key}>
+                          {/* Fila L2 */}
+                          <div
+                            className={`sidebar-l2${isOpen ? " open" : ""}`}
+                            onClick={() => { setActiveL2(isOpen ? null : l2.key); setActiveL3(null); }}>
+                            <div className="sidebar-l2-dot" />
+                            <span>{l2.label}</span>
+                            {l3s.length > 0
+                              ? <span className="sidebar-arrow">▶</span>
+                              : <span className="sidebar-l3-count">{count}</span>
+                            }
                           </div>
-                        );
-                      })}
-                    </React.Fragment>
-                  );
-                })}
+
+                          {/* L3 expandidos bajo este L2 */}
+                          {isOpen && (
+                            <>
+                              {/* Opción "Ver todos" */}
+                              <div
+                                className={`sidebar-l3${!activeL3 ? " sel" : ""}`}
+                                onClick={() => setActiveL3(null)}>
+                                <div className="sidebar-l3-dot" />
+                                <span style={{ fontStyle: "italic" }}>Todos</span>
+                                <span className="sidebar-l3-count">{count}</span>
+                              </div>
+                              {/* Subcategorías */}
+                              {l3s.map(l3 => {
+                                const l3count = products.filter(p => p.category === l3.key).length;
+                                return (
+                                  <div key={l3.key}
+                                    className={`sidebar-l3${activeL3 === l3.key ? " sel" : ""}`}
+                                    onClick={() => setActiveL3(activeL3 === l3.key ? null : l3.key)}>
+                                    <div className="sidebar-l3-dot" />
+                                    <span>{l3.icon} {l3.label}</span>
+                                    <span className="sidebar-l3-count">{l3count}</span>
+                                  </div>
+                                );
+                              })}
+                            </>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </React.Fragment>
+                ))}
               </div>
             )}
 
