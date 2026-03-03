@@ -5,17 +5,17 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import { trackEvent, trackCustom, initPixelWithUser } from "../lib/pixel";
 
 // ─── CATEGORÍAS DE PRODUCTOS ──────────────────────────────────────────────────
-// Única fuente de verdad para categorías en toda la app
+// Única fuente de verdad para categorías. platform agrupa el menú jerárquico.
 const PRODUCT_CATS = [
-  { key: "bm",               label: "BM Verificada",            icon: "🏢", color: "#D4AF37" },
-  { key: "bm-nacional",      label: "BM Nacional",              icon: "🇦🇷", color: "#74B9FF" },
-  { key: "bm-internacional", label: "BM Internacional",         icon: "🌎", color: "#6C5CE7" },
-  { key: "bm-credito",       label: "BM Línea de Crédito",      icon: "💳", color: "#00B894" },
-  { key: "bm-agencia",       label: "BM Agencia",               icon: "🏛", color: "#FDCB6E" },
-  { key: "ads-account",      label: "Cuenta Publicitaria",      icon: "📢", color: "#1877F2" },
-  { key: "ads-usa",          label: "Cuenta Ads USA",           icon: "🇺🇸", color: "#E17055" },
-  { key: "fan-page",         label: "Fan Page",                 icon: "📄", color: "#A29BFE" },
-  { key: "bm-balloon",       label: "BM Balloon",               icon: "🎈", color: "#9B7BFF" },
+  { key: "bm",               label: "BMs Verificadas",          icon: "🏢", color: "#D4AF37", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
+  { key: "bm-nacional",      label: "BMs Nacionales",           icon: "🇦🇷", color: "#74B9FF", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
+  { key: "bm-internacional", label: "BMs Internacionales",      icon: "🌎", color: "#6C5CE7", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
+  { key: "bm-credito",       label: "BM Línea de Crédito",      icon: "💳", color: "#00B894", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
+  { key: "bm-agencia",       label: "BM Agencia",               icon: "🏛", color: "#FDCB6E", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
+  { key: "ads-account",      label: "Cuentas para Publicidad",  icon: "📢", color: "#1877F2", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
+  { key: "ads-usa",          label: "Cuentas Ads USA",          icon: "🇺🇸", color: "#E17055", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
+  { key: "fan-page",         label: "Fan Pages",                icon: "📄", color: "#A29BFE", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
+  { key: "bm-balloon",       label: "BM Balloon",               icon: "🎈", color: "#9B7BFF", platform: "facebook", platformLabel: "Facebook", platformIcon: "🔵" },
 ];
 
 // ─── WALLETS ──────────────────────────────────────────────────────────────────
@@ -95,10 +95,12 @@ const css = `
   .shop-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .shop-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
   .shop-count { font-size: 13px; color: var(--muted); }
-  .cat-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
-  .cat-chip { display: flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 50px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); transition: all 0.15s; }
+  .cat-filter { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 18px; }
+  .cat-chip { display: flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 50px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); transition: all 0.15s; white-space: nowrap; }
   .cat-chip:hover { border-color: #1877F2; color: #1877F2; }
   .cat-chip.active { background: #1877F2; border-color: #1877F2; color: #fff; box-shadow: 0 2px 10px rgba(24,119,242,0.35); }
+  .cat-chip-sub { padding: 5px 12px; font-size: 12px; font-weight: 500; border-radius: 8px; }
+  .cat-chip-sub.active { background: #1877F2; border-color: #1877F2; color: #fff; }
   .cat-section-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 10px; margin-top: 4px; padding-bottom: 8px; border-bottom: 2px solid #1877F2; display: inline-block; }
   .product-list { display: flex; flex-direction: column; background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
   .product-row { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); transition: background 0.12s; }
@@ -3023,7 +3025,8 @@ const ProductDetailPage = ({ product: p, cart, onBack, onAddToCartQty, onBuyNowQ
 
 // ─── SHOP PAGE ────────────────────────────────────────────────────────────────
 const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike, products, onProductClick, thumbs }) => {
-  const [activeCat, setActiveCat] = useState("all");
+  const [activeCat, setActiveCat]           = useState("all");
+  const [expandedPlatforms, setExpandedPl]  = useState(new Set(["facebook"]));
   const getQty = id => cart.find(i => i.id === id)?.qty || 0;
 
   // ── Featured product modal (appears after 4s) ──
@@ -3051,7 +3054,23 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
 
   const getThumb = (cat) => cat === "ads-account" ? (thumbs?.ads || "/facebook-verificado.png") : cat === "bm-balloon" ? (thumbs?.balloon || "/facebook-verificado.png") : (thumbs?.bm || "/facebook-verificado.png");
   const CATS = PRODUCT_CATS;
-  const visibleCats = activeCat === "all" ? CATS : CATS.filter(c => c.key === activeCat);
+  // Solo mostrar categorías que tienen al menos 1 producto activo
+  const catsWithProducts = CATS.filter(c => products.some(p => (p.category || "bm") === c.key));
+  // visibleCats: "all" → todas, "platform:X" → todas las de esa plataforma, o clave específica
+  const visibleCats = activeCat === "all"
+    ? catsWithProducts
+    : activeCat.startsWith("platform:")
+      ? catsWithProducts.filter(c => c.platform === activeCat.replace("platform:", ""))
+      : catsWithProducts.filter(c => c.key === activeCat);
+  // Plataformas que tienen productos
+  const platformsWithProducts = [...new Map(
+    catsWithProducts.map(c => [c.platform, { platform: c.platform, label: c.platformLabel, icon: c.platformIcon }])
+  ).values()];
+  const togglePlatform = (pl) => setExpandedPl(prev => {
+    const next = new Set(prev);
+    next.has(pl) ? next.delete(pl) : next.add(pl);
+    return next;
+  });
   const sortProds = arr => [...arr].sort((a, b) => {
     const effA = a.badgeDiscount > 0 ? a.price * (1 - a.badgeDiscount / 100) : a.price;
     const effB = b.badgeDiscount > 0 ? b.price * (1 - b.badgeDiscount / 100) : b.price;
@@ -3189,10 +3208,55 @@ const ShopPage = ({ cart, onAddToCart, onBuyNow, onCartOpen, liked, onToggleLike
           <div className="shop-count">{totalVisible} productos</div>
         </div>
         <div className="cat-filter">
-          <button className={`cat-chip${activeCat === "all" ? " active" : ""}`} onClick={() => setActiveCat("all")}>Todo</button>
-          {CATS.map(c => (
-            <button key={c.key} className={`cat-chip${activeCat === c.key ? " active" : ""}`} onClick={() => setActiveCat(c.key)}>{c.label}</button>
-          ))}
+          {/* Botón "Todo" */}
+          <button
+            className={`cat-chip${activeCat === "all" ? " active" : ""}`}
+            onClick={() => setActiveCat("all")}
+          >
+            ▤ Todo
+          </button>
+
+          {/* Plataformas con sus subcategorías */}
+          {platformsWithProducts.map(({ platform, label, icon }) => {
+            const subcats = catsWithProducts.filter(c => c.platform === platform);
+            const expanded = expandedPlatforms.has(platform);
+            const platformActive = activeCat === `platform:${platform}` || subcats.some(c => c.key === activeCat);
+            return (
+              <div key={platform} style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-start", verticalAlign: "top" }}>
+                {/* Plataforma padre */}
+                <button
+                  className={`cat-chip${platformActive ? " active" : ""}`}
+                  style={{ display: "flex", alignItems: "center", gap: 5 }}
+                  onClick={() => {
+                    togglePlatform(platform);
+                    setActiveCat(`platform:${platform}`);
+                  }}
+                >
+                  {icon} {label}
+                  <span style={{ fontSize: 9, marginLeft: 2, opacity: 0.8 }}>{expanded ? "▲" : "▼"}</span>
+                </button>
+                {/* Subcategorías — solo si expandido */}
+                {expanded && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 4, marginLeft: 8, paddingLeft: 8, borderLeft: "2px solid var(--border)" }}>
+                    {subcats.map(c => {
+                      const count = products.filter(p => (p.category || "bm") === c.key).length;
+                      return (
+                        <button
+                          key={c.key}
+                          className={`cat-chip cat-chip-sub${activeCat === c.key ? " active" : ""}`}
+                          onClick={() => setActiveCat(c.key)}
+                          style={{ textAlign: "left", justifyContent: "flex-start" }}
+                        >
+                          {c.icon} {c.label}
+                          <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.6, fontWeight: 400 }}>({count})</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
         {products.length === 0 && (
           <div style={{ textAlign: "center", padding: "50px 20px", color: "var(--muted)" }}>
