@@ -6248,12 +6248,21 @@ const LegalPrivacy = () => (
 
 // ─── ADMIN SUPPLIER CATALOG ───────────────────────────────────────────────────
 const AdminSupplierCatalog = () => {
-  const [data, setData]         = useState(null);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState(null);
+  const [balance, setBalance]   = useState(null);
+  const [balanceLoading, setBL] = useState(true);
+  const [products, setProducts] = useState(null);
+  const [productsError, setPE]  = useState(null);
   const [search, setSearch]     = useState("");
   const [catFilter, setCat]     = useState("all");
-  const [importing, setImporting] = useState(null); // supplierProductId being imported
+
+  // Búsqueda manual por ID
+  const [lookupId, setLookupId]   = useState("");
+  const [lookupData, setLookupData] = useState(null);
+  const [lookupLoading, setLL]    = useState(false);
+  const [lookupError, setLookupErr] = useState(null);
+
+  // Importar
+  const [importing, setImporting] = useState(null);
   const [importForm, setImportForm] = useState({ name: "", price: "", cost: "", category: "bm" });
   const [importMsg, setImportMsg]   = useState(null);
   const [importSaving, setImportSaving] = useState(false);
@@ -6262,28 +6271,43 @@ const AdminSupplierCatalog = () => {
     fetch("/api/admin/supplier")
       .then(r => r.json())
       .then(d => {
-        if (d.error) setError(d.error);
-        else setData(d);
+        setBalance(d.balance || null);
+        setProducts(d.products || null);
+        setPE(d.productsError || null);
       })
-      .catch(() => setError("Error de red al conectar con el proveedor"))
-      .finally(() => setLoading(false));
+      .catch(() => setPE("Error de red al conectar con el proveedor"))
+      .finally(() => setBL(false));
   }, []);
 
-  const allCats = data ? [...new Set(data.products.map(p => p.category))].sort() : [];
-
-  const filtered = (data?.products || []).filter(p => {
+  const allCats = products ? [...new Set(products.map(p => p.category))].sort() : [];
+  const filtered = (products || []).filter(p => {
     const matchCat  = catFilter === "all" || p.category === catFilter;
     const matchSearch = !search || p.titleEn?.toLowerCase().includes(search.toLowerCase()) || String(p.id).includes(search);
     return matchCat && matchSearch;
   });
 
+  const doLookup = async () => {
+    if (!lookupId.trim()) return;
+    setLL(true); setLookupData(null); setLookupErr(null);
+    try {
+      const r = await fetch(`/api/admin/supplier?productId=${encodeURIComponent(lookupId.trim())}`);
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.data?.message || "Producto no encontrado");
+      setLookupData(d.data);
+    } catch (e) {
+      setLookupErr(e.message);
+    } finally {
+      setLL(false);
+    }
+  };
+
   const openImport = (p) => {
-    setImporting(p.id);
+    setImporting(p.id ?? lookupId.trim());
     setImportForm({
-      name: p.titleEn || "",
+      name: p.titleEn || p.title || "",
       price: "",
-      cost: String(p.priceUsd || ""),
-      category: p.category === "facebook" ? "bm" : p.category === "google" ? "ads-account" : "bm",
+      cost: String(p.priceUsd ?? p.price ?? ""),
+      category: "bm",
     });
     setImportMsg(null);
   };
@@ -6292,6 +6316,7 @@ const AdminSupplierCatalog = () => {
     if (!importForm.name.trim() || !importForm.price) { setImportMsg({ ok: false, text: "Nombre y precio de venta son obligatorios." }); return; }
     setImportSaving(true); setImportMsg(null);
     try {
+      const stockVal = products?.find(p => p.id === importing)?.qty ?? lookupData?.qty ?? 0;
       const res = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -6299,7 +6324,7 @@ const AdminSupplierCatalog = () => {
           name: importForm.name.trim(),
           price: parseFloat(importForm.price),
           cost: parseFloat(importForm.cost) || 0,
-          stock: filtered.find(p => p.id === importing)?.qty || 0,
+          stock: stockVal,
           category: importForm.category,
           supplierProductId: String(importing),
           tiers: [],
@@ -6308,8 +6333,8 @@ const AdminSupplierCatalog = () => {
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Error al importar");
-      setImportMsg({ ok: true, text: `✅ Producto importado correctamente (ID: ${result.id?.slice(-8)})` });
-      setTimeout(() => { setImporting(null); setImportMsg(null); }, 2500);
+      setImportMsg({ ok: true, text: `✅ Importado correctamente (ID interno: ${result.id?.slice(-8)})` });
+      setTimeout(() => { setImporting(null); setImportMsg(null); setLookupData(null); setLookupId(""); }, 2500);
     } catch (err) {
       setImportMsg({ ok: false, text: err.message });
     } finally {
@@ -6317,48 +6342,68 @@ const AdminSupplierCatalog = () => {
     }
   };
 
-  if (loading) return <div className="page" style={{ textAlign: "center", padding: "60px 0", color: "var(--muted)" }}>⏳ Conectando con el proveedor...</div>;
-  if (error)   return <div className="page"><div className="card" style={{ color: "var(--red)", padding: "20px" }}>❌ {error}</div></div>;
-
   return (
     <div className="page">
-      {/* Header */}
+      {/* Header + balance */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <div style={{ fontFamily: "Syne", fontSize: 20, fontWeight: 800 }}>🏪 Catálogo del Proveedor</div>
-          <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 3 }}>npprteam.shop · {filtered.length} productos</div>
+          <div style={{ fontFamily: "Syne", fontSize: 20, fontWeight: 800 }}>🏪 Proveedor · npprteam.shop</div>
+          <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 3 }}>Auto-fulfillment de órdenes pagas</div>
         </div>
-        {data?.balance && (
+        {balanceLoading ? (
+          <div style={{ color: "var(--muted)", fontSize: 13 }}>⏳ Cargando saldo...</div>
+        ) : balance && (
           <div className="stat-card" style={{ minWidth: 160 }}>
-            <div className="stat-label">💰 Saldo proveedor</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: data.balance.primaryBalance > 50 ? "var(--usdt)" : "var(--red)", margin: "4px 0 2px" }}>
-              ${data.balance.primaryBalance?.toFixed(2)}
+            <div className="stat-label">💰 Saldo disponible</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: (balance.primaryBalance ?? 0) > 20 ? "var(--usdt)" : "var(--red)", margin: "4px 0 2px" }}>
+              ${(balance.primaryBalance ?? 0).toFixed(2)}
             </div>
-            <div style={{ fontSize: 11, color: "var(--muted)" }}>{data.balance.currency}</div>
+            {(balance.cashbackBalance ?? 0) > 0 && (
+              <div style={{ fontSize: 11, color: "var(--muted)" }}>+${balance.cashbackBalance?.toFixed(2)} cashback</div>
+            )}
+            <div style={{ fontSize: 11, color: "var(--muted)" }}>{balance.currency}</div>
           </div>
         )}
       </div>
 
-      {/* Filters */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        <input
-          className="form-input"
-          placeholder="🔍 Buscar por nombre o ID..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ flex: "1 1 200px", maxWidth: 340 }}
-        />
-        <select className="form-input" value={catFilter} onChange={e => setCat(e.target.value)} style={{ width: "auto" }}>
-          <option value="all">Todas las categorías</option>
-          {allCats.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
+      {/* Búsqueda manual por ID */}
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-title">🔎 Buscar producto por ID</div>
+        <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 10 }}>
+          Ingresá el ID del producto desde <a href="https://npprteam.shop" target="_blank" rel="noopener" style={{ color: "var(--accent)" }}>npprteam.shop</a> para ver sus detalles e importarlo.
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input
+            className="form-input"
+            placeholder="Ej: 123"
+            value={lookupId}
+            onChange={e => setLookupId(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && doLookup()}
+            style={{ maxWidth: 160 }}
+          />
+          <button className="btn btn-primary" onClick={doLookup} disabled={lookupLoading || !lookupId.trim()}>
+            {lookupLoading ? "..." : "Buscar"}
+          </button>
+        </div>
+        {lookupError && <div style={{ marginTop: 8, color: "var(--red)", fontSize: 13 }}>❌ {lookupError}</div>}
+        {lookupData && !importing && (
+          <div style={{ marginTop: 12, background: "var(--surface2)", borderRadius: 8, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{lookupData.titleEn || lookupData.title}</div>
+              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 3 }}>
+                ID: {lookupData.id} · Precio: <strong style={{ color: "var(--usdt)" }}>${lookupData.priceUsd ?? lookupData.price}</strong> · Stock: <strong style={{ color: (lookupData.qty ?? 0) > 0 ? "var(--green)" : "var(--red)" }}>{lookupData.qty ?? "?"}</strong>
+              </div>
+            </div>
+            <button className="btn btn-primary btn-sm" onClick={() => openImport(lookupData)}>📥 Importar este producto</button>
+          </div>
+        )}
       </div>
 
       {/* Import form */}
       {importing && (
         <div className="card" style={{ marginBottom: 16, border: "2px solid var(--usdt)", background: "rgba(38,161,123,0.05)" }}>
-          <div className="card-title">📥 Importar producto — ID proveedor: {importing}</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: 10, alignItems: "end" }}>
+          <div className="card-title">📥 Importar producto — ID proveedor: <code style={{ color: "var(--purple)" }}>{importing}</code></div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
             <div className="form-group" style={{ margin: 0, gridColumn: "1 / -1" }}>
               <label className="form-label">Nombre en tu tienda</label>
               <input className="form-input" value={importForm.name} onChange={e => setImportForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej: BM Verificada · Facebook USA" />
@@ -6379,10 +6424,10 @@ const AdminSupplierCatalog = () => {
                 <option value="bm-balloon">BM Balloon</option>
               </select>
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button className="btn btn-primary" onClick={doImport} disabled={importSaving}>{importSaving ? "..." : "✓ Importar"}</button>
-              <button className="btn btn-outline" onClick={() => { setImporting(null); setImportMsg(null); }}>✕</button>
-            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <button className="btn btn-primary" onClick={doImport} disabled={importSaving}>{importSaving ? "Importando..." : "✓ Importar a mi tienda"}</button>
+            <button className="btn btn-outline" onClick={() => { setImporting(null); setImportMsg(null); }}>✕ Cancelar</button>
           </div>
           {importMsg && (
             <div style={{ marginTop: 10, fontSize: 13, color: importMsg.ok ? "var(--green)" : "var(--red)", fontWeight: 600 }}>{importMsg.text}</div>
@@ -6390,53 +6435,59 @@ const AdminSupplierCatalog = () => {
         </div>
       )}
 
-      {/* Product table */}
-      <div className="card">
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Producto</th>
-                <th>Categoría</th>
-                <th>Precio proveedor</th>
-                <th>Stock</th>
-                <th>Mín. orden</th>
-                <th>Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 && (
-                <tr><td colSpan={7} style={{ textAlign: "center", color: "var(--muted)", padding: "24px 0" }}>Sin resultados</td></tr>
-              )}
-              {filtered.map(p => (
-                <tr key={p.id} style={{ background: importing === p.id ? "rgba(38,161,123,0.06)" : undefined }}>
-                  <td><code style={{ fontSize: 11, color: "var(--purple)" }}>{p.id}</code></td>
-                  <td style={{ maxWidth: 300, fontSize: 12, lineHeight: 1.4 }}>{p.titleEn}</td>
-                  <td><span className="tag-network" style={{ textTransform: "capitalize" }}>{p.category}</span></td>
-                  <td><strong style={{ color: "var(--usdt)" }}>${p.priceUsd?.toFixed(2)}</strong></td>
-                  <td>
-                    <span style={{ color: p.qty > 10 ? "var(--green)" : p.qty > 0 ? "var(--amber)" : "var(--red)", fontWeight: 700 }}>
-                      {p.qty}
-                    </span>
-                  </td>
-                  <td style={{ color: "var(--muted)", fontSize: 12 }}>×{p.minimalOrder}</td>
-                  <td>
-                    <button
-                      className="btn btn-outline btn-sm"
-                      style={{ fontSize: 11, padding: "4px 10px" }}
-                      onClick={() => importing === p.id ? setImporting(null) : openImport(p)}
-                      disabled={p.qty === 0}
-                    >
-                      {importing === p.id ? "✕ Cancelar" : p.qty === 0 ? "Sin stock" : "📥 Importar"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Catálogo — si está disponible */}
+      {productsError ? (
+        <div className="card" style={{ background: "rgba(255,100,0,0.05)", border: "1px solid rgba(255,100,0,0.2)" }}>
+          <div style={{ fontSize: 13, color: "var(--muted)" }}>
+            ⚠️ El catálogo completo no está disponible ahora (error en npprteam.shop). Usá el buscador de arriba para encontrar productos por ID.
+          </div>
         </div>
-      </div>
+      ) : products && (
+        <>
+          <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+            <input
+              className="form-input"
+              placeholder="🔍 Buscar por nombre o ID..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ flex: "1 1 200px", maxWidth: 320 }}
+            />
+            <select className="form-input" value={catFilter} onChange={e => setCat(e.target.value)} style={{ width: "auto" }}>
+              <option value="all">Todas las categorías ({products.length})</option>
+              {allCats.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="card">
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>ID</th><th>Producto</th><th>Categoría</th><th>Precio proveedor</th><th>Stock</th><th>Acción</th></tr>
+                </thead>
+                <tbody>
+                  {filtered.length === 0 && (
+                    <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--muted)", padding: "24px 0" }}>Sin resultados</td></tr>
+                  )}
+                  {filtered.map(p => (
+                    <tr key={p.id}>
+                      <td><code style={{ fontSize: 11, color: "var(--purple)" }}>{p.id}</code></td>
+                      <td style={{ maxWidth: 280, fontSize: 12, lineHeight: 1.4 }}>{p.titleEn}</td>
+                      <td><span className="tag-network" style={{ textTransform: "capitalize" }}>{p.category}</span></td>
+                      <td><strong style={{ color: "var(--usdt)" }}>${p.priceUsd?.toFixed(2)}</strong></td>
+                      <td><span style={{ color: p.qty > 10 ? "var(--green)" : p.qty > 0 ? "var(--amber)" : "var(--red)", fontWeight: 700 }}>{p.qty}</span></td>
+                      <td>
+                        <button className="btn btn-outline btn-sm" style={{ fontSize: 11, padding: "4px 10px" }}
+                          onClick={() => importing === p.id ? setImporting(null) : openImport(p)} disabled={p.qty === 0}>
+                          {importing === p.id ? "✕" : p.qty === 0 ? "Sin stock" : "📥 Importar"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

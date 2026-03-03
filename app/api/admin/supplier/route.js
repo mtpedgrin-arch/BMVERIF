@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../lib/authOptions";
-import { supplierGetProducts, supplierGetBalance } from "../../../../lib/npprteam";
+import { supplierGetProducts, supplierGetBalance, supplierGetProduct } from "../../../../lib/npprteam";
 
-// GET /api/admin/supplier — lista productos + saldo del proveedor (admin only)
-export async function GET() {
+// GET /api/admin/supplier — saldo + productos del proveedor (admin only)
+export async function GET(req) {
   const session = await getServerSession(authOptions);
   if (session?.user?.role !== "admin") {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -17,21 +17,34 @@ export async function GET() {
     );
   }
 
-  try {
-    const [rawProducts, balance] = await Promise.all([
-      supplierGetProducts(),
-      supplierGetBalance(),
-    ]);
+  const { searchParams } = new URL(req.url);
+  const productId = searchParams.get("productId");
 
-    // Flatten: { category: [products] } → [{ ...product, category }]
-    const products = Object.entries(rawProducts).flatMap(([category, items]) =>
+  // Si se pide un producto individual por ID
+  if (productId) {
+    try {
+      const result = await supplierGetProduct(productId);
+      return NextResponse.json(result);
+    } catch (err) {
+      return NextResponse.json({ ok: false, data: { message: err.message } });
+    }
+  }
+
+  // Saldo + intentar catálogo (puede fallar)
+  const balance = await supplierGetBalance().catch(() => null);
+  let products = null;
+  let productsError = null;
+
+  try {
+    const rawProducts = await supplierGetProducts();
+    products = Object.entries(rawProducts).flatMap(([category, items]) =>
       Array.isArray(items)
         ? items.map(item => ({ ...item, category }))
         : []
     );
-
-    return NextResponse.json({ products, balance });
   } catch (err) {
-    return NextResponse.json({ error: err.message || "Error al conectar con el proveedor" }, { status: 502 });
+    productsError = err.message || "El catálogo no está disponible";
   }
+
+  return NextResponse.json({ products, productsError, balance });
 }
