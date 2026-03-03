@@ -20,7 +20,7 @@ export async function GET(req) {
   // Solo mostrar productos del proveedor (con supplierProductId)
   // Los productos manuales sin supplierProductId no aparecen en la tienda pública
   const products = await prisma.product.findMany({
-    where: { isActive: true, supplierProductId: { not: null } },
+    where: { isActive: true, supplierProductId: { not: null }, stock: { gt: 0 } },
     orderBy: { createdAt: "asc" },
   });
   return NextResponse.json(products);
