@@ -4194,7 +4194,7 @@ const AdminReviewPanel = ({ product, onClose, onRatingChange }) => {
 const ProductManager = ({ products, setProducts }) => {
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
-  const [form, setForm] = useState({ name: "", details: "", price: "", cost: "", stock: "", sales: "", tiers: [], category: "bm" });
+  const [form, setForm] = useState({ name: "", details: "", price: "", cost: "", stock: "", sales: "", tiers: [], category: "bm", supplierProductId: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [reviewProductId, setReviewProductId] = useState(null);
@@ -4202,14 +4202,14 @@ const ProductManager = ({ products, setProducts }) => {
 
   const openNew = () => {
     setEditProduct(null);
-    setForm({ name: "", details: "", price: "", cost: "", stock: "", sales: "", tiers: [], category: "bm" });
+    setForm({ name: "", details: "", price: "", cost: "", stock: "", sales: "", tiers: [], category: "bm", supplierProductId: "" });
     setError("");
     setShowForm(true);
   };
 
   const openEdit = (p) => {
     setEditProduct(p);
-    setForm({ name: p.name, details: p.details || "", price: p.price, cost: p.cost || "", stock: p.stock, sales: p.sales ?? "", tiers: Array.isArray(p.tiers) ? p.tiers.map(t => ({ qty: t.qty, price: t.price })) : [], category: p.category || "bm" });
+    setForm({ name: p.name, details: p.details || "", price: p.price, cost: p.cost || "", stock: p.stock, sales: p.sales ?? "", tiers: Array.isArray(p.tiers) ? p.tiers.map(t => ({ qty: t.qty, price: t.price })) : [], category: p.category || "bm", supplierProductId: p.supplierProductId || "" });
     setError("");
     setShowForm(true);
   };
@@ -4228,7 +4228,7 @@ const ProductManager = ({ products, setProducts }) => {
         .map(t => ({ qty: parseInt(t.qty), price: parseFloat(t.price) }))
         .filter(t => t.qty > 0 && t.price > 0)
         .sort((a, b) => a.qty - b.qty);
-      const body = { name: form.name, details: form.details, price: parseFloat(form.price), cost: parseFloat(form.cost) || 0, tiers: cleanTiers, stock: parseInt(form.stock) || 0, category: form.category || "bm", sales: parseInt(form.sales) || 0 };
+      const body = { name: form.name, details: form.details, price: parseFloat(form.price), cost: parseFloat(form.cost) || 0, tiers: cleanTiers, stock: parseInt(form.stock) || 0, category: form.category || "bm", sales: parseInt(form.sales) || 0, supplierProductId: form.supplierProductId?.trim() || null };
       if (editProduct) {
         res = await fetch(`/api/products/${editProduct.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       } else {
@@ -4327,6 +4327,19 @@ const ProductManager = ({ products, setProducts }) => {
                 <option value="bm-balloon">BM Balloon</option>
                 <option value="bm">BM Verificada</option>
               </select>
+            </div>
+          </div>
+
+          <div className="form-group" style={{ gridColumn: "1 / -1", marginTop: 4 }}>
+            <label className="form-label">🏪 ID Proveedor npprteam.shop</label>
+            <input
+              className="form-input"
+              value={form.supplierProductId}
+              onChange={setF("supplierProductId")}
+              placeholder="Ej: 260376 (dejar vacío si no aplica)"
+            />
+            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 3 }}>
+              Al configurar este ID, el producto se entregará automáticamente al cliente cuando pague. Consultá el catálogo en npprteam.shop para obtener el ID correcto.
             </div>
           </div>
 

@@ -71,6 +71,9 @@ export async function POST(req) {
       )
     `);
 
+    // Supplier integration: supplierProductId en Product
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "supplierProductId" TEXT`);
+
     return NextResponse.json({ ok: true, message: "Migrations applied successfully" });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });

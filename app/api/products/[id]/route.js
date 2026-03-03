@@ -23,6 +23,7 @@ export async function PATCH(req, { params }) {
   if (body.badgeDiscount != null) data.badgeDiscount = parseFloat(body.badgeDiscount) || 0;
   if (body.category != null) data.category = body.category;
   if (body.sales != null) data.sales = parseInt(body.sales) || 0;
+  if (body.supplierProductId !== undefined) data.supplierProductId = body.supplierProductId ? String(body.supplierProductId).trim() : null;
 
   const product = await prisma.product.update({ where: { id }, data });
   return NextResponse.json(product);

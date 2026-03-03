@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
-import { sendPaymentConfirmedEmail, sendReferralRewardEmail } from "../../../../lib/mailer";
+import { sendPaymentConfirmedEmail, sendReferralRewardEmail, sendDeliveryEmail } from "../../../../lib/mailer";
 import { sendCapiEvent } from "../../../../lib/metaCapi";
 import { sendTelegramOrderNotification } from "../../../../lib/telegram";
+import { supplierCreateOrder } from "../../../../lib/npprteam";
 import crypto from "crypto";
 
 async function handleReferralReward(order) {
@@ -109,15 +110,109 @@ export async function POST(req) {
       txHash: txRef,
     }).catch(() => {});
 
-    // Telegram: pago confirmado → notificar para ir a comprar al proveedor
-    const itemLines = Array.isArray(order.items)
-      ? order.items.map(i => `  • ${i.name} ×${i.qty ?? 1} — $${((i.price ?? 0) * (i.qty ?? 1)).toFixed(2)}`).join("\n")
+    // ── Auto-fulfillment via npprteam.shop ──────────────────────────────────
+    let autoFulfillStatus = null; // null | "delivered" | "partial" | "no_supplier"
+    let supplierOrderIds = [];
+
+    if (process.env.NPPRTEAM_API_KEY) {
+      try {
+        const orderItems = await prisma.orderItem.findMany({ where: { orderId: order.id } });
+        const itemsWithProduct = orderItems.filter(i => i.productId);
+
+        if (itemsWithProduct.length > 0 && itemsWithProduct.length === orderItems.length) {
+          const products = await prisma.product.findMany({
+            where: { id: { in: itemsWithProduct.map(i => i.productId) } },
+            select: { id: true, supplierProductId: true },
+          });
+          const productMap = Object.fromEntries(products.map(p => [p.id, p]));
+          const allHaveSupplier = itemsWithProduct.every(i => productMap[i.productId]?.supplierProductId);
+
+          if (allHaveSupplier) {
+            let deliveryParts = [];
+            let allCredentials = true;
+
+            for (const item of itemsWithProduct) {
+              const spId = productMap[item.productId].supplierProductId;
+              const { ok, data } = await supplierCreateOrder(spId, item.qty);
+
+              if (ok && data.orderId) {
+                supplierOrderIds.push(data.orderId);
+                const realItems = (data.items || []).filter(x => x && x !== "Please contact website admin");
+                if (realItems.length > 0) {
+                  deliveryParts.push(`📦 ${item.name}:\n${realItems.join("\n")}`);
+                } else {
+                  deliveryParts.push(`📦 ${item.name}:\n[Pedido proveedor #${data.orderId} — esperar accesos]`);
+                  allCredentials = false;
+                }
+              } else {
+                deliveryParts.push(`📦 ${item.name}:\n[Error proveedor: ${data.message || "desconocido"}]`);
+                allCredentials = false;
+              }
+            }
+
+            const deliveryContent = deliveryParts.join("\n\n---\n\n");
+
+            if (allCredentials) {
+              autoFulfillStatus = "delivered";
+              await prisma.order.update({
+                where: { id: order.id },
+                data: { deliveryContent, status: "delivered" },
+              });
+              await createNotification({
+                userEmail: order.userEmail,
+                type: "order_delivered",
+                title: "📦 ¡Tu pedido fue entregado!",
+                body: `#${order.id.slice(-8)} · Recibí tus accesos`,
+                orderId: order.id,
+              });
+              sendDeliveryEmail({
+                to: order.userEmail,
+                orderId: order.id,
+                productSummary: deliveryContent,
+              }).catch(() => {});
+              // Increment sales count
+              for (const item of itemsWithProduct) {
+                prisma.product.update({
+                  where: { id: item.productId },
+                  data: { sales: { increment: item.qty } },
+                }).catch(() => {});
+              }
+            } else {
+              autoFulfillStatus = "partial";
+              await prisma.order.update({
+                where: { id: order.id },
+                data: { deliveryContent },
+              });
+            }
+          } else {
+            autoFulfillStatus = "no_supplier";
+          }
+        } else {
+          autoFulfillStatus = "no_supplier";
+        }
+      } catch (fulfillErr) {
+        console.error("Auto-fulfillment error:", fulfillErr);
+        autoFulfillStatus = "error";
+      }
+    }
+    // ── End auto-fulfillment ─────────────────────────────────────────────────
+
+    // Telegram: adaptar mensaje según resultado del fulfillment
+    const orderItems2 = await prisma.orderItem.findMany({ where: { orderId: order.id } });
+    const itemLines = orderItems2.length > 0
+      ? orderItems2.map(i => `  • ${i.name} ×${i.qty ?? 1} — $${((i.price ?? 0) * (i.qty ?? 1)).toFixed(2)}`).join("\n")
       : "  • (sin detalle)";
     const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
     const discountLine = order.discount > 0
       ? `🏷️ Descuento: -$${order.discount.toFixed(2)}${order.coupon ? ` (${order.coupon})` : ""}\n` +
         `💲 Subtotal original: $${order.subtotal.toFixed(2)}\n`
       : "";
+    const fulfillLine =
+      autoFulfillStatus === "delivered" ? `✅ <b>AUTO-ENTREGADO</b> · Proveedor #${supplierOrderIds.join(", ")}\n` :
+      autoFulfillStatus === "partial"   ? `⚠️ <b>Comprado al proveedor #${supplierOrderIds.join(", ")} — entrega manual pendiente</b>\n` :
+      autoFulfillStatus === "no_supplier" ? `🔔 Sin proveedor configurado — <b>entregar manualmente</b>\n` :
+      autoFulfillStatus === "error"     ? `❌ Error en auto-fulfillment — <b>entregar manualmente</b>\n` :
+                                          `⚡️ <b>¡Ir a comprar al proveedor!</b>\n`;
     sendTelegramOrderNotification(
       `💰 <b>PAGO CONFIRMADO</b>\n\n` +
       `👤 <b>${order.userName || order.userEmail}</b>\n` +
@@ -128,7 +223,7 @@ export async function POST(req) {
       `🆔 Orden: #${order.id.slice(-8)}\n` +
       `🔗 Tx: ${txRef}\n` +
       `⏰ ${hora}\n\n` +
-      `⚡️ <b>¡Ir a comprar al proveedor!</b>`
+      fulfillLine
     ).catch(() => {});
 
     // CAPI Purchase event — incluye fbp/fbc guardados en la orden para mejor matching

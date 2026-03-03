@@ -51,11 +51,12 @@ model Product {
   sales     Int      @default(0)
   rating    Float    @default(0)
   reviews   Int      @default(0)
-  isActive      Boolean  @default(true)
-  badgeDiscount Float    @default(0)
-  category      String   @default("bm") // bm | ads-account
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  isActive           Boolean  @default(true)
+  badgeDiscount      Float    @default(0)
+  category           String   @default("bm") // bm | ads-account
+  supplierProductId  String?  // ID del producto en npprteam.shop para auto-fulfillment
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 model Order {
