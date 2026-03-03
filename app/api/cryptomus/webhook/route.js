@@ -132,28 +132,35 @@ export async function POST(req) {
 
           if (allHaveSupplier) {
             // ── Chequeo de saldo antes de comprar ────────────────────────────
-            let supplierBalance = Infinity; // si falla la consulta, intentamos igual
+            let supplierBalance = null; // null = no se pudo obtener
             try {
               const b = await supplierGetBalance();
               // Usamos totalBalance (primary + cashback) para no bloquear compras cuando el cashback alcanza
               supplierBalance = parseFloat(b.totalBalance ?? b.primaryBalance ?? 0);
-            } catch { /* no bloquear el flujo */ }
+            } catch { /* continuar con supplierBalance = null */ }
 
             const totalCostNeeded = itemsWithProduct.reduce((sum, i) => {
               return sum + (parseFloat(productMap[i.productId]?.cost || 0) * (i.qty ?? 1));
             }, 0);
 
-            if (supplierBalance < totalCostNeeded * 0.9) {
-              // Saldo insuficiente — alertar con botón de retry
+            // Si no se pudo obtener saldo o es insuficiente → alertar con botón de retry
+            const balanceInsufficient = supplierBalance !== null && supplierBalance < totalCostNeeded * 0.9;
+            const balanceUnknown     = supplierBalance === null;
+
+            if (balanceInsufficient || (balanceUnknown && totalCostNeeded > 0)) {
+              // Saldo insuficiente o no se pudo verificar — alertar con botón de retry
               autoFulfillStatus = "failed_balance";
               const retryUrl = `${BASE_URL}/api/admin/retry-fulfillment?orderId=${order.id}&secret=${CRON_SECRET}`;
+              const balanceText = balanceUnknown
+                ? `⚠️ No se pudo consultar saldo`
+                : `💰 Saldo disponible: <b>$${supplierBalance.toFixed(2)}</b>`;
               sendTelegramOrderWithButton(
-                `🚨 <b>SALDO INSUFICIENTE — Fulfillment pendiente</b>\n\n` +
+                `🚨 <b>${balanceUnknown ? "ERROR AL VERIFICAR SALDO" : "SALDO INSUFICIENTE"} — Fulfillment pendiente</b>\n\n` +
                 `🆔 Orden: #${order.id.slice(-8)}\n` +
                 `👤 ${order.userName || order.userEmail}\n` +
-                `💰 Saldo disponible: <b>$${supplierBalance.toFixed(2)}</b>\n` +
+                balanceText + `\n` +
                 `🛒 Costo estimado: <b>$${totalCostNeeded.toFixed(2)}</b>\n\n` +
-                `Recargá el saldo en npprteam.shop y presioná el botón.`,
+                `${balanceUnknown ? "Verificá la API key de npprteam y el saldo, luego" : "Recargá el saldo en npprteam.shop y"} presioná el botón.`,
                 "✅ Saldo cargado · Reintentar ahora",
                 retryUrl
               ).catch(() => {});
@@ -225,6 +232,17 @@ export async function POST(req) {
       } catch (fulfillErr) {
         console.error("Auto-fulfillment error:", fulfillErr);
         autoFulfillStatus = "error";
+        // Mandar botón de retry también en caso de error inesperado
+        const retryUrl = `${BASE_URL}/api/admin/retry-fulfillment?orderId=${order.id}&secret=${CRON_SECRET}`;
+        sendTelegramOrderWithButton(
+          `❌ <b>ERROR EN AUTO-FULFILLMENT</b>\n\n` +
+          `🆔 Orden: #${order.id.slice(-8)}\n` +
+          `👤 ${order.userName || order.userEmail}\n` +
+          `⚠️ Error: ${fulfillErr?.message || "desconocido"}\n\n` +
+          `Revisá la API key de npprteam y el saldo, luego presioná el botón.`,
+          "🔄 Reintentar fulfillment",
+          retryUrl
+        ).catch(() => {});
       }
     }
     // ── End auto-fulfillment ─────────────────────────────────────────────────
