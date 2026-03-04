@@ -1,0 +1,15 @@
+{
+  "name": "bmveri-watcher",
+  "version": "1.0.0",
+  "description": "Auto-fulfillment dropshipping watcher para BM Verificada",
+  "main": "watcher.js",
+  "scripts": {
+    "start": "node watcher.js",
+    "install-browsers": "npx playwright install chromium"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.0",
+    "pg": "^8.11.0",
+    "playwright": "^1.44.0"
+  }
+}
