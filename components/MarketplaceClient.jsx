@@ -650,11 +650,14 @@ const css = `
   .pd-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; line-height: 1.3; margin-bottom: 10px; letter-spacing: -0.3px; }
   .pd-meta-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
   .pd-section-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 7px; }
-  .pd-attrs { display: flex; flex-direction: column; border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
-  .pd-attr-row { display: grid; grid-template-columns: 140px 1fr; border-bottom: 1px solid var(--border); }
-  .pd-attr-row:last-child { border-bottom: none; }
-  .pd-attr-key { padding: 9px 13px; font-size: 12px; font-weight: 600; color: var(--muted); background: var(--bg); }
-  .pd-attr-val { padding: 9px 13px; font-size: 13px; font-weight: 500; }
+  .pd-attrs { display: grid; grid-template-columns: 1fr 1fr; border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 14px; }
+  .pd-attr-row { display: flex; flex-direction: column; padding: 7px 11px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); gap: 1px; }
+  .pd-attr-row:nth-child(even) { border-right: none; }
+  .pd-attr-row.pd-attr-full { grid-column: 1 / -1; border-right: none; }
+  .pd-attr-row:last-child, .pd-attr-row:nth-last-child(2):nth-child(odd) { border-bottom: none; }
+  .pd-attr-row.pd-attr-full:last-child { border-bottom: none; }
+  .pd-attr-key { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .pd-attr-val { font-size: 12.5px; font-weight: 600; color: var(--text); line-height: 1.4; }
   .pd-tier-table { border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
   .pd-tier-head { background: var(--bg); display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 8px 13px; border-bottom: 1px solid var(--border); }
   .pd-tier-head span { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
@@ -705,7 +708,6 @@ const css = `
   .app.dark .product-detail-page { background: var(--bg); }
   .app.dark .pd-thumb-large { background: linear-gradient(145deg, #0e3a86 0%, #092261 100%); border-color: var(--border); }
   .app.dark .pd-attrs { border-color: var(--border); }
-  .app.dark .pd-attr-key { background: var(--bg); }
   .app.dark .pd-attr-row { border-color: var(--border); }
   .app.dark .pd-tier-table { border-color: var(--border); }
   .app.dark .pd-tier-head { background: var(--bg); border-color: var(--border); }
@@ -2992,7 +2994,7 @@ const ProductDetailPage = ({ product: p, cart, onBack, onAddToCartQty, onBuyNowQ
               <div className="pd-section-label">Características</div>
               <div className="pd-attrs">
                 {attrs.map((a, i) => (
-                  <div key={i} className="pd-attr-row">
+                  <div key={i} className={`pd-attr-row${a.val.length > 40 ? " pd-attr-full" : ""}`}>
                     <div className="pd-attr-key">{a.key}</div>
                     <div className="pd-attr-val">{a.val}</div>
                   </div>
