@@ -118,12 +118,12 @@ export async function POST(req) {
     return NextResponse.json({ error: "El proveedor devolvió 0 productos." }, { status: 502 });
   }
 
-  // 2. Traer todos nuestros productos que tienen supplierProductId
+  // 2. Traer todos nuestros productos (con y sin supplierProductId)
   const existingProducts = await prisma.product.findMany({
-    where: { supplierProductId: { not: null } },
-    select: { id: true, supplierProductId: true },
+    select: { id: true, supplierProductId: true, name: true },
   });
-  const existingMap = new Map(existingProducts.map(p => [p.supplierProductId, p.id]));
+  const existingMap  = new Map(existingProducts.filter(p => p.supplierProductId).map(p => [p.supplierProductId, p.id]));
+  const existingByName = new Map(existingProducts.map(p => [p.name.trim().toLowerCase(), p.id]));
 
   // IDs del proveedor en el catálogo actual
   const supplierIds = new Set(fbItems.map(p => String(p.id)));
@@ -148,14 +148,15 @@ export async function POST(req) {
     const sales   = soldRaw !== null ? parseInt(soldRaw) || 0 : null; // null = no actualizar si no existe el campo
 
     try {
-      if (existingMap.has(sid)) {
+      // Buscar por supplierProductId primero, luego por nombre (evita duplicados)
+      const existingId = existingMap.get(sid) || existingByName.get(name.trim().toLowerCase());
+
+      if (existingId) {
         if (onlyNew) {
-          // Modo "solo nuevos" — no tocar los ya importados
           skipped++;
         } else {
-          // Actualizar precio, stock, costo. Solo tiers si el admin los configuró.
           await prisma.product.update({
-            where: { id: existingMap.get(sid) },
+            where: { id: existingId },
             data: {
               name,
               cost,
@@ -163,6 +164,7 @@ export async function POST(req) {
               stock,
               minQty,
               category: subcat,
+              supplierProductId: sid, // asignar si faltaba
               isActive: true,
               ...(hasTiers ? { tiers } : {}),
               ...(sales !== null ? { sales } : {}),
