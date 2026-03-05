@@ -23,8 +23,9 @@ const NPPRTEAM_API_KEY  = process.env.NPPRTEAM_API_KEY  || "";
 const NPPRTEAM_EMAIL    = process.env.NPPRTEAM_EMAIL    || "";
 const NPPRTEAM_PASSWORD = process.env.NPPRTEAM_PASSWORD || "";
 
-// Red para fondear npprteam: "TRC20" (TRON) o "BEP20" (BSC)
-const TOPUP_NETWORK     = (process.env.TOPUP_NETWORK || "BEP20").toUpperCase();
+// Red para fondear npprteam: "TRC20" (TRON) — npprteam solo acepta TRC20
+// BEP20 disponible si en el futuro cambiás de proveedor
+const TOPUP_NETWORK     = (process.env.TOPUP_NETWORK || "TRC20").toUpperCase();
 
 // TRC20 (TRON)
 const TRON_PRIVATE_KEY  = process.env.TRON_PRIVATE_KEY  || "";
