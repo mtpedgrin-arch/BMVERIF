@@ -2,34 +2,27 @@
  * BM Verificada — Dropshipping Watcher
  * ──────────────────────────────────────────────────────────────────────────────
  * Corre en tu PC 24/7. Cada 30 segundos revisa si hay órdenes pagas sin
- * entregar. Si el saldo de npprteam es insuficiente, fondea automáticamente
- * usando Playwright + Cryptomus Payout, y luego compra y entrega al cliente.
+ * entregar. Si el saldo alcanza, compra al proveedor y entrega automáticamente.
+ * Si el saldo es insuficiente, manda alerta Telegram con botón de retry.
  *
  * Setup: ver README.md
  */
 
 require("dotenv").config();
-const { chromium } = require("playwright");
-const { Pool }     = require("pg");
-const crypto       = require("crypto");
+const { Pool } = require("pg");
 
 // ── Config ────────────────────────────────────────────────────────────────────
-const NPPRTEAM_BASE      = "https://npprteam.shop/api/shop";
-const NPPRTEAM_SITE      = "https://npprteam.shop";
-const NPPRTEAM_API_KEY   = process.env.NPPRTEAM_API_KEY   || "";
-const NPPRTEAM_EMAIL     = process.env.NPPRTEAM_EMAIL     || "";
-const NPPRTEAM_PASSWORD  = process.env.NPPRTEAM_PASSWORD  || "";
+const NPPRTEAM_BASE    = "https://npprteam.shop/api/shop";
+const NPPRTEAM_API_KEY = process.env.NPPRTEAM_API_KEY || "";
 
-const CRYPTOMUS_MERCHANT = process.env.CRYPTOMUS_MERCHANT_UUID || "";
-const CRYPTOMUS_API_KEY  = process.env.CRYPTOMUS_API_KEY  || "";
+const BASE_URL         = process.env.NEXTAUTH_URL || "https://bmverificada.space";
+const CRON_SECRET      = process.env.CRON_SECRET  || "bmverif_cron_2026";
 
-const TELEGRAM_TOKEN     = process.env.TELEGRAM_BOT_TOKEN || "";
-const TELEGRAM_CHAT_ID   = process.env.TELEGRAM_ORDERS_CHAT_ID || process.env.TELEGRAM_CHAT_ID || "";
+const TELEGRAM_TOKEN   = process.env.TELEGRAM_BOT_TOKEN || "";
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_ORDERS_CHAT_ID || process.env.TELEGRAM_CHAT_ID || "";
 
-const DEPOSIT_BUFFER     = parseFloat(process.env.DEPOSIT_BUFFER || "10"); // $extra por encima del costo
-const POLL_INTERVAL_MS   = 30_000;  // revisar cada 30 segundos
-const BALANCE_POLL_MS    = 20_000;  // esperar 20s entre chequeos de balance
-const BALANCE_MAX_WAIT   = 18;      // máx 18 intentos = 6 minutos
+const DEPOSIT_BUFFER   = parseFloat(process.env.DEPOSIT_BUFFER || "10"); // $extra para el cálculo del aviso
+const POLL_INTERVAL_MS = 30_000; // revisar cada 30 segundos
 
 // ── DB ────────────────────────────────────────────────────────────────────────
 const pool = new Pool({
@@ -43,10 +36,6 @@ const processing = new Set(); // evita procesar la misma orden dos veces
 function log(msg) {
   const t = new Date().toLocaleTimeString("es-AR", { hour12: false });
   console.log(`[${t}] ${msg}`);
-}
-
-function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms));
 }
 
 function nid() {
@@ -91,151 +80,25 @@ async function supplierCreateOrder(productId, qty) {
   return { ok: res.ok, data };
 }
 
-// ── Cryptomus Payout ──────────────────────────────────────────────────────────
-function cryptomusSign(body) {
-  const json = JSON.stringify(body);
-  const b64  = Buffer.from(json).toString("base64");
-  return crypto.createHash("md5").update(b64 + CRYPTOMUS_API_KEY).digest("hex");
-}
-
-async function cryptomusPayout(address, amount, refId) {
-  const body = {
-    amount:      String(parseFloat(amount).toFixed(2)),
-    currency:    "USDT",
-    order_id:    `watcher_${refId}_${Date.now()}`,
-    address,
-    is_subtract: false,
-    network:     "TRON",
-  };
-  const res = await fetch("https://api.cryptomus.com/v1/payout", {
-    method:  "POST",
-    headers: {
-      "Content-Type": "application/json",
-      merchant: CRYPTOMUS_MERCHANT,
-      sign:     cryptomusSign(body),
-    },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (!res.ok || data.state !== 0) {
-    throw new Error(data.message || `Cryptomus payout error ${res.status}`);
-  }
-  return data;
-}
-
-// ── Playwright: depósito en npprteam ─────────────────────────────────────────
-async function npprteamDeposit(amount) {
-  log(`🎭 Playwright: abriendo npprteam para depositar $${amount.toFixed(2)}...`);
-  const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext();
-  const page    = await context.newPage();
-
+// ── Telegram con botón inline ─────────────────────────────────────────────────
+async function telegramWithButton(msg, buttonText, buttonUrl) {
+  if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT_ID) return;
   try {
-    // ── 1. Login ────────────────────────────────────────────────────────────
-    await page.goto(`${NPPRTEAM_SITE}/en/login`, { waitUntil: "networkidle", timeout: 30_000 });
-
-    if (page.url().includes("/login")) {
-      // Completar login
-      await page.locator("input[type='email'], input[name='email'], #email").fill(NPPRTEAM_EMAIL);
-      await page.locator("input[type='password'], input[name='password'], #password").fill(NPPRTEAM_PASSWORD);
-      await page.locator("button[type='submit'], button:has-text('Log'), button:has-text('Sign')").first().click();
-      await page.waitForURL(url => !url.includes("/login"), { timeout: 15_000 });
-      log("✅ Login OK en npprteam");
-    } else {
-      log("✅ Ya había sesión activa en npprteam");
-    }
-
-    // ── 2. Ir a la página de balance/depósito ────────────────────────────────
-    await page.goto(`${NPPRTEAM_SITE}/en/profile/balance`, { waitUntil: "networkidle", timeout: 30_000 });
-
-    // ── 3. Llenar monto ──────────────────────────────────────────────────────
-    const amountInput = page.locator("input[placeholder*='Amount' i], input[placeholder*='amount' i], input[name='amount']").first();
-    await amountInput.fill(String(Math.ceil(amount)));
-    log(`   Monto ingresado: $${Math.ceil(amount)}`);
-
-    // ── 4. Seleccionar USDT TRC20 ────────────────────────────────────────────
-    // Abrir el dropdown de método de pago si existe
-    const methodDropdown = page.locator("[class*='select'], [class*='dropdown'], [class*='payment-method']").first();
-    if (await methodDropdown.count() > 0) {
-      await methodDropdown.click();
-      await sleep(500);
-    }
-    // Click en la opción USDT TRC20
-    await page.locator("text=USDT TRC20").first().click();
-    log("   Método USDT TRC20 seleccionado");
-    await sleep(500);
-
-    // ── 5. Aceptar términos (checkbox) ───────────────────────────────────────
-    const checkbox = page.locator("input[type='checkbox']").first();
-    if (await checkbox.count() > 0) {
-      const checked = await checkbox.isChecked();
-      if (!checked) await checkbox.check();
-      log("   Checkbox de términos aceptado");
-    }
-
-    // ── 6. Click Continue ────────────────────────────────────────────────────
-    await page.locator("button:has-text('Continue'), button[type='submit']").first().click();
-    await page.waitForLoadState("networkidle", { timeout: 20_000 });
-    log("   Página de pago cargada");
-
-    // ── 7. Extraer wallet address + monto exacto ─────────────────────────────
-    const bodyText = await page.locator("body").innerText();
-
-    // Dirección TRON: empieza con T, 34 caracteres
-    const addressMatch = bodyText.match(/T[A-Za-z0-9]{33}/);
-    // Monto exacto: número con decimales (ej: 65.0076)
-    const amountMatches = [...bodyText.matchAll(/(\d+\.\d{2,6})/g)];
-    const exactAmount = amountMatches
-      .map(m => parseFloat(m[1]))
-      .find(v => v > amount * 0.5 && v < amount * 3); // razonable respecto al monto
-
-    // Fallback: buscar en inputs readonly (campos de copia)
-    let address = addressMatch ? addressMatch[0] : null;
-    if (!address) {
-      const inputs = await page.locator("input[readonly], [class*='copy']").all();
-      for (const el of inputs) {
-        const val = (await el.inputValue().catch(() => "")) ||
-                    (await el.innerText().catch(() => ""));
-        if (/^T[A-Za-z0-9]{33}$/.test(val.trim())) {
-          address = val.trim();
-          break;
-        }
-      }
-    }
-
-    if (!address || !exactAmount) {
-      // Guardar screenshot para debug
-      await page.screenshot({ path: "deposit-debug.png" });
-      throw new Error(
-        `No se pudo extraer wallet o monto. address=${address}, amount=${exactAmount}. ` +
-        `Ver deposit-debug.png para debug.`
-      );
-    }
-
-    log(`✅ Depósito creado → Wallet: ${address} | Monto exacto: ${exactAmount} USDT`);
-    return { address, exactAmount };
-
-  } finally {
-    await browser.close();
-  }
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id:      TELEGRAM_CHAT_ID,
+        text:         msg,
+        parse_mode:   "HTML",
+        reply_markup: {
+          inline_keyboard: [[{ text: buttonText, url: buttonUrl }]],
+        },
+      }),
+    });
+  } catch { /* no bloquear */ }
 }
 
-// ── Esperar que el balance se acredite ────────────────────────────────────────
-async function waitForBalance(needed, attempt = 0) {
-  if (attempt >= BALANCE_MAX_WAIT) {
-    throw new Error(
-      `Timeout: npprteam no acreditó el saldo en ${(BALANCE_MAX_WAIT * BALANCE_POLL_MS / 60_000).toFixed(1)} minutos`
-    );
-  }
-  const bal = await getSupplierBalance();
-  if (bal >= needed) {
-    log(`✅ Balance acreditado: $${bal.toFixed(2)} (necesitaba $${needed.toFixed(2)})`);
-    return bal;
-  }
-  log(`⏳ Balance: $${bal.toFixed(2)} / necesito $${needed.toFixed(2)} — intento ${attempt + 1}/${BALANCE_MAX_WAIT}`);
-  await sleep(BALANCE_POLL_MS);
-  return waitForBalance(needed, attempt + 1);
-}
 
 // ── Notificación in-app ───────────────────────────────────────────────────────
 async function createNotification({ userEmail, type, title, body, orderId }) {
@@ -311,39 +174,27 @@ async function fulfillOrder(order) {
     let balance = await getSupplierBalance();
     log(`   💰 Saldo npprteam: $${balance.toFixed(2)}`);
 
-    // 5. Fondear si es necesario
+    // 5. Verificar saldo — si no alcanza, alertar y esperar recarga manual
     if (balance < totalCost) {
-      const needed = totalCost + DEPOSIT_BUFFER;
-      log(`   💸 Saldo insuficiente → iniciando fondeo de $${needed.toFixed(2)}...`);
+      const needed = (totalCost + DEPOSIT_BUFFER).toFixed(2);
+      log(`   ⚠️ Saldo insuficiente ($${balance.toFixed(2)} < $${totalCost.toFixed(2)}) — esperando recarga manual`);
 
-      await telegram(
-        `♻️ <b>AUTO-FONDEO INICIADO</b>\n\n` +
+      const retryUrl = `${BASE_URL}/api/admin/retry-fulfillment?orderId=${order.id}&secret=${CRON_SECRET}`;
+
+      await telegramWithButton(
+        `⚠️ <b>SALDO INSUFICIENTE EN NPPRTEAM</b>\n\n` +
         `🆔 Orden: #${order.id.slice(-8)}\n` +
         `👤 ${order.userName} (${order.userEmail})\n` +
         `💰 Saldo actual: <b>$${balance.toFixed(2)}</b>\n` +
         `🛒 Costo orden: <b>$${totalCost.toFixed(2)}</b>\n` +
-        `💸 Depositando: <b>$${needed.toFixed(2)}</b> USDT\n` +
-        `⏳ Esperando confirmación blockchain...`
+        `💸 Necesitás recargar al menos <b>$${needed}</b> en npprteam\n\n` +
+        `👇 Una vez recargado, tocá el botón para entregar automáticamente:`,
+        "✅ Recargué · Entregar ahora",
+        retryUrl
       );
 
-      // Playwright → crear depósito en npprteam
-      const { address, exactAmount } = await npprteamDeposit(needed);
-
-      // Cryptomus Payout → enviar USDT
-      log(`   💸 Enviando $${exactAmount} USDT a ${address} via Cryptomus...`);
-      await cryptomusPayout(address, exactAmount, order.id);
-      log(`   ✅ Payout enviado. Esperando acreditación en npprteam...`);
-
-      await telegram(
-        `💸 <b>PAYOUT ENVIADO</b>\n` +
-        `${exactAmount} USDT → <code>${address}</code>\n` +
-        `⏳ Esperando que npprteam acredite (~3-6 min)...`
-      );
-
-      // Esperar que el balance se actualice
-      balance = await waitForBalance(totalCost);
-
-      await telegram(`✅ <b>Saldo acreditado:</b> $${balance.toFixed(2)} — comprando al proveedor...`);
+      // La orden queda en "paid" sin deliveryContent — retry-fulfillment la procesa cuando el admin toca el botón
+      return;
     }
 
     // 6. Comprar al proveedor
@@ -474,17 +325,12 @@ async function main() {
   log("╔══════════════════════════════════════════════╗");
   log("║   BM Verificada — Dropshipping Watcher       ║");
   log("╚══════════════════════════════════════════════╝");
-  log(`Buffer extra: $${DEPOSIT_BUFFER} | Intervalo: ${POLL_INTERVAL_MS / 1000}s`);
-  log(`Balance poll: cada ${BALANCE_POLL_MS / 1000}s, máx ${BALANCE_MAX_WAIT} intentos`);
+  log(`Buffer aviso: $${DEPOSIT_BUFFER} | Intervalo: ${POLL_INTERVAL_MS / 1000}s`);
 
-  // Validar config
+  // Validar config mínima
   const missing = [];
-  if (!process.env.DATABASE_URL)        missing.push("DATABASE_URL");
-  if (!NPPRTEAM_API_KEY)                missing.push("NPPRTEAM_API_KEY");
-  if (!NPPRTEAM_EMAIL)                  missing.push("NPPRTEAM_EMAIL");
-  if (!NPPRTEAM_PASSWORD)               missing.push("NPPRTEAM_PASSWORD");
-  if (!CRYPTOMUS_MERCHANT)              missing.push("CRYPTOMUS_MERCHANT_UUID");
-  if (!CRYPTOMUS_API_KEY)               missing.push("CRYPTOMUS_API_KEY");
+  if (!process.env.DATABASE_URL) missing.push("DATABASE_URL");
+  if (!NPPRTEAM_API_KEY)         missing.push("NPPRTEAM_API_KEY");
 
   if (missing.length > 0) {
     log(`\n❌ Faltan variables de entorno: ${missing.join(", ")}`);
