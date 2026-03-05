@@ -14,6 +14,7 @@ require("dotenv").config();
 const { chromium } = require("playwright");
 const { Pool }     = require("pg");
 const TronWeb      = require("tronweb");
+const { ethers }   = require("ethers");
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const NPPRTEAM_BASE     = "https://npprteam.shop/api/shop";
@@ -22,8 +23,17 @@ const NPPRTEAM_API_KEY  = process.env.NPPRTEAM_API_KEY  || "";
 const NPPRTEAM_EMAIL    = process.env.NPPRTEAM_EMAIL    || "";
 const NPPRTEAM_PASSWORD = process.env.NPPRTEAM_PASSWORD || "";
 
+// Red para fondear npprteam: "TRC20" (TRON) o "BEP20" (BSC)
+const TOPUP_NETWORK     = (process.env.TOPUP_NETWORK || "BEP20").toUpperCase();
+
+// TRC20 (TRON)
 const TRON_PRIVATE_KEY  = process.env.TRON_PRIVATE_KEY  || "";
-const USDT_CONTRACT     = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"; // USDT TRC20 mainnet
+const USDT_TRC20        = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+
+// BEP20 (BSC) — fee ~$0.10, mucho más barato que TRC20
+const EVM_PRIVATE_KEY   = process.env.EVM_PRIVATE_KEY   || "";
+const USDT_BEP20        = "0x55d398326f99059fF775485246999027B3197955"; // USDT en BSC
+const BSC_RPC           = "https://bsc-dataseed1.binance.org";
 
 const BASE_URL          = process.env.NEXTAUTH_URL || "https://bmverificada.space";
 const CRON_SECRET       = process.env.CRON_SECRET  || "bmverif_cron_2026";
@@ -112,26 +122,40 @@ async function supplierCreateOrder(productId, qty) {
   return { ok: res.ok, data };
 }
 
-// ── TronWeb: envío directo USDT TRC20 (soporta 6 decimales exactos) ───────────
+// ── Envío USDT directo — TRC20 (TronWeb) o BEP20 (ethers/BSC) ────────────────
 async function sendUSDTDirect(toAddress, amountUSDT) {
-  const tronWeb = new TronWeb({
-    fullHost:   "https://api.trongrid.io",
-    privateKey: TRON_PRIVATE_KEY,
-  });
+  if (TOPUP_NETWORK === "BEP20") return sendUSDTBEP20(toAddress, amountUSDT);
+  return sendUSDTTRC20(toAddress, amountUSDT);
+}
 
-  // USDT TRC20 tiene 6 decimales — convertimos sin perder precisión
-  // Ej: 10.012340 USDT → 10_012_340 units (entero exacto, sin redondeo bancario)
+// TRC20 via TronWeb — fee ~$1-2, necesita TRX en la wallet
+async function sendUSDTTRC20(toAddress, amountUSDT) {
+  const tronWeb = new TronWeb({ fullHost: "https://api.trongrid.io", privateKey: TRON_PRIVATE_KEY });
+  // USDT TRC20 = 6 decimales → entero exacto, sin redondeo bancario
   const amountUnits = Math.round(parseFloat(amountUSDT) * 1_000_000);
-  log(`   🔑 TronWeb: enviando ${amountUSDT} USDT (${amountUnits} units) → ${toAddress}`);
-
-  const contract = await tronWeb.contract().at(USDT_CONTRACT);
+  log(`   🔑 TRC20: ${amountUSDT} USDT (${amountUnits} units) → ${toAddress}`);
+  const contract = await tronWeb.contract().at(USDT_TRC20);
   const txId = await contract.transfer(toAddress, amountUnits).send({
-    feeLimit:           30_000_000, // 30 TRX máx de fee de red (~$1-2)
-    shouldPollResponse: false,
+    feeLimit: 30_000_000, shouldPollResponse: false,
   });
-
-  log(`   ✅ TX enviada: ${txId}`);
+  log(`   ✅ TX TRC20: ${txId}`);
   return txId;
+}
+
+// BEP20 via ethers/BSC — fee ~$0.10, necesita BNB en la wallet
+async function sendUSDTBEP20(toAddress, amountUSDT) {
+  const provider = new ethers.JsonRpcProvider(BSC_RPC);
+  const wallet   = new ethers.Wallet(EVM_PRIVATE_KEY, provider);
+  const usdt     = new ethers.Contract(USDT_BEP20, [
+    "function transfer(address to, uint256 amount) returns (bool)",
+  ], wallet);
+  // ethers.parseUnits mantiene precisión exacta para cualquier cantidad de decimales
+  const amountUnits = ethers.parseUnits(String(amountUSDT), 18);
+  log(`   🔑 BEP20: ${amountUSDT} USDT → ${toAddress}`);
+  const tx = await usdt.transfer(toAddress, amountUnits);
+  await tx.wait(1); // 1 confirmación BSC (~3 segundos)
+  log(`   ✅ TX BEP20: ${tx.hash}`);
+  return tx.hash;
 }
 
 // ── Playwright: obtener wallet y monto exacto de npprteam ─────────────────────
@@ -163,14 +187,15 @@ async function npprteamGetDepositInfo(amount) {
     await amountInput.fill(String(Math.ceil(amount)));
     log(`   Monto ingresado: $${Math.ceil(amount)}`);
 
-    // 4. Seleccionar USDT TRC20 ────────────────────────────────────────────────
+    // 4. Seleccionar red de pago ───────────────────────────────────────────────
+    const networkLabel = TOPUP_NETWORK === "BEP20" ? "USDT BEP20" : "USDT TRC20";
     const methodDropdown = page.locator("[class*='select'], [class*='dropdown'], [class*='payment-method']").first();
     if (await methodDropdown.count() > 0) {
       await methodDropdown.click();
       await sleep(500);
     }
-    await page.locator("text=USDT TRC20").first().click();
-    log("   USDT TRC20 seleccionado");
+    await page.locator(`text=${networkLabel}`).first().click();
+    log(`   ${networkLabel} seleccionado`);
     await sleep(500);
 
     // 5. Aceptar términos ──────────────────────────────────────────────────────
@@ -186,34 +211,42 @@ async function npprteamGetDepositInfo(amount) {
     // 7. Extraer wallet address + monto exacto ─────────────────────────────────
     const bodyText = await page.locator("body").innerText();
 
-    // Dirección TRON: T + 33 chars alfanuméricos
-    const addressMatch = bodyText.match(/T[A-Za-z0-9]{33}/);
+    // Detectar dirección según red:
+    // TRC20 → empieza con T, 34 chars  |  BEP20 → empieza con 0x, 42 chars
+    const addrRegex = TOPUP_NETWORK === "BEP20"
+      ? /0x[a-fA-F0-9]{40}/
+      : /T[A-Za-z0-9]{33}/;
+    const addrFallbackTest = TOPUP_NETWORK === "BEP20"
+      ? (v) => /^0x[a-fA-F0-9]{40}$/.test(v.trim())
+      : (v) => /^T[A-Za-z0-9]{33}$/.test(v.trim());
+
+    const addrMatch = bodyText.match(addrRegex);
 
     // Monto exacto con decimales (ej: 65.0076)
     const amountMatches = [...bodyText.matchAll(/(\d+\.\d{2,6})/g)];
-    const exactAmount = amountMatches
+    const exactAmount   = amountMatches
       .map(m => parseFloat(m[1]))
       .find(v => v > amount * 0.5 && v < amount * 3);
 
     // Fallback: buscar en inputs readonly
-    let address = addressMatch ? addressMatch[0] : null;
+    let address = addrMatch ? addrMatch[0] : null;
     if (!address) {
       const inputs = await page.locator("input[readonly], [class*='copy']").all();
       for (const el of inputs) {
         const val = (await el.inputValue().catch(() => "")) || (await el.innerText().catch(() => ""));
-        if (/^T[A-Za-z0-9]{33}$/.test(val.trim())) { address = val.trim(); break; }
+        if (addrFallbackTest(val)) { address = val.trim(); break; }
       }
     }
 
     if (!address || !exactAmount) {
       await page.screenshot({ path: "deposit-debug.png" });
       throw new Error(
-        `No se pudo extraer wallet o monto. address=${address}, amount=${exactAmount}. ` +
-        `Ver deposit-debug.png`
+        `No se pudo extraer wallet/monto [${networkLabel}]. ` +
+        `address=${address}, amount=${exactAmount}. Ver deposit-debug.png`
       );
     }
 
-    log(`   ✅ Depósito listo → ${address} | Monto exacto: ${exactAmount} USDT`);
+    log(`   ✅ Depósito listo [${networkLabel}] → ${address} | Monto exacto: ${exactAmount} USDT`);
     return { address, exactAmount };
 
   } finally {
@@ -467,14 +500,16 @@ async function main() {
   log("╔══════════════════════════════════════════════╗");
   log("║   BM Verificada — Dropshipping Watcher       ║");
   log("╚══════════════════════════════════════════════╝");
-  log(`Buffer depósito: $${DEPOSIT_BUFFER} | Intervalo: ${POLL_INTERVAL_MS / 1000}s`);
+  log(`Red fondeo: ${TOPUP_NETWORK} | Min balance: $${MIN_BALANCE} | Objetivo: $${TOPUP_TARGET} | Intervalo: ${POLL_INTERVAL_MS / 1000}s`);
 
   const missing = [];
   if (!process.env.DATABASE_URL) missing.push("DATABASE_URL");
   if (!NPPRTEAM_API_KEY)         missing.push("NPPRTEAM_API_KEY");
   if (!NPPRTEAM_EMAIL)           missing.push("NPPRTEAM_EMAIL");
   if (!NPPRTEAM_PASSWORD)        missing.push("NPPRTEAM_PASSWORD");
-  if (!TRON_PRIVATE_KEY)         missing.push("TRON_PRIVATE_KEY");
+  // Validar la clave de la red elegida
+  if (TOPUP_NETWORK === "BEP20" && !EVM_PRIVATE_KEY)  missing.push("EVM_PRIVATE_KEY");
+  if (TOPUP_NETWORK === "TRC20" && !TRON_PRIVATE_KEY) missing.push("TRON_PRIVATE_KEY");
 
   if (missing.length > 0) {
     log(`\n❌ Faltan variables de entorno: ${missing.join(", ")}`);
