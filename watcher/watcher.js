@@ -31,10 +31,14 @@ const CRON_SECRET       = process.env.CRON_SECRET  || "bmverif_cron_2026";
 const TELEGRAM_TOKEN    = process.env.TELEGRAM_BOT_TOKEN || "";
 const TELEGRAM_CHAT_ID  = process.env.TELEGRAM_ORDERS_CHAT_ID || process.env.TELEGRAM_CHAT_ID || "";
 
-const DEPOSIT_BUFFER    = parseFloat(process.env.DEPOSIT_BUFFER || "10"); // $extra sobre el costo
-const POLL_INTERVAL_MS  = 30_000;  // revisar cada 30 segundos
-const BALANCE_POLL_MS   = 20_000;  // esperar 20s entre chequeos de balance npprteam
-const BALANCE_MAX_WAIT  = 18;      // máx 18 intentos = 6 minutos
+// Cuándo disparar recarga: si el saldo baja de este monto, recarga aunque pueda cubrir la orden
+const MIN_BALANCE      = parseFloat(process.env.MIN_BALANCE   || "30");  // recargar cuando balance < $30
+// A cuánto dejar el saldo después de recargar (cubre muchas órdenes de una sola vez)
+const TOPUP_TARGET     = parseFloat(process.env.TOPUP_TARGET  || "100"); // dejar $100 en npprteam
+
+const POLL_INTERVAL_MS = 30_000;  // revisar cada 30 segundos
+const BALANCE_POLL_MS  = 20_000;  // esperar 20s entre chequeos de balance npprteam
+const BALANCE_MAX_WAIT = 18;      // máx 18 intentos = 6 minutos
 
 // ── DB ────────────────────────────────────────────────────────────────────────
 const pool = new Pool({
@@ -302,37 +306,40 @@ async function fulfillOrder(order) {
     let balance = await getSupplierBalance();
     log(`   💰 Saldo npprteam: $${balance.toFixed(2)}`);
 
-    // 5. Fondear si es necesario (TronWeb — exactitud 6 decimales)
-    if (balance < totalCost) {
-      const needed = totalCost + DEPOSIT_BUFFER;
-      log(`   💸 Saldo insuficiente → fondeando $${needed.toFixed(2)} via TronWeb...`);
+    // 5. Fondear si es necesario — en lotes para amortizar el fee TRC20
+    // Recarga cuando: no alcanza para la orden  O  el balance bajó del mínimo operativo
+    const needsTopup = balance < totalCost || balance < MIN_BALANCE;
+    if (needsTopup) {
+      // Depositar lo necesario para llegar a TOPUP_TARGET
+      // Ej: balance=$5, totalCost=$8.60, TOPUP_TARGET=$100 → depositar $95
+      const depositAmount = Math.max(totalCost - balance, TOPUP_TARGET - balance);
+      log(`   💸 Recargando npprteam: depositar $${depositAmount.toFixed(2)} (saldo actual $${balance.toFixed(2)}, objetivo $${TOPUP_TARGET})`);
 
       await telegram(
-        `♻️ <b>AUTO-FONDEO INICIADO</b>\n\n` +
+        `♻️ <b>AUTO-RECARGA NPPRTEAM</b>\n\n` +
         `🆔 Orden: #${order.id.slice(-8)}\n` +
         `👤 ${order.userName} (${order.userEmail})\n` +
         `💰 Saldo actual: <b>$${balance.toFixed(2)}</b>\n` +
-        `🛒 Costo: <b>$${totalCost.toFixed(2)}</b>\n` +
-        `💸 Depositando: <b>$${needed.toFixed(2)}</b> USDT\n` +
+        `🛒 Costo esta orden: <b>$${totalCost.toFixed(2)}</b>\n` +
+        `💸 Depositando: <b>$${depositAmount.toFixed(2)}</b> USDT (objetivo: $${TOPUP_TARGET})\n` +
         `⏳ Abriendo npprteam...`
       );
 
-      // Playwright → wallet address + monto exacto con decimales
-      const { address, exactAmount } = await npprteamGetDepositInfo(needed);
+      // Playwright → wallet address + monto exacto con todos sus decimales
+      const { address, exactAmount } = await npprteamGetDepositInfo(depositAmount);
 
-      // TronWeb → envío directo con 6 decimales de precisión
-      log(`   💸 Enviando ${exactAmount} USDT a ${address} via TronWeb...`);
+      // TronWeb → envío directo con 6 decimales de precisión (sin redondeo)
+      log(`   💸 Enviando ${exactAmount} USDT → ${address} via TronWeb...`);
       const txId = await sendUSDTDirect(address, exactAmount);
-      log(`   ✅ TX enviada. Esperando que npprteam acredite...`);
 
       await telegram(
         `💸 <b>USDT ENVIADO</b>\n` +
         `${exactAmount} USDT → <code>${address}</code>\n` +
         `🔗 TX: <code>${txId}</code>\n` +
-        `⏳ Esperando acreditación (~3-6 min)...`
+        `⏳ Esperando acreditación en npprteam (~3-6 min)...`
       );
 
-      // Esperar que el balance se actualice en npprteam
+      // Esperar que npprteam acredite el saldo
       balance = await waitForBalance(totalCost);
       await telegram(`✅ <b>Saldo acreditado:</b> $${balance.toFixed(2)} — comprando al proveedor...`);
     }
